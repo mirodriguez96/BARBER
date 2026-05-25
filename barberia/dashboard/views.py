@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 
+from barberia.accounts.models import User
 from barberia.people.models import Employee
 from barberia.catalog.models import CatalogItem
 from barberia.operations.models import ServiceRecord
@@ -109,6 +110,14 @@ def home(request):
             service_record = get_object_or_404(
                 ServiceRecord, pk=request.POST.get("service_record_id")
             )
+            if (
+                request.user.role != User.Role.ADMIN
+                and service_record.barber.user_id != request.user.pk
+            ):
+                messages.error(
+                    request, "No tienes permiso para modificar este servicio."
+                )
+                return redirect(f"{request.path}?section=services&view=list")
             form = ServiceRecordEditForm(
                 request.POST, instance=service_record, user=request.user
             )
@@ -149,6 +158,14 @@ def home(request):
             and quick_view == "edit"
             and service_record_to_edit is not None
         ):
+            if (
+                request.user.role != User.Role.ADMIN
+                and service_record_to_edit.barber.user_id != request.user.pk
+            ):
+                messages.error(
+                    request, "No tienes permiso para modificar este servicio."
+                )
+                return redirect(f"{request.path}?section=services&view=list")
             form = ServiceRecordEditForm(
                 instance=service_record_to_edit, user=request.user
             )
@@ -162,6 +179,9 @@ def home(request):
     service_list = ServiceRecord.objects.select_related(
         "client", "barber", "service", "performed_by"
     ).order_by("-scheduled_for")
+
+    if request.user.role != User.Role.ADMIN:
+        service_list = service_list.filter(barber__user=request.user)
 
     filtered_service_list = service_list
     if filter_date == "today":

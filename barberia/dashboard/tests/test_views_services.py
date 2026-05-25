@@ -228,3 +228,128 @@ class ServiceDashboardViewsTest(TestCase):
         services = response.context["services"]
         self.assertIsNotNone(services)
         self.assertLessEqual(len(list(services)), 10)
+
+
+class ServiceBarberoAccessTest(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username="admin",
+            password="pass1234",
+            role=User.Role.ADMIN,
+        )
+        self.barbero_user = User.objects.create_user(
+            username="barbero1",
+            password="pass1234",
+            role=User.Role.BARBERO,
+        )
+        self.other_user = User.objects.create_user(
+            username="barbero2",
+            password="pass1234",
+            role=User.Role.BARBERO,
+        )
+        self.barbero_emp = Employee.objects.create(
+            user=self.barbero_user,
+            full_name="Barbero Uno",
+            document_id="DOC010",
+            phone="70000010",
+        )
+        self.other_emp = Employee.objects.create(
+            user=self.other_user,
+            full_name="Barbero Dos",
+            document_id="DOC020",
+            phone="70000020",
+        )
+        self.service_item = CatalogItem.objects.create(
+            kind=CatalogItem.Kind.SERVICE,
+            name="Corte",
+            price=Decimal("50.00"),
+        )
+        self.own_record = ServiceRecord.objects.create(
+            barber=self.barbero_emp,
+            service=self.service_item,
+            performed_by=self.barbero_user,
+            scheduled_for=timezone.now(),
+            service_price=Decimal("50.00"),
+        )
+        self.other_record = ServiceRecord.objects.create(
+            barber=self.other_emp,
+            service=self.service_item,
+            performed_by=self.other_user,
+            scheduled_for=timezone.now(),
+            service_price=Decimal("50.00"),
+        )
+        self.list_url = reverse("dashboard:home")
+
+    def _services_url(self, **params):
+        params.setdefault("section", "services")
+        qs = "&".join(f"{k}={v}" for k, v in params.items())
+        return f"{self.list_url}?{qs}"
+
+    def test_barbero_sees_only_own_services_in_list(self):
+        self.client.login(username="barbero1", password="pass1234")
+        response = self.client.get(self._services_url())
+        services = list(response.context["services"].object_list)
+        self.assertIn(self.own_record, services)
+        self.assertNotIn(self.other_record, services)
+
+    def test_barbero_cannot_edit_other_barbero_service_get(self):
+        self.client.login(username="barbero1", password="pass1234")
+        response = self.client.get(
+            self._services_url(view="edit", service_record=self.other_record.pk)
+        )
+        self.assertRedirects(response, f"{self.list_url}?section=services&view=list")
+
+    def test_barbero_cannot_edit_other_barbero_service_post(self):
+        self.client.login(username="barbero1", password="pass1234")
+        data = {
+            "action": "update",
+            "section": "services",
+            "service_record_id": self.other_record.pk,
+            "barber": self.barbero_emp.pk,
+            "service": self.service_item.pk,
+            "service_price": "50.00",
+            "commission_amount": "10.00",
+        }
+        response = self.client.post(self.list_url, data)
+        self.assertRedirects(response, f"{self.list_url}?section=services&view=list")
+
+    def test_barbero_can_edit_own_service(self):
+        self.client.login(username="barbero1", password="pass1234")
+        data = {
+            "action": "update",
+            "section": "services",
+            "service_record_id": self.own_record.pk,
+            "barber": self.barbero_emp.pk,
+            "service": self.service_item.pk,
+            "service_price": "50.00",
+            "commission_amount": "10.00",
+            "tip_amount": "5.00",
+        }
+        response = self.client.post(self.list_url, data)
+        self.assertRedirects(response, f"{self.list_url}?section=services&view=list")
+        self.own_record.refresh_from_db()
+        self.assertEqual(self.own_record.tip_amount, Decimal("5.00"))
+
+    def test_admin_sees_all_services_in_list(self):
+        self.client.login(username="admin", password="pass1234")
+        response = self.client.get(self._services_url())
+        services = list(response.context["services"].object_list)
+        self.assertIn(self.own_record, services)
+        self.assertIn(self.other_record, services)
+
+    def test_admin_can_edit_any_service(self):
+        self.client.login(username="admin", password="pass1234")
+        data = {
+            "action": "update",
+            "section": "services",
+            "service_record_id": self.other_record.pk,
+            "barber": self.other_emp.pk,
+            "service": self.service_item.pk,
+            "service_price": "50.00",
+            "commission_amount": "10.00",
+            "tip_amount": "3.00",
+        }
+        response = self.client.post(self.list_url, data)
+        self.assertRedirects(response, f"{self.list_url}?section=services&view=list")
+        self.other_record.refresh_from_db()
+        self.assertEqual(self.other_record.tip_amount, Decimal("3.00"))

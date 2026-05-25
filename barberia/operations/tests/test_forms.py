@@ -44,14 +44,14 @@ class ServiceRecordFormTest(TestCase):
         form = ServiceRecordForm(user=self.user)
         self.assertIn(self.employee, form.fields["barber"].queryset)
 
-    def test_barber_queryset_empty_for_user_without_employee(self):
+    def test_barber_queryset_shows_all_for_user_without_employee(self):
         other_user = User.objects.create_user(
             username="other",
             password="pass1234",
             role=User.Role.ADMIN,
         )
         form = ServiceRecordForm(user=other_user)
-        self.assertEqual(form.fields["barber"].queryset.count(), 0)
+        self.assertIn(self.employee, form.fields["barber"].queryset)
 
     def test_service_queryset_filters_active_only(self):
         form = ServiceRecordForm(user=self.user)

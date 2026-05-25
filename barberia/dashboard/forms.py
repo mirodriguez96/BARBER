@@ -321,7 +321,7 @@ class ServiceRecordForm(DashboardModelForm):
                 pk=self.user.employee.pk, is_active=True
             )
         else:
-            self.fields["barber"].queryset = Employee.objects.none()
+            self.fields["barber"].queryset = Employee.objects.filter(is_active=True)
         self.fields["service"].queryset = CatalogItem.objects.filter(is_active=True)
         self.fields["service"].widget.queryset = self.fields["service"].queryset
         self.fields["scheduled_for"].initial = timezone.localtime(
@@ -406,7 +406,7 @@ class ServiceRecordEditForm(DashboardModelForm):
                 pk=self.user.employee.pk, is_active=True
             )
         else:
-            self.fields["barber"].queryset = Employee.objects.none()
+            self.fields["barber"].queryset = Employee.objects.filter(is_active=True)
         self.fields["service"].queryset = CatalogItem.objects.filter(is_active=True)
         self.fields["service"].widget.queryset = self.fields["service"].queryset
         self.fields["service_price"].initial = self._service_price_initial()
