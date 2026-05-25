@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-label="Barber shop background">
+  <defs>
+    <linearGradient id="g1" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <radialGradient id="g2" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#f8fafc" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#f8fafc" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#g1)"/>
+  <circle cx="290" cy="180" r="240" fill="url(#g2)"/>
+  <circle cx="1320" cy="240" r="300" fill="url(#g2)"/>
+  <path d="M0 720 C260 620, 460 860, 760 740 S1260 600, 1600 760 L1600 1000 L0 1000 Z" fill="#111827" opacity="0.88"/>
+  <g transform="translate(860 140) rotate(8)">
+    <rect x="0" y="0" width="250" height="760" rx="28" fill="#f8fafc" opacity="0.92"/>
+    <rect x="0" y="0" width="250" height="140" rx="28" fill="#dc2626"/>
+    <rect x="0" y="140" width="250" height="140" fill="#f8fafc"/>
+    <rect x="0" y="280" width="250" height="140" fill="#2563eb"/>
+    <rect x="0" y="420" width="250" height="140" fill="#f8fafc"/>
+    <rect x="0" y="560" width="250" height="200" rx="0" fill="#dc2626"/>
+    <path d="M0 760 L250 760" stroke="#0f172a" stroke-width="12"/>
+  </g>
+  <g opacity="0.35">
+    <rect x="180" y="520" width="400" height="20" rx="10" fill="#f8fafc"/>
+    <rect x="180" y="570" width="260" height="20" rx="10" fill="#f8fafc"/>
+    <rect x="180" y="620" width="330" height="20" rx="10" fill="#f8fafc"/>
+  </g>
+</svg>

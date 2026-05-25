@@ -1,0 +1,146 @@
+{% extends 'common/base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+  <section class="dashboard-workspace">
+    <div class="dashboard-shell">
+      <aside class="dashboard-sidebar">
+        <div>
+          <p class="eyebrow mb-2">Panel operativo</p>
+          <h1 class="dashboard-page-title mb-3">Barbería Admin</h1>
+          <p class="dashboard-page-copy mb-0">
+            Registra barberos, catálogo y servicios desde una sola pantalla.
+          </p>
+        </div>
+
+        <nav class="dashboard-menu" aria-label="Secciones del dashboard">
+          {% for item in menu_items %}
+            <a
+              class="dashboard-menu__item {% if active_section == item.key %}is-active{% endif %}"
+              href="?section={{ item.key }}"
+            >
+              <strong>{{ item.label }}</strong>
+              <span>{{ item.hint }}</span>
+            </a>
+          {% endfor %}
+        </nav>
+
+        <form
+          method="post"
+          action="{% url 'logout' %}"
+          class="dashboard-logout-form dashboard-logout-form--sidebar"
+        >
+          {% csrf_token %}
+          <button
+            type="submit"
+            class="btn btn-dashboard-logout btn-lg rounded-pill px-5"
+            style="cursor: pointer;"
+          >
+            Cerrar sesión
+          </button>
+        </form>
+      </aside>
+
+      <section class="dashboard-main">
+        {% if messages %}
+          <div class="mb-4">
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags }} mb-2">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="dashboard-panel dashboard-panel--hero mb-4">
+          <div class="dashboard-panel__header">
+            <div>
+              <p class="eyebrow mb-1">
+                {% if active_section == 'barbers' %}
+                  BARBEROS
+                {% elif active_section == 'catalog' %}
+                  PRODUCTOS Y SERVICIOS
+                {% elif active_section == 'services' %}
+                  CORTES Y SERVICIOS
+                {% else %}
+                  BARBEROS
+                {% endif %}
+              </p>
+              <h3 class="section-title mb-0">{{ section_title }}</h3>
+            </div>
+          </div>
+
+          <form method="post" class="dashboard-form">
+            {% csrf_token %}
+            <input type="hidden" name="section" value="{{ active_section }}" />
+            <div class="dashboard-form-grid">
+              {% for field in form %}
+                <div
+                  class="dashboard-field-card {% if field.name == 'notes' or field.name == 'description' %}dashboard-field-card--wide{% endif %}"
+                >
+                  <div class="dashboard-field-card__head">
+                    <label
+                      class="form-label mb-0"
+                      for="{{ field.id_for_label }}"
+                      >{{ field.label }}</label
+                    >
+                    {% if field.field.required %}
+                      <span class="dashboard-field-card__required"
+                        >Obligatorio</span
+                      >
+                    {% endif %}
+                  </div>
+                  <div class="dashboard-field-card__body">
+                    {{ field }}
+                    {% if field.help_text %}
+                      <small class="form-text text-muted"
+                        >{{ field.help_text }}</small
+                      >
+                    {% endif %}
+                    {% if field.errors %}
+                      <div class="invalid-feedback d-block">
+                        {{ field.errors|striptags }}
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+            <div class="dashboard-form-gap" aria-hidden="true"></div>
+            <div class="dashboard-form__actions mt-4">
+              <button
+                type="submit"
+                class="btn btn-dashboard-primary btn-lg rounded-pill px-5"
+                style="cursor: pointer;"
+              >
+                Guardar registro
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </section>
+  <script>
+    (() => {
+      const serviceSelect = document.querySelector(
+        '[data-service-selector="true"]',
+      );
+      const servicePrice = document.getElementById("id_service_price");
+      const commissionAmount = document.getElementById("id_commission_amount");
+
+      if (!serviceSelect || !servicePrice || !commissionAmount) return;
+
+      const applyServiceValues = () => {
+        const option = serviceSelect.selectedOptions[0];
+        const price = option?.dataset?.price || "";
+        const commission = option?.dataset?.commission || "";
+
+        servicePrice.value = price;
+        commissionAmount.value = commission;
+      };
+
+      serviceSelect.addEventListener("change", applyServiceValues);
+      applyServiceValues();
+    })();
+  </script>
+{% endblock content %}
