@@ -24,7 +24,7 @@ from .forms import (
 @login_required
 def home(request):
     section = request.GET.get("section", "barbers")
-    quick_view = request.GET.get("view", "form")
+    quick_view = request.GET.get("view", "list")
     barber_id = request.GET.get("barber")
     catalog_id = request.GET.get("catalog_item")
     service_id = request.GET.get("service_record")
