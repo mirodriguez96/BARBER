@@ -554,6 +554,7 @@
                                                 <th>Cortes</th>
                                                 <th>Comisión</th>
                                                 <th>Propina</th>
+                                                <th>Total a pagar</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -571,6 +572,9 @@
                                                     <td>{{ barber.cuts_count }}</td>
                                                     <td>${{ barber.commission_total|floatformat:2 }}</td>
                                                     <td>${{ barber.tip_total|floatformat:2 }}</td>
+                                                    <td>
+                                                        {% with total=barber.commission_total|add:barber.tip_total %}${{ total|floatformat:2 }}{% endwith %}
+                                                    </td>
                                                 </tr>
                                             {% empty %}
                                                 <tr>
