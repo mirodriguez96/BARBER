@@ -7,21 +7,37 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='CatalogItem',
+            name="CatalogItem",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('kind', models.CharField(choices=[('service', 'Servicio'), ('product', 'Producto')], max_length=20)),
-                ('name', models.CharField(max_length=160)),
-                ('description', models.TextField(blank=True)),
-                ('sku', models.CharField(blank=True, max_length=50)),
-                ('price', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('barber_commission_percent', models.DecimalField(decimal_places=2, default=0, max_digits=5)),
-                ('is_active', models.BooleanField(default=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "kind",
+                    models.CharField(
+                        choices=[("service", "Servicio"), ("product", "Producto")],
+                        max_length=20,
+                    ),
+                ),
+                ("name", models.CharField(max_length=160)),
+                ("description", models.TextField(blank=True)),
+                ("sku", models.CharField(blank=True, max_length=50)),
+                ("price", models.DecimalField(decimal_places=2, max_digits=10)),
+                (
+                    "barber_commission_percent",
+                    models.DecimalField(decimal_places=2, default=0, max_digits=5),
+                ),
+                ("is_active", models.BooleanField(default=True)),
             ],
         ),
     ]

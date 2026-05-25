@@ -94,13 +94,12 @@ class BarberForm(DashboardModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         User = get_user_model()
-        self.fields["user"].queryset = User.objects.exclude(
-            employee__isnull=False
-        )
+        self.fields["user"].queryset = User.objects.exclude(employee__isnull=False)
         if self.instance and self.instance.pk and self.instance.user_id:
-            self.fields["user"].queryset = User.objects.filter(
-                pk=self.instance.user_id
-            ) | self.fields["user"].queryset
+            self.fields["user"].queryset = (
+                User.objects.filter(pk=self.instance.user_id)
+                | self.fields["user"].queryset
+            )
 
     def clean_document_id(self):
         document_id = self.cleaned_data["document_id"].strip()
@@ -146,7 +145,7 @@ class BarberEditForm(DashboardModelForm):
         return phone
 
 
-class CatalogItemForm(DashboardModelForm):
+class CatalogCommissionMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._adjust_commission_for_kind()
@@ -168,6 +167,8 @@ class CatalogItemForm(DashboardModelForm):
             cleaned_data["barber_commission_percent"] = Decimal("0.00")
         return cleaned_data
 
+
+class CatalogItemForm(CatalogCommissionMixin, DashboardModelForm):
     class Meta:
         model = CatalogItem
         fields = [
@@ -213,28 +214,7 @@ class CatalogItemForm(DashboardModelForm):
         }
 
 
-class CatalogItemEditForm(DashboardModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._adjust_commission_for_kind()
-
-    def _adjust_commission_for_kind(self):
-        kind_value = None
-        if self.is_bound:
-            kind_value = self.data.get(self.add_prefix("kind"))
-        elif self.instance and self.instance.pk:
-            kind_value = self.instance.kind
-        if kind_value == CatalogItem.Kind.PRODUCT:
-            self.fields["barber_commission_percent"].disabled = True
-            self.fields["barber_commission_percent"].initial = Decimal("0.00")
-
-    def clean(self):
-        cleaned_data = super().clean()
-        kind = cleaned_data.get("kind")
-        if kind == CatalogItem.Kind.PRODUCT:
-            cleaned_data["barber_commission_percent"] = Decimal("0.00")
-        return cleaned_data
-
+class CatalogItemEditForm(CatalogCommissionMixin, DashboardModelForm):
     class Meta:
         model = CatalogItem
         fields = ["name", "kind", "price", "barber_commission_percent", "description"]
@@ -374,7 +354,13 @@ class ServiceRecordForm(DashboardModelForm):
 class ServiceRecordEditForm(DashboardModelForm):
     class Meta:
         model = ServiceRecord
-        fields = ["barber", "service", "service_price", "commission_amount", "tip_amount"]
+        fields = [
+            "barber",
+            "service",
+            "service_price",
+            "commission_amount",
+            "tip_amount",
+        ]
         labels = {
             "barber": "Barbero",
             "service": "Servicio",

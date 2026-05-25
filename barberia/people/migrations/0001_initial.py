@@ -15,36 +15,58 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Client',
+            name="Client",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('full_name', models.CharField(max_length=160)),
-                ('phone', models.CharField(blank=True, max_length=20)),
-                ('email', models.EmailField(blank=True, max_length=254)),
-                ('notes', models.TextField(blank=True)),
-                ('is_active', models.BooleanField(default=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("full_name", models.CharField(max_length=160)),
+                ("phone", models.CharField(blank=True, max_length=20)),
+                ("email", models.EmailField(blank=True, max_length=254)),
+                ("notes", models.TextField(blank=True)),
+                ("is_active", models.BooleanField(default=True)),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.CreateModel(
-            name='Employee',
+            name="Employee",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('full_name', models.CharField(max_length=160)),
-                ('document_id', models.CharField(max_length=30, unique=True)),
-                ('phone', models.CharField(max_length=20)),
-                ('email', models.EmailField(blank=True, max_length=254)),
-                ('is_active', models.BooleanField(default=True)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("full_name", models.CharField(max_length=160)),
+                ("document_id", models.CharField(max_length=30, unique=True)),
+                ("phone", models.CharField(max_length=20)),
+                ("email", models.EmailField(blank=True, max_length=254)),
+                ("is_active", models.BooleanField(default=True)),
+                (
+                    "user",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
     ]

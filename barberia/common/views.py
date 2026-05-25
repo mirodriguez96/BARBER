@@ -1,7 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.views import LoginView
-from django.shortcuts import render
 
 
 class StyledAuthenticationForm(AuthenticationForm):
@@ -23,7 +22,3 @@ class BarberiaLoginView(LoginView):
     template_name = "registration/login.html"
     authentication_form = StyledAuthenticationForm
     redirect_authenticated_user = True
-
-
-def home(request):
-    return render(request, "common/home.html")

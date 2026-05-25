@@ -55,9 +55,7 @@ class EmployeeModelTest(TestCase):
 
     def test_is_active_default_true(self):
         new_employee = Employee.objects.create(
-            user=User.objects.create_user(
-                username="barbero3", password="testpass123"
-            ),
+            user=User.objects.create_user(username="barbero3", password="testpass123"),
             full_name="Nuevo Barbero",
             document_id="9988776655",
             phone="3222222222",

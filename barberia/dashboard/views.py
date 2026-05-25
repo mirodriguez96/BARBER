@@ -3,9 +3,7 @@ from datetime import date, datetime
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.shortcuts import get_object_or_404
-from django.shortcuts import redirect
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
 
 from barberia.people.models import Employee
 from barberia.catalog.models import CatalogItem
@@ -78,30 +76,42 @@ def home(request):
             barber_to_edit = barber
             messages.error(request, "Revisa los campos marcados en rojo.")
         elif section == "catalog" and action == "deactivate":
-            catalog_item = get_object_or_404(CatalogItem, pk=request.POST.get("catalog_item_id"))
+            catalog_item = get_object_or_404(
+                CatalogItem, pk=request.POST.get("catalog_item_id")
+            )
             catalog_item.is_active = False
             catalog_item.save(update_fields=["is_active"])
             messages.success(request, f"{catalog_item.name} fue desactivado.")
             return redirect(f"{request.path}?section=catalog&view=list")
         elif section == "catalog" and action == "activate":
-            catalog_item = get_object_or_404(CatalogItem, pk=request.POST.get("catalog_item_id"))
+            catalog_item = get_object_or_404(
+                CatalogItem, pk=request.POST.get("catalog_item_id")
+            )
             catalog_item.is_active = True
             catalog_item.save(update_fields=["is_active"])
             messages.success(request, f"{catalog_item.name} fue activado.")
             return redirect(f"{request.path}?section=catalog&view=list")
         elif section == "catalog" and action == "update":
-            catalog_item = get_object_or_404(CatalogItem, pk=request.POST.get("catalog_item_id"))
+            catalog_item = get_object_or_404(
+                CatalogItem, pk=request.POST.get("catalog_item_id")
+            )
             form = CatalogItemEditForm(request.POST, instance=catalog_item)
             if form.is_valid():
                 form.save()
-                messages.success(request, "Producto o servicio actualizado correctamente.")
+                messages.success(
+                    request, "Producto o servicio actualizado correctamente."
+                )
                 return redirect(f"{request.path}?section=catalog&view=list")
             quick_view = "edit"
             catalog_item_to_edit = catalog_item
             messages.error(request, "Revisa los campos marcados en rojo.")
         elif section == "services" and action == "update":
-            service_record = get_object_or_404(ServiceRecord, pk=request.POST.get("service_record_id"))
-            form = ServiceRecordEditForm(request.POST, instance=service_record, user=request.user)
+            service_record = get_object_or_404(
+                ServiceRecord, pk=request.POST.get("service_record_id")
+            )
+            form = ServiceRecordEditForm(
+                request.POST, instance=service_record, user=request.user
+            )
             if form.is_valid():
                 record = form.save(commit=False)
                 record.performed_by = request.user
@@ -128,10 +138,20 @@ def home(request):
     else:
         if section == "barbers" and quick_view == "edit" and barber_to_edit is not None:
             form = BarberEditForm(instance=barber_to_edit)
-        elif section == "catalog" and quick_view == "edit" and catalog_item_to_edit is not None:
+        elif (
+            section == "catalog"
+            and quick_view == "edit"
+            and catalog_item_to_edit is not None
+        ):
             form = CatalogItemEditForm(instance=catalog_item_to_edit)
-        elif section == "services" and quick_view == "edit" and service_record_to_edit is not None:
-            form = ServiceRecordEditForm(instance=service_record_to_edit, user=request.user)
+        elif (
+            section == "services"
+            and quick_view == "edit"
+            and service_record_to_edit is not None
+        ):
+            form = ServiceRecordEditForm(
+                instance=service_record_to_edit, user=request.user
+            )
         else:
             form_class = forms_map.get(section, BarberForm)
             form = form_class(user=request.user)
@@ -145,11 +165,15 @@ def home(request):
 
     filtered_service_list = service_list
     if filter_date == "today":
-        filtered_service_list = filtered_service_list.filter(scheduled_for__date=date.today())
+        filtered_service_list = filtered_service_list.filter(
+            scheduled_for__date=date.today()
+        )
     elif filter_date:
         try:
             parsed = datetime.strptime(filter_date, "%Y-%m-%d").date()
-            filtered_service_list = filtered_service_list.filter(scheduled_for__date=parsed)
+            filtered_service_list = filtered_service_list.filter(
+                scheduled_for__date=parsed
+            )
         except ValueError:
             pass
 
@@ -165,14 +189,14 @@ def home(request):
 
     barber_list = Employee.objects.order_by("-created_at")
     barber_paginator = Paginator(barber_list, 10)
-    barber_page_number = request.GET.get("barber_page")
+    barber_page_number = request.GET.get("page")
     barbers = barber_paginator.get_page(barber_page_number)
     catalog_list = CatalogItem.objects.order_by("-id")
     catalog_paginator = Paginator(catalog_list, 10)
-    catalog_page_number = request.GET.get("catalog_page")
+    catalog_page_number = request.GET.get("page")
     catalog_items = catalog_paginator.get_page(catalog_page_number)
     service_paginator = Paginator(filtered_service_list, 10)
-    service_page_number = request.GET.get("service_page")
+    service_page_number = request.GET.get("page")
     services = service_paginator.get_page(service_page_number)
     barber_stats = {
         "total": barber_list.count(),

@@ -10,27 +10,85 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('catalog', '0001_initial'),
-        ('people', '0001_initial'),
+        ("catalog", "0001_initial"),
+        ("people", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ServiceRecord',
+            name="ServiceRecord",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('scheduled_for', models.DateTimeField()),
-                ('completed_at', models.DateTimeField(blank=True, null=True)),
-                ('status', models.CharField(choices=[('scheduled', 'Programado'), ('in_progress', 'En proceso'), ('done', 'Realizado'), ('canceled', 'Cancelado')], default='scheduled', max_length=20)),
-                ('notes', models.TextField(blank=True)),
-                ('service_price', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('commission_amount', models.DecimalField(decimal_places=2, default=0, max_digits=10)),
-                ('tip_amount', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
-                ('barber', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='service_records', to='people.employee')),
-                ('client', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='service_records', to='people.client')),
-                ('performed_by', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='performed_services', to=settings.AUTH_USER_MODEL)),
-                ('service', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='service_records', to='catalog.catalogitem')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("scheduled_for", models.DateTimeField()),
+                ("completed_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("scheduled", "Programado"),
+                            ("in_progress", "En proceso"),
+                            ("done", "Realizado"),
+                            ("canceled", "Cancelado"),
+                        ],
+                        default="scheduled",
+                        max_length=20,
+                    ),
+                ),
+                ("notes", models.TextField(blank=True)),
+                ("service_price", models.DecimalField(decimal_places=2, max_digits=10)),
+                (
+                    "commission_amount",
+                    models.DecimalField(decimal_places=2, default=0, max_digits=10),
+                ),
+                (
+                    "tip_amount",
+                    models.DecimalField(
+                        blank=True, decimal_places=2, max_digits=10, null=True
+                    ),
+                ),
+                (
+                    "barber",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="service_records",
+                        to="people.employee",
+                    ),
+                ),
+                (
+                    "client",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="service_records",
+                        to="people.client",
+                    ),
+                ),
+                (
+                    "performed_by",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="performed_services",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "service",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="service_records",
+                        to="catalog.catalogitem",
+                    ),
+                ),
             ],
         ),
     ]
