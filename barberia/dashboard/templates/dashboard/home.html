@@ -19,7 +19,7 @@
               href="?section={{ item.key }}"
             >
               <strong>{{ item.label }}</strong>
-              <span>{{ item.hint }}</span>
+              {% if item.hint %}<span>{{ item.hint }}</span>{% endif %}
             </a>
           {% endfor %}
         </nav>
@@ -41,81 +41,236 @@
       </aside>
 
       <section class="dashboard-main">
-        {% if messages %}
-          <div class="mb-4">
-            {% for message in messages %}
-              <div class="alert alert-{{ message.tags }} mb-2">
-                {{ message }}
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
-
         <div class="dashboard-panel dashboard-panel--hero mb-4">
-          <div class="dashboard-panel__header">
-            <div>
-              <p class="eyebrow mb-1">
-                {% if active_section == 'barbers' %}
-                  BARBEROS
-                {% elif active_section == 'catalog' %}
-                  PRODUCTOS Y SERVICIOS
-                {% elif active_section == 'services' %}
-                  CORTES Y SERVICIOS
-                {% else %}
-                  BARBEROS
-                {% endif %}
-              </p>
-              <h3 class="section-title mb-0">{{ section_title }}</h3>
-            </div>
-          </div>
-
-          <form method="post" class="dashboard-form">
-            {% csrf_token %}
-            <input type="hidden" name="section" value="{{ active_section }}" />
-            <div class="dashboard-form-grid">
-              {% for field in form %}
-                <div
-                  class="dashboard-field-card {% if field.name == 'notes' or field.name == 'description' %}dashboard-field-card--wide{% endif %}"
-                >
-                  <div class="dashboard-field-card__head">
-                    <label
-                      class="form-label mb-0"
-                      for="{{ field.id_for_label }}"
-                      >{{ field.label }}</label
-                    >
-                    {% if field.field.required %}
-                      <span class="dashboard-field-card__required"
-                        >Obligatorio</span
-                      >
-                    {% endif %}
-                  </div>
-                  <div class="dashboard-field-card__body">
-                    {{ field }}
-                    {% if field.help_text %}
-                      <small class="form-text text-muted"
-                        >{{ field.help_text }}</small
-                      >
-                    {% endif %}
-                    {% if field.errors %}
-                      <div class="invalid-feedback d-block">
-                        {{ field.errors|striptags }}
-                      </div>
-                    {% endif %}
-                  </div>
+          {% if messages %}
+            <div class="dashboard-toast-stack" aria-live="polite" aria-atomic="true">
+              {% for message in messages %}
+                <div class="dashboard-toast dashboard-toast--{{ message.tags }}" data-toast-message>
+                  <span class="dashboard-toast__dot" aria-hidden="true"></span>
+                  <span class="dashboard-toast__text">{{ message }}</span>
                 </div>
               {% endfor %}
             </div>
-            <div class="dashboard-form-gap" aria-hidden="true"></div>
-            <div class="dashboard-form__actions mt-4">
-              <button
-                type="submit"
-                class="btn btn-dashboard-primary btn-lg rounded-pill px-5"
-                style="cursor: pointer;"
-              >
-                Guardar registro
-              </button>
+          {% endif %}
+
+          <div class="dashboard-panel__header">
+            <div>
+              <h1 class="section-title mb-0">{{ section_title }}</h1>
+              <hr />
             </div>
-          </form>
+          </div>
+
+          {% if active_section == 'barbers' %}
+            <div class="dashboard-quick-switch mb-4">
+              <a
+                class="dashboard-quick-switch__item {% if quick_view == 'form' %}is-active{% endif %}"
+                href="?section=barbers&view=form"
+                >Formulario de registro</a
+              >
+              <a
+                class="dashboard-quick-switch__item {% if quick_view == 'list' %}is-active{% endif %}"
+                href="?section=barbers&view=list"
+                >Lista de barberos</a
+              >
+            </div>
+          {% endif %}
+          {% if active_section == 'barbers' and quick_view == 'list' %}
+            <div class="dashboard-metrics mb-4">
+              <article class="dashboard-metric-card">
+                <p class="dashboard-metric-card__label mb-1">Total</p>
+                <strong class="dashboard-metric-card__value">{{ barber_stats.total }}</strong>
+                <span class="dashboard-metric-card__hint">Barberos registrados</span>
+              </article>
+              <article class="dashboard-metric-card">
+                <p class="dashboard-metric-card__label mb-1">Activos</p>
+                <strong class="dashboard-metric-card__value">{{ barber_stats.active }}</strong>
+                <span class="dashboard-metric-card__hint">Disponibles para atender</span>
+              </article>
+              <article class="dashboard-metric-card">
+                <p class="dashboard-metric-card__label mb-1">Inactivos</p>
+                <strong class="dashboard-metric-card__value">{{ barber_stats.inactive }}</strong>
+                <span class="dashboard-metric-card__hint">Sin turno operativo</span>
+              </article>
+            </div>
+            <div class="dashboard-table-shell">
+              <div class="dashboard-table-shell__header">
+                <div>
+                  <p class="eyebrow mb-1">Listado activo</p>
+                  <h4 class="section-title mb-0">Barberos registrados</h4>
+                </div>
+                <span class="dashboard-pill">{{ barbers|length }} registros</span>
+              </div>
+              <div class="dashboard-table-wrap">
+                <div class="table-responsive">
+                    <table class="table dashboard-table align-middle table-hover mb-0">
+                      <thead>
+                        <tr>
+                          <th>Nombre</th>
+                          <th>Documento</th>
+                          <th>Teléfono</th>
+                          <th>Correo</th>
+                          <th>Estado</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for barber in barbers %}
+                        <tr>
+                          <td>
+                            <div class="dashboard-person">
+                              <div class="dashboard-person__avatar" aria-hidden="true">
+                                {{ barber.full_name|slice:":1"|default:"B" }}
+                              </div>
+                              <div class="dashboard-person__body">
+                                <div class="dashboard-table__primary">{{ barber.full_name }}</div>
+                                <div class="dashboard-table__meta">Barbero registrado</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td><span class="dashboard-table__chip">{{ barber.document_id }}</span></td>
+                          <td>{{ barber.phone|default:"-" }}</td>
+                          <td>{{ barber.email|default:"-" }}</td>
+                          <td>
+                            <span class="dashboard-status {% if barber.is_active %}is-active{% else %}is-inactive{% endif %}">
+                              {% if barber.is_active %}Activo{% else %}Inactivo{% endif %}
+                            </span>
+                          </td>
+                          <td>
+                            <div class="dashboard-row-actions">
+                              <form method="get" class="dashboard-inline-form">
+                                <input type="hidden" name="section" value="barbers" />
+                                <input type="hidden" name="view" value="edit" />
+                                <input type="hidden" name="barber" value="{{ barber.pk }}" />
+                                <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">
+                                  Modificar
+                                </button>
+                              </form>
+                              {% if barber.is_active %}
+                                <form method="post" class="dashboard-inline-form">
+                                  {% csrf_token %}
+                                  <input type="hidden" name="section" value="barbers" />
+                                  <input type="hidden" name="action" value="deactivate" />
+                                  <input type="hidden" name="barber_id" value="{{ barber.pk }}" />
+                                  <button type="submit" class="dashboard-action-btn dashboard-action-btn--danger">
+                                    Desactivar
+                                  </button>
+                                </form>
+                              {% else %}
+                                <form method="post" class="dashboard-inline-form">
+                                  {% csrf_token %}
+                                  <input type="hidden" name="section" value="barbers" />
+                                  <input type="hidden" name="action" value="activate" />
+                                  <input type="hidden" name="barber_id" value="{{ barber.pk }}" />
+                                  <button type="submit" class="dashboard-action-btn dashboard-action-btn--success">
+                                    Activar
+                                  </button>
+                                </form>
+                              {% endif %}
+                            </div>
+                          </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                          <td colspan="6" class="dashboard-empty-state">
+                            <div class="dashboard-empty-state__title">Todavía no hay barberos registrados.</div>
+                            <div class="dashboard-empty-state__copy">
+                              Agrega el primero desde el formulario para empezar a gestionar tu equipo.
+                            </div>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              {% if barber_page_obj.paginator.num_pages > 1 %}
+                <div class="dashboard-pagination">
+                  {% if barber_page_obj.has_previous %}
+                    <a class="dashboard-pagination__link" href="?section=barbers&view=list&page=1">Primera</a>
+                    <a class="dashboard-pagination__link" href="?section=barbers&view=list&page={{ barber_page_obj.previous_page_number }}">Anterior</a>
+                  {% endif %}
+                  <span class="dashboard-pagination__info">
+                    Página {{ barber_page_obj.number }} de {{ barber_page_obj.paginator.num_pages }}
+                  </span>
+                  {% if barber_page_obj.has_next %}
+                    <a class="dashboard-pagination__link" href="?section=barbers&view=list&page={{ barber_page_obj.next_page_number }}">Siguiente</a>
+                    <a class="dashboard-pagination__link" href="?section=barbers&view=list&page={{ barber_page_obj.paginator.num_pages }}">Última</a>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          {% else %}
+            {% if active_section == 'barbers' and quick_view == 'edit' %}
+              <div class="dashboard-panel__summary mb-4">
+                <div>
+                  <p class="eyebrow mb-1">Captura rápida</p>
+                  <h4 class="section-title mb-0">Modificar barbero</h4>
+                </div>
+                <p class="dashboard-panel__summary-copy mb-0">
+                  Actualiza solo el nombre, teléfono y correo. El documento y el estado permanecen intactos.
+                </p>
+              </div>
+            {% endif %}
+            <form method="post" class="dashboard-form">
+              {% csrf_token %}
+              <input
+                type="hidden"
+                name="section"
+                value="{{ active_section }}"
+              />
+              {% if active_section == 'barbers' and quick_view == 'edit' and barber_to_edit %}
+                <input type="hidden" name="action" value="update" />
+                <input type="hidden" name="barber_id" value="{{ barber_to_edit.pk }}" />
+              {% endif %}
+              <div class="dashboard-form-grid">
+                {% for field in form %}
+                  <div
+                    class="dashboard-field-card {% if field.name == 'notes' or field.name == 'description' %}dashboard-field-card--wide{% endif %}"
+                  >
+                    <div class="dashboard-field-card__head">
+                      <label
+                        class="form-label mb-0"
+                        for="{{ field.id_for_label }}"
+                        >{{ field.label }}</label
+                      >
+                      {% if field.field.required %}
+                        <span class="dashboard-field-card__required"
+                          >Obligatorio</span
+                        >
+                      {% endif %}
+                    </div>
+                    <div class="dashboard-field-card__body">
+                      {{ field }}
+                      {% if field.help_text %}
+                        <small class="form-text text-muted"
+                          >{{ field.help_text }}</small
+                        >
+                      {% endif %}
+                      {% if field.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ field.errors|striptags }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+              <div class="dashboard-form-gap" aria-hidden="true"></div>
+              <div class="dashboard-form__actions mt-4">
+                <button
+                  type="submit"
+                  class="btn btn-dashboard-primary btn-lg rounded-pill px-5"
+                  style="cursor: pointer;"
+                >
+                  {% if active_section == 'barbers' and quick_view == 'edit' %}
+                    Guardar cambios
+                  {% else %}
+                    Guardar registro
+                  {% endif %}
+                </button>
+              </div>
+            </form>
+          {% endif %}
         </div>
       </section>
     </div>

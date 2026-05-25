@@ -101,6 +101,34 @@ class BarberForm(DashboardModelForm):
         return phone
 
 
+class BarberEditForm(DashboardModelForm):
+    class Meta:
+        model = Employee
+        fields = ["full_name", "phone", "email"]
+        labels = {
+            "full_name": "Nombre completo",
+            "phone": "Teléfono",
+            "email": "Correo electrónico",
+        }
+        widgets = {
+            "full_name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Ej. Juan Pérez"}
+            ),
+            "phone": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Ej. 300 123 4567"}
+            ),
+            "email": forms.EmailInput(
+                attrs={"class": "form-control", "placeholder": "correo@ejemplo.com"}
+            ),
+        }
+
+    def clean_phone(self):
+        phone = self.cleaned_data["phone"].strip()
+        if not phone:
+            raise forms.ValidationError("El teléfono es obligatorio.")
+        return phone
+
+
 class CatalogItemForm(DashboardModelForm):
     class Meta:
         model = CatalogItem
