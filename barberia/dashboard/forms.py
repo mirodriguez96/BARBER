@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django import forms
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from barberia.catalog.models import CatalogItem
@@ -36,6 +37,7 @@ class DashboardModelForm(forms.ModelForm):
                 )
 
     def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
         self._bootstrapify_fields()
 
@@ -63,8 +65,9 @@ class ServiceCatalogSelect(forms.Select):
 class BarberForm(DashboardModelForm):
     class Meta:
         model = Employee
-        fields = ["full_name", "document_id", "phone", "email", "is_active"]
+        fields = ["user", "full_name", "document_id", "phone", "email", "is_active"]
         labels = {
+            "user": "Usuario",
             "full_name": "Nombre completo",
             "document_id": "Documento / cédula",
             "phone": "Teléfono",
@@ -72,6 +75,7 @@ class BarberForm(DashboardModelForm):
             "is_active": "Activo",
         }
         widgets = {
+            "user": forms.Select(attrs={"class": "form-select"}),
             "full_name": forms.TextInput(
                 attrs={"class": "form-control", "placeholder": "Ej. Juan Pérez"}
             ),
@@ -86,6 +90,17 @@ class BarberForm(DashboardModelForm):
             ),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        User = get_user_model()
+        self.fields["user"].queryset = User.objects.exclude(
+            employee__isnull=False
+        )
+        if self.instance and self.instance.pk and self.instance.user_id:
+            self.fields["user"].queryset = User.objects.filter(
+                pk=self.instance.user_id
+            ) | self.fields["user"].queryset
 
     def clean_document_id(self):
         document_id = self.cleaned_data["document_id"].strip()
@@ -321,7 +336,12 @@ class ServiceRecordForm(DashboardModelForm):
         self.fields["client"].required = False
         self.fields["client"].empty_label = "Cliente no registrado"
         self.fields["client"].widget.attrs["aria-label"] = "Cliente opcional"
-        self.fields["barber"].queryset = Employee.objects.filter(is_active=True)
+        if self.user and hasattr(self.user, "employee"):
+            self.fields["barber"].queryset = Employee.objects.filter(
+                pk=self.user.employee.pk, is_active=True
+            )
+        else:
+            self.fields["barber"].queryset = Employee.objects.none()
         self.fields["service"].queryset = CatalogItem.objects.filter(is_active=True)
         self.fields["service"].widget.queryset = self.fields["service"].queryset
         self.fields["scheduled_for"].initial = timezone.localtime(
@@ -395,7 +415,12 @@ class ServiceRecordEditForm(DashboardModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["barber"].queryset = Employee.objects.filter(is_active=True)
+        if self.user and hasattr(self.user, "employee"):
+            self.fields["barber"].queryset = Employee.objects.filter(
+                pk=self.user.employee.pk, is_active=True
+            )
+        else:
+            self.fields["barber"].queryset = Employee.objects.none()
         self.fields["service"].queryset = CatalogItem.objects.filter(is_active=True)
         self.fields["service"].widget.queryset = self.fields["service"].queryset
         self.fields["service_price"].initial = self._service_price_initial()

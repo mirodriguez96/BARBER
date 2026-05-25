@@ -101,7 +101,7 @@ def home(request):
             messages.error(request, "Revisa los campos marcados en rojo.")
         elif section == "services" and action == "update":
             service_record = get_object_or_404(ServiceRecord, pk=request.POST.get("service_record_id"))
-            form = ServiceRecordEditForm(request.POST, instance=service_record)
+            form = ServiceRecordEditForm(request.POST, instance=service_record, user=request.user)
             if form.is_valid():
                 record = form.save(commit=False)
                 record.performed_by = request.user
@@ -115,7 +115,7 @@ def home(request):
             messages.error(request, "Revisa los campos marcados en rojo.")
         else:
             form_class = forms_map.get(section, BarberForm)
-            form = form_class(request.POST)
+            form = form_class(request.POST, user=request.user)
             if form.is_valid():
                 record = form.save(commit=False)
                 if section == "services":
@@ -131,10 +131,10 @@ def home(request):
         elif section == "catalog" and quick_view == "edit" and catalog_item_to_edit is not None:
             form = CatalogItemEditForm(instance=catalog_item_to_edit)
         elif section == "services" and quick_view == "edit" and service_record_to_edit is not None:
-            form = ServiceRecordEditForm(instance=service_record_to_edit)
+            form = ServiceRecordEditForm(instance=service_record_to_edit, user=request.user)
         else:
             form_class = forms_map.get(section, BarberForm)
-            form = form_class()
+            form = form_class(user=request.user)
 
     filter_date = request.GET.get("filter_date", "")
     filter_barber = request.GET.get("filter_barber", "")
