@@ -1,3 +1,5 @@
+from datetime import date, datetime
+
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -14,6 +16,7 @@ from .forms import (
     BarberForm,
     CatalogItemEditForm,
     CatalogItemForm,
+    ServiceRecordEditForm,
     ServiceRecordForm,
 )
 
@@ -24,7 +27,8 @@ def home(request):
     quick_view = request.GET.get("view", "form")
     barber_id = request.GET.get("barber")
     catalog_id = request.GET.get("catalog_item")
-    if section not in {"barbers", "catalog"}:
+    service_id = request.GET.get("service_record")
+    if section not in {"barbers", "catalog", "services"}:
         quick_view = "form"
 
     barber_to_edit = None
@@ -34,6 +38,10 @@ def home(request):
     catalog_item_to_edit = None
     if section == "catalog" and quick_view == "edit" and catalog_id:
         catalog_item_to_edit = get_object_or_404(CatalogItem, pk=catalog_id)
+
+    service_record_to_edit = None
+    if section == "services" and quick_view == "edit" and service_id:
+        service_record_to_edit = get_object_or_404(ServiceRecord, pk=service_id)
 
     forms_map = {
         "barbers": BarberForm,
@@ -91,6 +99,20 @@ def home(request):
             quick_view = "edit"
             catalog_item_to_edit = catalog_item
             messages.error(request, "Revisa los campos marcados en rojo.")
+        elif section == "services" and action == "update":
+            service_record = get_object_or_404(ServiceRecord, pk=request.POST.get("service_record_id"))
+            form = ServiceRecordEditForm(request.POST, instance=service_record)
+            if form.is_valid():
+                record = form.save(commit=False)
+                record.performed_by = request.user
+                if record.status == ServiceRecord.Status.SCHEDULED:
+                    record.status = ServiceRecord.Status.DONE
+                record.save()
+                messages.success(request, "Servicio actualizado correctamente.")
+                return redirect(f"{request.path}?section=services&view=list")
+            quick_view = "edit"
+            service_record_to_edit = service_record
+            messages.error(request, "Revisa los campos marcados en rojo.")
         else:
             form_class = forms_map.get(section, BarberForm)
             form = form_class(request.POST)
@@ -108,6 +130,8 @@ def home(request):
             form = BarberEditForm(instance=barber_to_edit)
         elif section == "catalog" and quick_view == "edit" and catalog_item_to_edit is not None:
             form = CatalogItemEditForm(instance=catalog_item_to_edit)
+        elif section == "services" and quick_view == "edit" and service_record_to_edit is not None:
+            form = ServiceRecordEditForm(instance=service_record_to_edit)
         else:
             form_class = forms_map.get(section, BarberForm)
             form = form_class()
@@ -115,6 +139,37 @@ def home(request):
     today_records = ServiceRecord.objects.select_related(
         "client", "barber", "service", "performed_by"
     ).order_by("-scheduled_for")[:5]
+
+    filter_date = request.GET.get("filter_date", "")
+    filter_barber = request.GET.get("filter_barber", "")
+
+    service_list = ServiceRecord.objects.select_related(
+        "client", "barber", "service", "performed_by"
+    ).order_by("-scheduled_for")
+
+    filtered_service_list = service_list
+    if filter_date == "today":
+        filtered_service_list = filtered_service_list.filter(scheduled_for__date=date.today())
+    elif filter_date:
+        try:
+            parsed = datetime.strptime(filter_date, "%Y-%m-%d").date()
+            filtered_service_list = filtered_service_list.filter(scheduled_for__date=parsed)
+        except ValueError:
+            pass
+
+    if filter_barber:
+        filtered_service_list = filtered_service_list.filter(barber_id=filter_barber)
+
+    filter_parts = []
+    if filter_date:
+        filter_parts.append(f"filter_date={filter_date}")
+    if filter_barber:
+        filter_parts.append(f"filter_barber={filter_barber}")
+    filter_params = "&" + "&".join(filter_parts) if filter_parts else ""
+
+    service_paginator = Paginator(filtered_service_list, 10)
+    service_page_number = request.GET.get("page")
+    services = service_paginator.get_page(service_page_number)
 
     barber_list = Employee.objects.order_by("-created_at")
     barber_paginator = Paginator(barber_list, 10)
@@ -136,6 +191,11 @@ def home(request):
         "services": catalog_list.filter(kind=CatalogItem.Kind.SERVICE).count(),
         "products": catalog_list.filter(kind=CatalogItem.Kind.PRODUCT).count(),
     }
+    service_stats = {
+        "total": service_list.count(),
+        "done": service_list.filter(status=ServiceRecord.Status.DONE).count(),
+        "scheduled": service_list.filter(status=ServiceRecord.Status.SCHEDULED).count(),
+    }
 
     section_titles = {
         "barbers": "Administrar barberos",
@@ -148,14 +208,22 @@ def home(request):
         "quick_view": quick_view,
         "barber_to_edit": barber_to_edit,
         "catalog_item_to_edit": catalog_item_to_edit,
+        "service_record_to_edit": service_record_to_edit,
         "section_title": section_titles.get(section, "Registro de barberos"),
         "form": form,
         "barbers": barbers,
         "barber_page_obj": barbers,
         "catalog_items": catalog_items,
         "catalog_page_obj": catalog_items,
+        "services": services,
+        "service_page_obj": services,
+        "filter_params": filter_params,
+        "filter_date": filter_date,
+        "filter_barber": filter_barber,
+        "active_barbers": Employee.objects.filter(is_active=True),
         "barber_stats": barber_stats,
         "catalog_stats": catalog_stats,
+        "service_stats": service_stats,
         "menu_items": [
             {"key": "barbers", "label": "BARBEROS", "hint": ""},
             {"key": "catalog", "label": "PRODUCTOS Y SERVICIOS", "hint": ""},

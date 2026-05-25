@@ -5,6 +5,6 @@ document.addEventListener("DOMContentLoaded", function () {
   toasts.forEach((toast) => {
     window.setTimeout(() => {
       toast.remove();
-    }, 1000);
+    }, 2500);
   });
 });

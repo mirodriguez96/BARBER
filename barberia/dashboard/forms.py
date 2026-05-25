@@ -278,10 +278,83 @@ class ServiceRecordForm(DashboardModelForm):
         self.fields["client"].required = False
         self.fields["client"].empty_label = "Cliente no registrado"
         self.fields["client"].widget.attrs["aria-label"] = "Cliente opcional"
+        self.fields["barber"].queryset = Employee.objects.filter(is_active=True)
+        self.fields["service"].queryset = CatalogItem.objects.filter(is_active=True)
         self.fields["service"].widget.queryset = self.fields["service"].queryset
         self.fields["scheduled_for"].initial = timezone.localtime(
             timezone.now()
         ).strftime("%Y-%m-%dT%H:%M")
+        self.fields["service_price"].initial = self._service_price_initial()
+        self.fields["commission_amount"].initial = self._commission_initial()
+        self.fields["service_price"].disabled = True
+        self.fields["commission_amount"].disabled = True
+
+    def _selected_service(self):
+        service = None
+        if self.is_bound:
+            service_id = self.data.get(self.add_prefix("service"))
+            if service_id:
+                service = self.fields["service"].queryset.filter(pk=service_id).first()
+        elif self.instance and self.instance.pk and self.instance.service_id:
+            service = self.instance.service
+        return service
+
+    def _service_price_initial(self):
+        service = self._selected_service()
+        return service.price if service else None
+
+    def _commission_initial(self):
+        service = self._selected_service()
+        return service.barber_commission_percent if service else None
+
+
+class ServiceRecordEditForm(DashboardModelForm):
+    class Meta:
+        model = ServiceRecord
+        fields = ["barber", "service", "service_price", "commission_amount", "tip_amount"]
+        labels = {
+            "barber": "Barbero",
+            "service": "Servicio",
+            "service_price": "Valor del servicio",
+            "commission_amount": "Comisión",
+            "tip_amount": "Propina",
+        }
+        widgets = {
+            "barber": forms.Select(attrs={"class": "form-select"}),
+            "service": ServiceCatalogSelect(
+                attrs={"class": "form-select", "data-service-selector": "true"}
+            ),
+            "service_price": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "step": "0.01",
+                    "min": "0",
+                    "readonly": "readonly",
+                }
+            ),
+            "commission_amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "step": "0.01",
+                    "min": "0",
+                    "readonly": "readonly",
+                }
+            ),
+            "tip_amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "step": "0.01",
+                    "min": "0",
+                    "placeholder": "Opcional",
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["barber"].queryset = Employee.objects.filter(is_active=True)
+        self.fields["service"].queryset = CatalogItem.objects.filter(is_active=True)
+        self.fields["service"].widget.queryset = self.fields["service"].queryset
         self.fields["service_price"].initial = self._service_price_initial()
         self.fields["commission_amount"].initial = self._commission_initial()
         self.fields["service_price"].disabled = True
