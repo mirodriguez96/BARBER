@@ -1,8 +1,12 @@
 from datetime import date, datetime
+from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
+from django.db.models import Count, ExpressionWrapper, F, Q, Sum, Value
+from django.db.models.functions import Coalesce
+from django.db.models import DecimalField
 from django.shortcuts import get_object_or_404, redirect, render
 
 from barberia.accounts.models import User
@@ -27,7 +31,7 @@ def home(request):
     barber_id = request.GET.get("barber")
     catalog_id = request.GET.get("catalog_item")
     service_id = request.GET.get("service_record")
-    if section not in {"barbers", "catalog", "services"}:
+    if section not in {"barbers", "catalog", "services", "payments"}:
         quick_view = "form"
 
     barber_to_edit = None
@@ -236,10 +240,63 @@ def home(request):
         "scheduled": service_list.filter(status=ServiceRecord.Status.SCHEDULED).count(),
     }
 
+    payments_qs = Employee.objects.all()
+    if request.user.role != User.Role.ADMIN:
+        payments_qs = payments_qs.filter(user=request.user)
+
+    payments_aggregate_filter = Q(service_records__status=ServiceRecord.Status.DONE)
+    if filter_date == "today":
+        payments_aggregate_filter &= Q(
+            service_records__scheduled_for__date=date.today()
+        )
+    elif filter_date:
+        try:
+            parsed = datetime.strptime(filter_date, "%Y-%m-%d").date()
+            payments_aggregate_filter &= Q(service_records__scheduled_for__date=parsed)
+        except ValueError:
+            pass
+
+    if filter_barber:
+        payments_aggregate_filter &= Q(service_records__barber_id=filter_barber)
+        payments_qs = payments_qs.filter(pk=filter_barber)
+
+    commission_expression = ExpressionWrapper(
+        F("service_records__service_price")
+        * F("service_records__service__barber_commission_percent")
+        / Value(100),
+        output_field=DecimalField(max_digits=10, decimal_places=2),
+    )
+
+    payments_qs = payments_qs.annotate(
+        cuts_count=Coalesce(
+            Count("service_records", filter=payments_aggregate_filter), Value(0)
+        ),
+        commission_total=Coalesce(
+            Sum(commission_expression, filter=payments_aggregate_filter),
+            Value(Decimal("0.00")),
+        ),
+        tip_total=Coalesce(
+            Sum("service_records__tip_amount", filter=payments_aggregate_filter),
+            Value(Decimal("0.00")),
+        ),
+    ).order_by("full_name")
+
+    # Only include barbers that have at least one matching service record
+    # (respecting the date/filter criteria above). We filter on the
+    # annotated cuts_count to show only barbers with cuts.
+    payments_qs = payments_qs.filter(cuts_count__gt=0)
+
+    payments_paginator = Paginator(payments_qs, 10)
+    payments_page_number = request.GET.get("page")
+    payments_page = payments_paginator.get_page(payments_page_number)
+
+    # (payments_summary removed per request)
+
     section_titles = {
         "barbers": "Administrar barberos",
         "catalog": "Administrar productos y servicios",
         "services": "Administrar cortes y servicios",
+        "payments": "Pagos — comisiones y propinas",
     }
 
     context = {
@@ -253,6 +310,7 @@ def home(request):
         "barbers": barbers,
         "catalog_items": catalog_items,
         "services": services,
+        "payments_page": payments_page,
         "filter_params": filter_params,
         "filter_date": filter_date,
         "filter_barber": filter_barber,
@@ -264,6 +322,7 @@ def home(request):
             {"key": "barbers", "label": "BARBEROS", "hint": ""},
             {"key": "catalog", "label": "PRODUCTOS Y SERVICIOS", "hint": ""},
             {"key": "services", "label": "CORTES Y SERVICIOS", "hint": ""},
+            {"key": "payments", "label": "PAGOS", "hint": ""},
         ],
     }
     return render(request, "dashboard/home.html", context)
