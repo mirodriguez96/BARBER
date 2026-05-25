@@ -136,10 +136,6 @@ def home(request):
             form_class = forms_map.get(section, BarberForm)
             form = form_class()
 
-    today_records = ServiceRecord.objects.select_related(
-        "client", "barber", "service", "performed_by"
-    ).order_by("-scheduled_for")[:5]
-
     filter_date = request.GET.get("filter_date", "")
     filter_barber = request.GET.get("filter_barber", "")
 
@@ -212,11 +208,8 @@ def home(request):
         "section_title": section_titles.get(section, "Registro de barberos"),
         "form": form,
         "barbers": barbers,
-        "barber_page_obj": barbers,
         "catalog_items": catalog_items,
-        "catalog_page_obj": catalog_items,
         "services": services,
-        "service_page_obj": services,
         "filter_params": filter_params,
         "filter_date": filter_date,
         "filter_barber": filter_barber,
@@ -229,6 +222,5 @@ def home(request):
             {"key": "catalog", "label": "PRODUCTOS Y SERVICIOS", "hint": ""},
             {"key": "services", "label": "CORTES Y SERVICIOS", "hint": ""},
         ],
-        "recent_records": today_records,
     }
     return render(request, "dashboard/home.html", context)

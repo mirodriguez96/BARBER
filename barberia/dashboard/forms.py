@@ -236,7 +236,6 @@ class ServiceRecordForm(DashboardModelForm):
             "service": ServiceCatalogSelect(
                 attrs={"class": "form-select", "data-service-selector": "true"}
             ),
-            "performed_by": forms.Select(attrs={"class": "form-select"}),
             "scheduled_for": forms.DateTimeInput(
                 attrs={"class": "form-control", "type": "datetime-local"}
             ),

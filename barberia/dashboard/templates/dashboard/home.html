@@ -33,7 +33,6 @@
           <button
             type="submit"
             class="btn btn-dashboard-logout btn-lg rounded-pill px-5"
-            style="cursor: pointer;"
           >
             Cerrar sesión
           </button>
@@ -183,18 +182,18 @@
                   </table>
                 </div>
               </div>
-              {% if barber_page_obj.paginator.num_pages > 1 %}
+              {% if barbers.paginator.num_pages > 1 %}
                 <div class="dashboard-pagination">
-                  {% if barber_page_obj.has_previous %}
+                  {% if barbers.has_previous %}
                     <a class="dashboard-pagination__link" href="?section=barbers&view=list&page=1">Primera</a>
-                    <a class="dashboard-pagination__link" href="?section=barbers&view=list&page={{ barber_page_obj.previous_page_number }}">Anterior</a>
+                    <a class="dashboard-pagination__link" href="?section=barbers&view=list&page={{ barbers.previous_page_number }}">Anterior</a>
                   {% endif %}
                   <span class="dashboard-pagination__info">
-                    Página {{ barber_page_obj.number }} de {{ barber_page_obj.paginator.num_pages }}
+                    Página {{ barbers.number }} de {{ barbers.paginator.num_pages }}
                   </span>
-                  {% if barber_page_obj.has_next %}
-                    <a class="dashboard-pagination__link" href="?section=barbers&view=list&page={{ barber_page_obj.next_page_number }}">Siguiente</a>
-                    <a class="dashboard-pagination__link" href="?section=barbers&view=list&page={{ barber_page_obj.paginator.num_pages }}">Última</a>
+                  {% if barbers.has_next %}
+                    <a class="dashboard-pagination__link" href="?section=barbers&view=list&page={{ barbers.next_page_number }}">Siguiente</a>
+                    <a class="dashboard-pagination__link" href="?section=barbers&view=list&page={{ barbers.paginator.num_pages }}">Última</a>
                   {% endif %}
                 </div>
               {% endif %}
@@ -302,16 +301,16 @@
                   </table>
                 </div>
               </div>
-              {% if catalog_page_obj.paginator.num_pages > 1 %}
+              {% if catalog_items.paginator.num_pages > 1 %}
                 <div class="dashboard-pagination">
-                  {% if catalog_page_obj.has_previous %}
+                  {% if catalog_items.has_previous %}
                     <a class="dashboard-pagination__link" href="?section=catalog&view=list&page=1">Primera</a>
-                    <a class="dashboard-pagination__link" href="?section=catalog&view=list&page={{ catalog_page_obj.previous_page_number }}">Anterior</a>
+                    <a class="dashboard-pagination__link" href="?section=catalog&view=list&page={{ catalog_items.previous_page_number }}">Anterior</a>
                   {% endif %}
-                  <span class="dashboard-pagination__info">Página {{ catalog_page_obj.number }} de {{ catalog_page_obj.paginator.num_pages }}</span>
-                  {% if catalog_page_obj.has_next %}
-                    <a class="dashboard-pagination__link" href="?section=catalog&view=list&page={{ catalog_page_obj.next_page_number }}">Siguiente</a>
-                    <a class="dashboard-pagination__link" href="?section=catalog&view=list&page={{ catalog_page_obj.paginator.num_pages }}">Última</a>
+                  <span class="dashboard-pagination__info">Página {{ catalog_items.number }} de {{ catalog_items.paginator.num_pages }}</span>
+                  {% if catalog_items.has_next %}
+                    <a class="dashboard-pagination__link" href="?section=catalog&view=list&page={{ catalog_items.next_page_number }}">Siguiente</a>
+                    <a class="dashboard-pagination__link" href="?section=catalog&view=list&page={{ catalog_items.paginator.num_pages }}">Última</a>
                   {% endif %}
                 </div>
               {% endif %}
@@ -433,21 +432,22 @@
                   </table>
                 </div>
               </div>
-              {% if service_page_obj.paginator.num_pages > 1 %}
+              {% if services.paginator.num_pages > 1 %}
                 <div class="dashboard-pagination">
-                  {% if service_page_obj.has_previous %}
+                  {% if services.has_previous %}
                     <a class="dashboard-pagination__link" href="?section=services&view=list{{ filter_params }}&page=1">Primera</a>
-                    <a class="dashboard-pagination__link" href="?section=services&view=list{{ filter_params }}&page={{ service_page_obj.previous_page_number }}">Anterior</a>
+                    <a class="dashboard-pagination__link" href="?section=services&view=list{{ filter_params }}&page={{ services.previous_page_number }}">Anterior</a>
                   {% endif %}
-                  <span class="dashboard-pagination__info">Página {{ service_page_obj.number }} de {{ service_page_obj.paginator.num_pages }}</span>
-                  {% if service_page_obj.has_next %}
-                    <a class="dashboard-pagination__link" href="?section=services&view=list{{ filter_params }}&page={{ service_page_obj.next_page_number }}">Siguiente</a>
-                    <a class="dashboard-pagination__link" href="?section=services&view=list{{ filter_params }}&page={{ service_page_obj.paginator.num_pages }}">Última</a>
+                  <span class="dashboard-pagination__info">Página {{ services.number }} de {{ services.paginator.num_pages }}</span>
+                  {% if services.has_next %}
+                    <a class="dashboard-pagination__link" href="?section=services&view=list{{ filter_params }}&page={{ services.next_page_number }}">Siguiente</a>
+                    <a class="dashboard-pagination__link" href="?section=services&view=list{{ filter_params }}&page={{ services.paginator.num_pages }}">Última</a>
                   {% endif %}
                 </div>
               {% endif %}
             </div>
-          {% elif active_section == 'catalog' and quick_view == 'edit' or active_section == 'barbers' and quick_view == 'edit' or active_section == 'services' and quick_view == 'edit' %}
+          {% else %}
+            {% if quick_view == 'edit' %}
             <div class="dashboard-panel__summary mb-4">
               <div>
                 <p class="eyebrow mb-1">Captura rápida</p>
@@ -471,13 +471,10 @@
                 {% endif %}
               </p>
             </div>
+            {% endif %}
             <form method="post" class="dashboard-form">
               {% csrf_token %}
-              <input
-                type="hidden"
-                name="section"
-                value="{{ active_section }}"
-              />
+              <input type="hidden" name="section" value="{{ active_section }}" />
               {% if active_section == 'barbers' and quick_view == 'edit' and barber_to_edit %}
                 <input type="hidden" name="action" value="update" />
                 <input type="hidden" name="barber_id" value="{{ barber_to_edit.pk }}" />
@@ -490,32 +487,20 @@
               {% endif %}
               <div class="dashboard-form-grid">
                 {% for field in form %}
-                  <div
-                    class="dashboard-field-card {% if field.name == 'notes' or field.name == 'description' %}dashboard-field-card--wide{% endif %}"
-                  >
+                  <div class="dashboard-field-card {% if field.name == 'notes' or field.name == 'description' %}dashboard-field-card--wide{% endif %}">
                     <div class="dashboard-field-card__head">
-                      <label
-                        class="form-label mb-0"
-                        for="{{ field.id_for_label }}"
-                        >{{ field.label }}</label
-                      >
+                      <label class="form-label mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>
                       {% if field.field.required %}
-                        <span class="dashboard-field-card__required"
-                          >Obligatorio</span
-                        >
+                        <span class="dashboard-field-card__required">Obligatorio</span>
                       {% endif %}
                     </div>
                     <div class="dashboard-field-card__body">
                       {{ field }}
                       {% if field.help_text %}
-                        <small class="form-text text-muted"
-                          >{{ field.help_text }}</small
-                        >
+                        <small class="form-text text-muted">{{ field.help_text }}</small>
                       {% endif %}
                       {% if field.errors %}
-                        <div class="invalid-feedback d-block">
-                          {{ field.errors|striptags }}
-                        </div>
+                        <div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>
                       {% endif %}
                     </div>
                   </div>
@@ -523,74 +508,8 @@
               </div>
               <div class="dashboard-form-gap" aria-hidden="true"></div>
               <div class="dashboard-form__actions mt-4">
-                <button
-                  type="submit"
-                  class="btn btn-dashboard-primary btn-lg rounded-pill px-5"
-                  style="cursor: pointer;"
-                >
-                  Guardar cambios
-                </button>
-              </div>
-            </form>
-          {% else %}
-            <form method="post" class="dashboard-form">
-              {% csrf_token %}
-              <input
-                type="hidden"
-                name="section"
-                value="{{ active_section }}"
-              />
-              {% if active_section == 'barbers' and quick_view == 'edit' and barber_to_edit %}
-                <input type="hidden" name="action" value="update" />
-                <input type="hidden" name="barber_id" value="{{ barber_to_edit.pk }}" />
-              {% elif active_section == 'catalog' and quick_view == 'edit' and catalog_item_to_edit %}
-                <input type="hidden" name="action" value="update" />
-                <input type="hidden" name="catalog_item_id" value="{{ catalog_item_to_edit.pk }}" />
-              {% elif active_section == 'services' and quick_view == 'edit' and service_record_to_edit %}
-                <input type="hidden" name="action" value="update" />
-                <input type="hidden" name="service_record_id" value="{{ service_record_to_edit.pk }}" />
-              {% endif %}
-              <div class="dashboard-form-grid">
-                {% for field in form %}
-                  <div
-                    class="dashboard-field-card {% if field.name == 'notes' or field.name == 'description' %}dashboard-field-card--wide{% endif %}"
-                  >
-                    <div class="dashboard-field-card__head">
-                      <label
-                        class="form-label mb-0"
-                        for="{{ field.id_for_label }}"
-                        >{{ field.label }}</label
-                      >
-                      {% if field.field.required %}
-                        <span class="dashboard-field-card__required"
-                          >Obligatorio</span
-                        >
-                      {% endif %}
-                    </div>
-                    <div class="dashboard-field-card__body">
-                      {{ field }}
-                      {% if field.help_text %}
-                        <small class="form-text text-muted"
-                          >{{ field.help_text }}</small
-                        >
-                      {% endif %}
-                      {% if field.errors %}
-                        <div class="invalid-feedback d-block">
-                          {{ field.errors|striptags }}
-                        </div>
-                      {% endif %}
-                    </div>
-                  </div>
-                {% endfor %}
-              </div>
-              <div class="dashboard-form-gap" aria-hidden="true"></div>
-              <div class="dashboard-form__actions mt-4">
-                <button
-                  type="submit"
-                  class="btn btn-dashboard-primary btn-lg rounded-pill px-5"
-                  style="cursor: pointer;"
-                >
-                  Guardar registro
+                <button type="submit" class="btn btn-dashboard-primary btn-lg rounded-pill px-5">
+                  {% if quick_view == 'edit' %}Guardar cambios{% else %}Guardar registro{% endif %}
                 </button>
               </div>
             </form>
