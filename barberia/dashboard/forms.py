@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django import forms
 from django.utils import timezone
 
@@ -130,6 +132,27 @@ class BarberEditForm(DashboardModelForm):
 
 
 class CatalogItemForm(DashboardModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._adjust_commission_for_kind()
+
+    def _adjust_commission_for_kind(self):
+        kind_value = None
+        if self.is_bound:
+            kind_value = self.data.get(self.add_prefix("kind"))
+        elif self.instance and self.instance.pk:
+            kind_value = self.instance.kind
+        if kind_value == CatalogItem.Kind.PRODUCT:
+            self.fields["barber_commission_percent"].disabled = True
+            self.fields["barber_commission_percent"].initial = Decimal("0.00")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        kind = cleaned_data.get("kind")
+        if kind == CatalogItem.Kind.PRODUCT:
+            cleaned_data["barber_commission_percent"] = Decimal("0.00")
+        return cleaned_data
+
     class Meta:
         model = CatalogItem
         fields = [
@@ -176,6 +199,27 @@ class CatalogItemForm(DashboardModelForm):
 
 
 class CatalogItemEditForm(DashboardModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._adjust_commission_for_kind()
+
+    def _adjust_commission_for_kind(self):
+        kind_value = None
+        if self.is_bound:
+            kind_value = self.data.get(self.add_prefix("kind"))
+        elif self.instance and self.instance.pk:
+            kind_value = self.instance.kind
+        if kind_value == CatalogItem.Kind.PRODUCT:
+            self.fields["barber_commission_percent"].disabled = True
+            self.fields["barber_commission_percent"].initial = Decimal("0.00")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        kind = cleaned_data.get("kind")
+        if kind == CatalogItem.Kind.PRODUCT:
+            cleaned_data["barber_commission_percent"] = Decimal("0.00")
+        return cleaned_data
+
     class Meta:
         model = CatalogItem
         fields = ["name", "kind", "price", "barber_commission_percent", "description"]

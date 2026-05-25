@@ -520,6 +520,22 @@
   </section>
   <script>
     (() => {
+      const kindSelect = document.getElementById("id_kind");
+      const commissionField = document.getElementById("id_barber_commission_percent");
+      if (kindSelect && commissionField) {
+        const toggleCommission = () => {
+          if (kindSelect.value === "product") {
+            commissionField.value = "0.00";
+            commissionField.disabled = true;
+          } else {
+            commissionField.disabled = false;
+          }
+        };
+        kindSelect.addEventListener("change", toggleCommission);
+        toggleCommission();
+      }
+    })();
+    (() => {
       const serviceSelect = document.querySelector(
         '[data-service-selector="true"]',
       );
