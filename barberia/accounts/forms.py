@@ -24,4 +24,3 @@ class BarberUserCreationForm(UserCreationForm):
             {"placeholder": "Repite la contraseña"}
         )
         self.fields["role"].widget.attrs.update({"class": "form-select"})
-        self.fields["role"].empty_label = "Selecciona un rol"

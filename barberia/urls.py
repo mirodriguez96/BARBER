@@ -10,7 +10,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("dashboard/", include("barberia.dashboard.urls")),
     path("accounts/", include("barberia.accounts.urls")),
-    path("people/", include("barberia.people.urls")),
-    path("catalog/", include("barberia.catalog.urls")),
-    path("operations/", include("barberia.operations.urls")),
+
 ]

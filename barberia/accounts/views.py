@@ -2,7 +2,6 @@ from django.contrib.auth import login
 from django.shortcuts import redirect, render
 
 from .forms import BarberUserCreationForm
-from .models import User
 
 
 def register(request):

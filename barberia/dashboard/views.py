@@ -163,18 +163,17 @@ def home(request):
         filter_parts.append(f"filter_barber={filter_barber}")
     filter_params = "&" + "&".join(filter_parts) if filter_parts else ""
 
-    service_paginator = Paginator(filtered_service_list, 10)
-    service_page_number = request.GET.get("page")
-    services = service_paginator.get_page(service_page_number)
-
     barber_list = Employee.objects.order_by("-created_at")
     barber_paginator = Paginator(barber_list, 10)
-    barber_page_number = request.GET.get("page")
+    barber_page_number = request.GET.get("barber_page")
     barbers = barber_paginator.get_page(barber_page_number)
     catalog_list = CatalogItem.objects.order_by("-id")
     catalog_paginator = Paginator(catalog_list, 10)
-    catalog_page_number = request.GET.get("page")
+    catalog_page_number = request.GET.get("catalog_page")
     catalog_items = catalog_paginator.get_page(catalog_page_number)
+    service_paginator = Paginator(filtered_service_list, 10)
+    service_page_number = request.GET.get("service_page")
+    services = service_paginator.get_page(service_page_number)
     barber_stats = {
         "total": barber_list.count(),
         "active": barber_list.filter(is_active=True).count(),
