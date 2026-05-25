@@ -60,17 +60,17 @@
             </div>
           </div>
 
-          {% if active_section == 'barbers' %}
+          {% if active_section == 'barbers' or active_section == 'catalog' %}
             <div class="dashboard-quick-switch mb-4">
               <a
                 class="dashboard-quick-switch__item {% if quick_view == 'form' %}is-active{% endif %}"
-                href="?section=barbers&view=form"
+                href="?section={{ active_section }}&view=form"
                 >Formulario de registro</a
               >
               <a
                 class="dashboard-quick-switch__item {% if quick_view == 'list' %}is-active{% endif %}"
-                href="?section=barbers&view=list"
-                >Lista de barberos</a
+                href="?section={{ active_section }}&view=list"
+                >Lista de registros</a
               >
             </div>
           {% endif %}
@@ -199,18 +199,143 @@
                 </div>
               {% endif %}
             </div>
-          {% else %}
-            {% if active_section == 'barbers' and quick_view == 'edit' %}
-              <div class="dashboard-panel__summary mb-4">
+          {% elif active_section == 'catalog' and quick_view == 'list' %}
+            <div class="dashboard-metrics mb-4">
+              <article class="dashboard-metric-card">
+                <p class="dashboard-metric-card__label mb-1">Total</p>
+                <strong class="dashboard-metric-card__value">{{ catalog_stats.total }}</strong>
+                <span class="dashboard-metric-card__hint">Items registrados</span>
+              </article>
+              <article class="dashboard-metric-card">
+                <p class="dashboard-metric-card__label mb-1">Productos</p>
+                <strong class="dashboard-metric-card__value">{{ catalog_stats.products }}</strong>
+                <span class="dashboard-metric-card__hint">Inventario comercial</span>
+              </article>
+              <article class="dashboard-metric-card">
+                <p class="dashboard-metric-card__label mb-1">Servicios</p>
+                <strong class="dashboard-metric-card__value">{{ catalog_stats.services }}</strong>
+                <span class="dashboard-metric-card__hint">Servicios de agenda</span>
+              </article>
+            </div>
+            <div class="dashboard-table-shell">
+              <div class="dashboard-table-shell__header">
                 <div>
-                  <p class="eyebrow mb-1">Captura rápida</p>
-                  <h4 class="section-title mb-0">Modificar barbero</h4>
+                  <p class="eyebrow mb-1">Listado activo</p>
+                  <h4 class="section-title mb-0">Productos y servicios</h4>
                 </div>
-                <p class="dashboard-panel__summary-copy mb-0">
-                  Actualiza solo el nombre, teléfono y correo. El documento y el estado permanecen intactos.
-                </p>
+                <span class="dashboard-pill">{{ catalog_items|length }} registros</span>
               </div>
-            {% endif %}
+              <div class="dashboard-table-wrap">
+                <div class="table-responsive">
+                  <table class="table dashboard-table dashboard-table--catalog align-middle table-hover mb-0">
+                    <thead>
+                      <tr>
+                        <th>Nombre</th>
+                        <th>Tipo</th>
+                        <th>Precio</th>
+                        <th>Comisión</th>
+                        <th>Descripción</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for item in catalog_items %}
+                        <tr>
+                          <td>
+                            <div class="dashboard-person">
+                              <div class="dashboard-person__avatar" aria-hidden="true">
+                                {{ item.name|slice:":1"|default:"I" }}
+                              </div>
+                              <div class="dashboard-person__body">
+                                <div class="dashboard-table__primary">{{ item.name }}</div>
+                                <div class="dashboard-table__meta">{% if item.sku %}{{ item.sku }}{% else %}Sin código{% endif %}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td><span class="dashboard-table__chip">{{ item.get_kind_display }}</span></td>
+                          <td>${{ item.price }}</td>
+                          <td>{{ item.barber_commission_percent }}%</td>
+                          <td class="dashboard-table__description">{{ item.description|default:"-" }}</td>
+                          <td>
+                            <span class="dashboard-status {% if item.is_active %}is-active{% else %}is-inactive{% endif %}">
+                              {% if item.is_active %}Activo{% else %}Inactivo{% endif %}
+                            </span>
+                          </td>
+                          <td>
+                            <div class="dashboard-row-actions">
+                              <form method="get" class="dashboard-inline-form">
+                                <input type="hidden" name="section" value="catalog" />
+                                <input type="hidden" name="view" value="edit" />
+                                <input type="hidden" name="catalog_item" value="{{ item.pk }}" />
+                                <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">Modificar</button>
+                              </form>
+                              {% if item.is_active %}
+                                <form method="post" class="dashboard-inline-form">
+                                  {% csrf_token %}
+                                  <input type="hidden" name="section" value="catalog" />
+                                  <input type="hidden" name="action" value="deactivate" />
+                                  <input type="hidden" name="catalog_item_id" value="{{ item.pk }}" />
+                                  <button type="submit" class="dashboard-action-btn dashboard-action-btn--danger">Desactivar</button>
+                                </form>
+                              {% else %}
+                                <form method="post" class="dashboard-inline-form">
+                                  {% csrf_token %}
+                                  <input type="hidden" name="section" value="catalog" />
+                                  <input type="hidden" name="action" value="activate" />
+                                  <input type="hidden" name="catalog_item_id" value="{{ item.pk }}" />
+                                  <button type="submit" class="dashboard-action-btn dashboard-action-btn--success">Activar</button>
+                                </form>
+                              {% endif %}
+                            </div>
+                          </td>
+                        </tr>
+                      {% empty %}
+                        <tr>
+                          <td colspan="7" class="dashboard-empty-state">
+                            <div class="dashboard-empty-state__title">Todavía no hay productos ni servicios registrados.</div>
+                            <div class="dashboard-empty-state__copy">Agrega el primero desde el formulario para empezar a gestionar el catálogo.</div>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              {% if catalog_page_obj.paginator.num_pages > 1 %}
+                <div class="dashboard-pagination">
+                  {% if catalog_page_obj.has_previous %}
+                    <a class="dashboard-pagination__link" href="?section=catalog&view=list&page=1">Primera</a>
+                    <a class="dashboard-pagination__link" href="?section=catalog&view=list&page={{ catalog_page_obj.previous_page_number }}">Anterior</a>
+                  {% endif %}
+                  <span class="dashboard-pagination__info">Página {{ catalog_page_obj.number }} de {{ catalog_page_obj.paginator.num_pages }}</span>
+                  {% if catalog_page_obj.has_next %}
+                    <a class="dashboard-pagination__link" href="?section=catalog&view=list&page={{ catalog_page_obj.next_page_number }}">Siguiente</a>
+                    <a class="dashboard-pagination__link" href="?section=catalog&view=list&page={{ catalog_page_obj.paginator.num_pages }}">Última</a>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+          {% elif active_section == 'catalog' and quick_view == 'edit' or active_section == 'barbers' and quick_view == 'edit' %}
+            <div class="dashboard-panel__summary mb-4">
+              <div>
+                <p class="eyebrow mb-1">Captura rápida</p>
+                <h4 class="section-title mb-0">
+                  {% if active_section == 'barbers' %}
+                    Modificar barbero
+                  {% else %}
+                    Modificar producto o servicio
+                  {% endif %}
+                </h4>
+              </div>
+              <p class="dashboard-panel__summary-copy mb-0">
+                {% if active_section == 'barbers' %}
+                  Actualiza solo el nombre, teléfono y correo. El documento y el estado permanecen intactos.
+                {% else %}
+                  Actualiza nombre, tipo, precio, comisión y descripción.
+                {% endif %}
+              </p>
+            </div>
             <form method="post" class="dashboard-form">
               {% csrf_token %}
               <input
@@ -221,6 +346,9 @@
               {% if active_section == 'barbers' and quick_view == 'edit' and barber_to_edit %}
                 <input type="hidden" name="action" value="update" />
                 <input type="hidden" name="barber_id" value="{{ barber_to_edit.pk }}" />
+              {% elif active_section == 'catalog' and quick_view == 'edit' and catalog_item_to_edit %}
+                <input type="hidden" name="action" value="update" />
+                <input type="hidden" name="catalog_item_id" value="{{ catalog_item_to_edit.pk }}" />
               {% endif %}
               <div class="dashboard-form-grid">
                 {% for field in form %}
@@ -262,11 +390,66 @@
                   class="btn btn-dashboard-primary btn-lg rounded-pill px-5"
                   style="cursor: pointer;"
                 >
-                  {% if active_section == 'barbers' and quick_view == 'edit' %}
-                    Guardar cambios
-                  {% else %}
-                    Guardar registro
-                  {% endif %}
+                  Guardar cambios
+                </button>
+              </div>
+            </form>
+          {% else %}
+            <form method="post" class="dashboard-form">
+              {% csrf_token %}
+              <input
+                type="hidden"
+                name="section"
+                value="{{ active_section }}"
+              />
+              {% if active_section == 'barbers' and quick_view == 'edit' and barber_to_edit %}
+                <input type="hidden" name="action" value="update" />
+                <input type="hidden" name="barber_id" value="{{ barber_to_edit.pk }}" />
+              {% elif active_section == 'catalog' and quick_view == 'edit' and catalog_item_to_edit %}
+                <input type="hidden" name="action" value="update" />
+                <input type="hidden" name="catalog_item_id" value="{{ catalog_item_to_edit.pk }}" />
+              {% endif %}
+              <div class="dashboard-form-grid">
+                {% for field in form %}
+                  <div
+                    class="dashboard-field-card {% if field.name == 'notes' or field.name == 'description' %}dashboard-field-card--wide{% endif %}"
+                  >
+                    <div class="dashboard-field-card__head">
+                      <label
+                        class="form-label mb-0"
+                        for="{{ field.id_for_label }}"
+                        >{{ field.label }}</label
+                      >
+                      {% if field.field.required %}
+                        <span class="dashboard-field-card__required"
+                          >Obligatorio</span
+                        >
+                      {% endif %}
+                    </div>
+                    <div class="dashboard-field-card__body">
+                      {{ field }}
+                      {% if field.help_text %}
+                        <small class="form-text text-muted"
+                          >{{ field.help_text }}</small
+                        >
+                      {% endif %}
+                      {% if field.errors %}
+                        <div class="invalid-feedback d-block">
+                          {{ field.errors|striptags }}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+              <div class="dashboard-form-gap" aria-hidden="true"></div>
+              <div class="dashboard-form__actions mt-4">
+                <button
+                  type="submit"
+                  class="btn btn-dashboard-primary btn-lg rounded-pill px-5"
+                  style="cursor: pointer;"
+                >
+                  Guardar registro
                 </button>
               </div>
             </form>

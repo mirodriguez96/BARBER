@@ -175,6 +175,38 @@ class CatalogItemForm(DashboardModelForm):
         }
 
 
+class CatalogItemEditForm(DashboardModelForm):
+    class Meta:
+        model = CatalogItem
+        fields = ["name", "kind", "price", "barber_commission_percent", "description"]
+        labels = {
+            "kind": "Tipo",
+            "name": "Nombre",
+            "description": "Descripción",
+            "price": "Precio",
+            "barber_commission_percent": "Comisión del barbero (%)",
+        }
+        widgets = {
+            "kind": forms.Select(attrs={"class": "form-select"}),
+            "name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Ej. Corte degradado"}
+            ),
+            "description": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 4,
+                    "placeholder": "Detalle del producto o servicio",
+                }
+            ),
+            "price": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01", "min": "0"}
+            ),
+            "barber_commission_percent": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01", "min": "0"}
+            ),
+        }
+
+
 class ServiceRecordForm(DashboardModelForm):
     class Meta:
         model = ServiceRecord

@@ -812,12 +812,14 @@ body.auth-page {
   flex-wrap: wrap;
   gap: 0.75rem;
   margin-bottom: 1.5rem;
+  max-width: 100%;
 }
 
 .dashboard-quick-switch__item {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  max-width: 100%;
   padding: 0.8rem 1.2rem;
   border-radius: 999px;
   border: 1px solid rgba(148, 163, 184, 0.28);
@@ -878,6 +880,10 @@ body.auth-page {
   table-layout: fixed;
 }
 
+.dashboard-table--catalog {
+  min-width: 1080px;
+}
+
 .dashboard-table td,
 .dashboard-table th {
   vertical-align: middle;
@@ -909,6 +915,34 @@ body.auth-page {
   width: 18%;
 }
 
+.dashboard-table--catalog th:nth-child(1) {
+  width: 23%;
+}
+
+.dashboard-table--catalog th:nth-child(2) {
+  width: 11%;
+}
+
+.dashboard-table--catalog th:nth-child(3) {
+  width: 11%;
+}
+
+.dashboard-table--catalog th:nth-child(4) {
+  width: 11%;
+}
+
+.dashboard-table--catalog th:nth-child(5) {
+  width: 26%;
+}
+
+.dashboard-table--catalog th:nth-child(6) {
+  width: 10%;
+}
+
+.dashboard-table--catalog th:nth-child(7) {
+  width: 18%;
+}
+
 .dashboard-table thead th {
   background: #f8fafc;
   color: #334155;
@@ -929,6 +963,21 @@ body.auth-page {
 .dashboard-table tbody td:nth-child(5),
 .dashboard-table tbody td:nth-child(6) {
   white-space: nowrap;
+}
+
+.dashboard-table--catalog tbody td:nth-child(2),
+.dashboard-table--catalog tbody td:nth-child(3),
+.dashboard-table--catalog tbody td:nth-child(4),
+.dashboard-table--catalog tbody td:nth-child(6),
+.dashboard-table--catalog tbody td:nth-child(7) {
+  white-space: nowrap;
+}
+
+.dashboard-table__description {
+  white-space: normal;
+  color: #475569;
+  font-size: 0.92rem;
+  line-height: 1.4;
 }
 
 .dashboard-table tbody tr:hover {
@@ -1180,18 +1229,22 @@ body.auth-page {
 
   .dashboard-quick-switch {
     width: 100%;
+    max-width: 100%;
     flex-direction: column;
   }
 
   .dashboard-quick-switch__item {
     width: 100%;
+    max-width: 100%;
     justify-content: center;
+    box-sizing: border-box;
   }
 
   .dashboard-action-btn,
   .dashboard-inline-form,
   .dashboard-inline-form .dashboard-action-btn {
     width: 100%;
+    max-width: 100%;
   }
 
   .dashboard-table {
