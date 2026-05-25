@@ -22,6 +22,7 @@ class StyledAuthenticationForm(AuthenticationForm):
 class BarberiaLoginView(LoginView):
     template_name = "registration/login.html"
     authentication_form = StyledAuthenticationForm
+    redirect_authenticated_user = True
 
 
 def home(request):

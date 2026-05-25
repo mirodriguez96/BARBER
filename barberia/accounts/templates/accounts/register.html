@@ -1,14 +1,14 @@
 {% extends 'common/auth_base.html' %}
 {% load static %}
-{% block title %}Ingresar{% endblock %}
+{% block title %}Registrarse{% endblock %}
 {% block content %}
   <div class="login-grid">
     <section class="login-panel login-panel--form">
       <div class="mb-4">
-        <p class="eyebrow mb-1">Acceso seguro</p>
-        <h2 class="h3 mb-2">Iniciar sesión</h2>
+        <p class="eyebrow mb-1">Nuevo en el panel</p>
+        <h2 class="h3 mb-2">Crear cuenta</h2>
         <p class="login-panel__copy mb-0">
-          Usa tus credenciales para entrar al panel.
+          Completa los datos para registrarte.
         </p>
       </div>
       <form method="post" class="login-form">
@@ -36,11 +36,11 @@
           </div>
         {% endfor %}
         <button type="submit" class="btn btn-dashboard-primary w-100 btn-lg rounded-pill">
-          Entrar
+          Crear cuenta
         </button>
         <p class="text-center mt-3 mb-0">
-          <a href="{% url 'register' %}" class="login-panel__register-link">
-            Registrarse
+          <a href="{% url 'login' %}" class="login-panel__copy">
+            ¿Ya tienes cuenta? Inicia sesión
           </a>
         </p>
       </form>
@@ -48,10 +48,10 @@
     <section class="login-panel login-panel--brand text-white">
       <div>
         <div class="brand-badge">Barbería Admin</div>
-        <h1>Gestiona tu barbería con orden y control real.</h1>
+        <h1>Únete al panel de administración.</h1>
         <p>
-          Accede para registrar barberos, productos, servicios y cortes desde un
-          mismo lugar.
+          Registra tu cuenta para gestionar barberos, productos, servicios y
+          cortes desde un mismo lugar.
         </p>
       </div>
       <ul class="login-features">

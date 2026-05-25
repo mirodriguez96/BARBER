@@ -57,6 +57,7 @@
               <h1 class="section-title mb-0">{{ section_title }}</h1>
               <hr />
             </div>
+            <span class="dashboard-user-badge">{{ request.user.get_full_name|default:request.user.username }}</span>
           </div>
 
           {% if active_section == 'barbers' or active_section == 'catalog' or active_section == 'services' %}
