@@ -475,8 +475,26 @@
                             {% endif %}
                         </div>
                     {% elif active_section == 'payments' and quick_view == 'list' %}
-                        <div class="dashboard-filters mb-3">
-                            <form method="get" class="dashboard-filters__form">
+                            <div class="dashboard-metrics mb-3">
+                                <article class="dashboard-metric-card">
+                                    <p class="dashboard-metric-card__label mb-1">Cortes</p>
+                                    <strong class="dashboard-metric-card__value">{{ payments_summary.total_cuts }}</strong>
+                                    <span class="dashboard-metric-card__hint">Cortes completados</span>
+                                </article>
+                                <article class="dashboard-metric-card">
+                                    <p class="dashboard-metric-card__label mb-1">Comisión total</p>
+                                    <strong class="dashboard-metric-card__value">${{ payments_summary.commission_total|floatformat:2 }}</strong>
+                                    <span class="dashboard-metric-card__hint">Comisiones + propinas</span>
+                                </article>
+                                <article class="dashboard-metric-card">
+                                    <p class="dashboard-metric-card__label mb-1">Empresa (neto)</p>
+                                    <strong class="dashboard-metric-card__value">${{ payments_summary.company_net|floatformat:2 }}</strong>
+                                    <span class="dashboard-metric-card__hint">Ingresos - comisiones</span>
+                                </article>
+                            </div>
+
+                            <div class="dashboard-filters mb-3">
+                                <form method="get" class="dashboard-filters__form">
                                 <input type="hidden" name="section" value="payments" />
                                 <input type="hidden" name="view" value="list" />
                                 <div class="dashboard-filters__group">
@@ -516,7 +534,7 @@
                                 </div>
                                 <span class="dashboard-pill">{{ payments_page|length }} registros</span>
                             </div>
-                            {# Admin summary removed — kept view-only in backend. #}
+                            {# metrics below removed to avoid duplication; metrics shown above filters #}
                             <div class="dashboard-table-wrap">
                                 <div class="table-responsive">
                                     <table class="table dashboard-table align-middle table-hover mb-0">
