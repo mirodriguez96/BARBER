@@ -1180,6 +1180,95 @@ body.auth-page {
   min-width: 6.25rem;
 }
 
+/* Secondary (neutral/outline) action button */
+.dashboard-action-btn--secondary {
+  color: #475569;
+  background: #fff;
+  border-color: rgba(148, 163, 184, 0.3);
+}
+.dashboard-action-btn--secondary:hover,
+.dashboard-action-btn--secondary:focus-visible {
+  color: #1e293b;
+  border-color: rgba(148, 163, 184, 0.5);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
+}
+
+/* Confirmation modal overlay */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(9, 14, 24, 0.7);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 1200;
+}
+.confirm-overlay[aria-hidden="false"] {
+  display: flex;
+}
+.confirm-overlay[aria-hidden="false"] .confirm-modal {
+  animation: confirmFadeIn 0.2s ease-out;
+}
+@keyframes confirmFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.confirm-modal {
+  background: #fff;
+  border-radius: 1.25rem;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.4);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  overflow: hidden;
+}
+.confirm-modal__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem 1.5rem 0;
+}
+.confirm-modal__icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+.confirm-modal__header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+.confirm-modal__body {
+  padding: 0.75rem 1.5rem 1.25rem;
+  color: #475569;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.confirm-modal__body p {
+  margin: 0;
+}
+.confirm-modal__footer {
+  padding: 0.75rem 1.25rem 1.25rem;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
 .dashboard-table tbody td:last-child {
   min-width: 13rem;
 }

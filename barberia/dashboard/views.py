@@ -121,6 +121,11 @@ def home(request):
                     request, "No tienes permiso para modificar este servicio.",
                 )
                 return redirect(f"{request.path}?section=services&view=list")
+            if service_record.status == ServiceRecord.Status.CANCELED:
+                messages.error(
+                    request, "No se puede modificar un servicio anulado.",
+                )
+                return redirect(f"{request.path}?section=services&view=list")
             form = ServiceRecordEditForm(
                 request.POST, instance=service_record, user=request.user,
             )
@@ -135,6 +140,39 @@ def home(request):
             quick_view = "edit"
             service_record_to_edit = service_record
             messages.error(request, "Revisa los campos marcados en rojo.")
+        elif section == "services" and action == "cancel":
+            # Cancel a service (admin-only)
+            service_id = request.POST.get("service_record_id")
+            # Preserve filter params for redirects when present in the
+            # POST (or GET). Build a local filter_params string so tests
+            # and runtime paths that redirect from this POST never refer
+            # to an undefined variable.
+            _filter_date = request.POST.get("filter_date", request.GET.get("filter_date", ""))
+            _filter_barber = request.POST.get("filter_barber", request.GET.get("filter_barber", ""))
+            _parts = []
+            if _filter_date:
+                _parts.append(f"filter_date={_filter_date}")
+            if _filter_barber:
+                _parts.append(f"filter_barber={_filter_barber}")
+            filter_params_local = "&" + "&".join(_parts) if _parts else ""
+            try:
+                service = ServiceRecord.objects.get(pk=service_id)
+            except ServiceRecord.DoesNotExist:
+                messages.error(request, "Servicio no encontrado.")
+                return redirect(f"{request.path}?section=services&view=list{filter_params_local}")
+
+            if request.user.role != User.Role.ADMIN:
+                messages.error(request, "No tienes permiso para anular este servicio.")
+                return redirect(f"{request.path}?section=services&view=list{filter_params_local}")
+
+            if service.status == ServiceRecord.Status.CANCELED:
+                messages.info(request, "El servicio ya está anulado.")
+                return redirect(f"{request.path}?section=services&view=list{filter_params_local}")
+
+            service.status = ServiceRecord.Status.CANCELED
+            service.save(update_fields=["status"])
+            messages.success(request, "Servicio anulado correctamente.")
+            return redirect(f"{request.path}?section=services&view=list{filter_params_local}")
         else:
             form_class = forms_map.get(section, BarberForm)
             form = form_class(request.POST, user=request.user)
@@ -377,5 +415,6 @@ def home(request):
             {"key": "services", "label": "CORTES Y SERVICIOS", "hint": ""},
             {"key": "payments", "label": "PAGOS", "hint": ""},
         ],
+        "is_admin": request.user.role == User.Role.ADMIN,
     }
     return render(request, "dashboard/home.html", context)

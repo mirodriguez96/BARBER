@@ -332,6 +332,26 @@ class ServiceBarberoAccessTest(TestCase):
         self.own_record.refresh_from_db()
         self.assertEqual(self.own_record.tip_amount, Decimal("5.00"))
 
+    def test_barbero_cannot_cancel_service(self):
+        self.client.login(username="barbero1", password="pass1234")
+        record = ServiceRecord.objects.create(
+            barber=self.other_emp,
+            service=self.service_item,
+            performed_by=self.other_user,
+            scheduled_for=timezone.now(),
+            service_price=Decimal("50.00"),
+            status=ServiceRecord.Status.SCHEDULED,
+        )
+        data = {
+            "action": "cancel",
+            "section": "services",
+            "service_record_id": record.pk,
+        }
+        response = self.client.post(self.list_url, data)
+        self.assertRedirects(response, f"{self.list_url}?section=services&view=list")
+        record.refresh_from_db()
+        self.assertNotEqual(record.status, ServiceRecord.Status.CANCELED)
+
     def test_admin_sees_all_services_in_list(self):
         self.client.login(username="admin", password="pass1234")
         response = self.client.get(self._services_url())
@@ -355,3 +375,23 @@ class ServiceBarberoAccessTest(TestCase):
         self.assertRedirects(response, f"{self.list_url}?section=services&view=list")
         self.other_record.refresh_from_db()
         self.assertEqual(self.other_record.tip_amount, Decimal("3.00"))
+
+    def test_admin_can_cancel_service(self):
+        self.client.login(username="admin", password="pass1234")
+        record = ServiceRecord.objects.create(
+            barber=self.other_emp,
+            service=self.service_item,
+            performed_by=self.other_user,
+            scheduled_for=timezone.now(),
+            service_price=Decimal("50.00"),
+            status=ServiceRecord.Status.SCHEDULED,
+        )
+        data = {
+            "action": "cancel",
+            "section": "services",
+            "service_record_id": record.pk,
+        }
+        response = self.client.post(self.list_url, data)
+        self.assertRedirects(response, f"{self.list_url}?section=services&view=list")
+        record.refresh_from_db()
+        self.assertEqual(record.status, ServiceRecord.Status.CANCELED)

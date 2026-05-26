@@ -176,8 +176,7 @@
                                         <a class="dashboard-pagination__link"
                                            href="?section=barbers&view=list&page={{ barbers.previous_page_number }}">Anterior</a>
                                     {% endif %}
-                                    <span class="dashboard-pagination__info">Página {{ barbers.number }} de {{
-                                    barbers.paginator.num_pages }}</span>
+                                    <span class="dashboard-pagination__info">Página {{ barbers.number }} de {{ barbers.paginator.num_pages }}</span>
                                     {% if barbers.has_next %}
                                         <a class="dashboard-pagination__link"
                                            href="?section=barbers&view=list&page={{ barbers.next_page_number }}">Siguiente</a>
@@ -315,8 +314,7 @@
                                         <a class="dashboard-pagination__link"
                                            href="?section=catalog&view=list&page={{ catalog_items.previous_page_number }}">Anterior</a>
                                     {% endif %}
-                                    <span class="dashboard-pagination__info">Página {{ catalog_items.number }} de {{
-                                    catalog_items.paginator.num_pages }}</span>
+                                    <span class="dashboard-pagination__info">Página {{ catalog_items.number }} de {{ catalog_items.paginator.num_pages }}</span>
                                     {% if catalog_items.has_next %}
                                         <a class="dashboard-pagination__link"
                                            href="?section=catalog&view=list&page={{ catalog_items.next_page_number }}">Siguiente</a>
@@ -393,7 +391,6 @@
                                                 <th>Barbero</th>
                                                 <th>Servicio</th>
                                                 <th>Valor</th>
-                                                <th>Comisión</th>
                                                 <th>Propina</th>
                                                 <th>Estado</th>
                                                 <th>Acciones</th>
@@ -422,7 +419,6 @@
                                                         </div>
                                                     </td>
                                                     <td>${{ record.service_price }}</td>
-                                                    <td>${{ record.commission_amount }}</td>
                                                     <td>${{ record.tip_amount|default_if_none:'0.00' }}</td>
                                                     <td>
                                                         <span class="dashboard-status {% if record.status == 'done' %}is-active{% else %}is-inactive{% endif %}">
@@ -430,19 +426,30 @@
                                                         </span>
                                                     </td>
                                                     <td>
-                                                        <div class="dashboard-row-actions">
-                                                            <form method="get" class="dashboard-inline-form">
-                                                                <input type="hidden" name="section" value="services" />
-                                                                <input type="hidden" name="view" value="edit" />
-                                                                <input type="hidden" name="service_record" value="{{ record.pk }}" />
-                                                                <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">Modificar</button>
-                                                            </form>
+                                                        <div class="dashboard-row-actions dashboard-row-actions--controls">
+                                                            {% if record.status != 'canceled' %}
+                                                                <form method="get" class="dashboard-inline-form">
+                                                                    <input type="hidden" name="section" value="services" />
+                                                                    <input type="hidden" name="view" value="edit" />
+                                                                    <input type="hidden" name="service_record" value="{{ record.pk }}" />
+                                                                    <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">Modificar</button>
+                                                                </form>
+                                                            {% endif %}
+                                                            {% if is_admin and record.status != 'canceled' %}
+                                                            <form method="post" class="dashboard-inline-form js-confirmable" data-confirm="¿Anular este servicio? Esta acción marcará el servicio como Cancelado.">
+                                                                    {% csrf_token %}
+                                                                    <input type="hidden" name="section" value="services" />
+                                                                    <input type="hidden" name="action" value="cancel" />
+                                                                    <input type="hidden" name="service_record_id" value="{{ record.pk }}" />
+                                                                    <button type="submit" class="dashboard-action-btn dashboard-action-btn--danger">Anular</button>
+                                                                </form>
+                                                            {% endif %}
                                                         </div>
                                                     </td>
                                                 </tr>
                                             {% empty %}
                                                 <tr>
-                                                    <td colspan="7" class="dashboard-empty-state">
+                                                    <td colspan="6" class="dashboard-empty-state">
                                                         <div class="dashboard-empty-state__title">Todavía no hay cortes ni servicios registrados.</div>
                                                         <div class="dashboard-empty-state__copy">
                                                             Registra el primero desde el formulario para ver
@@ -463,8 +470,7 @@
                                         <a class="dashboard-pagination__link"
                                            href="?section=services&view=list{{ filter_params }}&page={{ services.previous_page_number }}">Anterior</a>
                                     {% endif %}
-                                    <span class="dashboard-pagination__info">Página {{ services.number }} de {{
-                                    services.paginator.num_pages }}</span>
+                                    <span class="dashboard-pagination__info">Página {{ services.number }} de {{ services.paginator.num_pages }}</span>
                                     {% if services.has_next %}
                                         <a class="dashboard-pagination__link"
                                            href="?section=services&view=list{{ filter_params }}&page={{ services.next_page_number }}">Siguiente</a>
@@ -589,8 +595,7 @@
                                         <a class="dashboard-pagination__link"
                                            href="?section=payments&view=list{{ filter_params }}&page={{ payments_page.previous_page_number }}">Anterior</a>
                                     {% endif %}
-                                    <span class="dashboard-pagination__info">Página {{ payments_page.number }} de {{
-                                    payments_page.paginator.num_pages }}</span>
+                                    <span class="dashboard-pagination__info">Página {{ payments_page.number }} de {{ payments_page.paginator.num_pages }}</span>
                                     {% if payments_page.has_next %}
                                         <a class="dashboard-pagination__link"
                                            href="?section=payments&view=list{{ filter_params }}&page={{ payments_page.next_page_number }}">Siguiente</a>
@@ -676,5 +681,73 @@
                 </div>
             </section>
         </div>
+        <!-- Confirm modal (used by js-confirmable forms) -->
+        <div id="confirm-overlay" class="confirm-overlay" aria-hidden="true">
+            <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+                <header class="confirm-modal__header">
+                    <span class="confirm-modal__icon" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M10 7V11M10 13V13.01M19 10C19 14.9706 14.9706 19 10 19C5.02944 19 1 14.9706 1 10C1 5.02944 5.02944 1 10 1C14.9706 1 19 5.02944 19 10Z" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <h3 id="confirm-title">Anular servicio</h3>
+                </header>
+                <div class="confirm-modal__body">
+                    <p id="confirm-message"></p>
+                </div>
+                <footer class="confirm-modal__footer">
+                    <button type="button" id="confirm-cancel" class="dashboard-action-btn dashboard-action-btn--secondary">Cancelar</button>
+                    <button type="button" id="confirm-ok" class="dashboard-action-btn dashboard-action-btn--danger">Anular</button>
+                </footer>
+            </div>
+        </div>
+
+        <script>
+        (function(){
+            var overlay = document.getElementById('confirm-overlay');
+            var msgEl = document.getElementById('confirm-message');
+            var okBtn = document.getElementById('confirm-ok');
+            var cancelBtn = document.getElementById('confirm-cancel');
+            var activeForm = null;
+
+            function showConfirm(message, form){
+                activeForm = form;
+                msgEl.textContent = message;
+                overlay.setAttribute('aria-hidden', 'false');
+            }
+
+            function hideConfirm(){
+                overlay.setAttribute('aria-hidden', 'true');
+                activeForm = null;
+            }
+
+            document.addEventListener('click', function(e){
+                // catch clicks outside modal to cancel
+                if(e.target === overlay){ hideConfirm(); }
+            });
+
+            cancelBtn.addEventListener('click', function(){ hideConfirm(); });
+
+            okBtn.addEventListener('click', function(){
+                if(activeForm){
+                    // submit the original form programmatically
+                    activeForm.submit();
+                }
+                hideConfirm();
+            });
+
+            // Attach to forms with class js-confirmable
+            document.addEventListener('DOMContentLoaded', function(){
+                var forms = document.querySelectorAll('form.js-confirmable');
+                Array.prototype.forEach.call(forms, function(f){
+                    f.addEventListener('submit', function(ev){
+                        ev.preventDefault();
+                        var msg = f.getAttribute('data-confirm') || '¿Confirmar?';
+                        showConfirm(msg, f);
+                    });
+                });
+            });
+        })();
+        </script>
     </section>
 {% endblock content %}
