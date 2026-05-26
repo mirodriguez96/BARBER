@@ -43,7 +43,7 @@ class BarberFormTest(TestCase):
     def test_duplicate_document_id_rejected(self):
         Employee.objects.create(
             user=self.user,
-            full_name="Barbero Existente",
+            full_name="Colaborador Existente",
             document_id="1020304050",
             phone="3001234567",
         )
@@ -79,7 +79,7 @@ class BarberFormTest(TestCase):
     def test_user_queryset_excludes_employed_users(self):
         Employee.objects.create(
             user=self.user,
-            full_name="Barbero Existente",
+            full_name="Colaborador Existente",
             document_id="1020304050",
             phone="3001234567",
         )
@@ -90,7 +90,7 @@ class BarberFormTest(TestCase):
     def test_edit_form_includes_current_user(self):
         employee = Employee.objects.create(
             user=self.user,
-            full_name="Barbero Edit",
+            full_name="Colaborador Edit",
             document_id="9988776655",
             phone="3001234567",
         )

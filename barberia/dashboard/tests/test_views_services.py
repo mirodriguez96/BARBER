@@ -253,13 +253,13 @@ class ServiceBarberoAccessTest(TestCase):
         )
         self.barbero_emp = Employee.objects.create(
             user=self.barbero_user,
-            full_name="Barbero Uno",
+            full_name="Colaborador Uno",
             document_id="DOC010",
             phone="70000010",
         )
         self.other_emp = Employee.objects.create(
             user=self.other_user,
-            full_name="Barbero Dos",
+            full_name="Colaborador Dos",
             document_id="DOC020",
             phone="70000020",
         )

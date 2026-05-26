@@ -49,11 +49,11 @@ class UserModelTest(TestCase):
 
     def test_role_choices_barbero(self):
         user = User.objects.create_user(
-            username="barbero",
+            username="colaborador",
             password="pass1234",
             role=User.Role.BARBERO,
         )
-        self.assertEqual(user.role, "barbero")
+        self.assertEqual(user.role, "colaborador")
 
     def test_create_superuser(self):
         user = User.objects.create_superuser(

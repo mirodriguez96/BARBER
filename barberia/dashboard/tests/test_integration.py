@@ -27,7 +27,7 @@ class PaginationIntegrationTest(TestCase):
         )
         self.employee = Employee.objects.create(
             user=self.employee_user,
-            full_name="Barbero Uno",
+            full_name="Colaborador Uno",
             document_id="DOC001",
             phone="70000001",
         )

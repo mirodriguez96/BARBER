@@ -69,7 +69,7 @@ document.addEventListener("DOMContentLoaded", function () {
     servicesForm.addEventListener("submit", function (e) {
       if (!barberField.value) {
         e.preventDefault();
-        alert("Debes seleccionar un barbero para registrar un servicio.");
+        alert("Debes seleccionar un colaborador para registrar un servicio.");
         barberField.focus();
       }
     });

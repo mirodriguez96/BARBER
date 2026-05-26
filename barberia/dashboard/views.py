@@ -33,7 +33,7 @@ from .forms import (
 def home(request):
     section = request.GET.get("section", "barbers")
     quick_view = request.GET.get("view", "list")
-    record_type = request.GET.get("type", "barbero")
+    record_type = request.GET.get("type", "colaborador")
     service_type = request.GET.get("service_type", "servicio")
     barber_id = request.GET.get("barber")
     client_id = request.GET.get("client")
@@ -66,7 +66,7 @@ def home(request):
     if request.method == "POST":
         section = request.POST.get("section", section)
         action = request.POST.get("action", "save")
-        record_type = request.POST.get("type", "barbero")
+        record_type = request.POST.get("type", "colaborador")
 
         # --- Employee (barber) actions ---
         if (
@@ -100,7 +100,7 @@ def home(request):
             form = BarberEditForm(request.POST, instance=barber)
             if form.is_valid():
                 form.save()
-                messages.success(request, "Barbero actualizado correctamente.")
+                messages.success(request, "Colaborador actualizado correctamente.")
                 return redirect(f"{request.path}?section=barbers&view=list")
             quick_view = "edit"
             barber_to_edit = barber
@@ -389,7 +389,7 @@ def home(request):
             "email": e.email,
             "is_active": e.is_active,
             "created_at": e.created_at,
-            "type": "barbero",
+            "type": "colaborador",
             "type_label": "Colaborador",
         }
         for e in barber_qs
@@ -541,7 +541,7 @@ def home(request):
     }
 
     section_titles = {
-        "barbers": "Administrar barberos y clientes",
+        "barbers": "Administrar colaboradores y clientes",
         "catalog": "Administrar productos y servicios",
         "services": "Administrar productos y servicios",
         "payments": "Pagos — comisiones y propinas",
@@ -556,7 +556,7 @@ def home(request):
         "client_to_edit": client_to_edit,
         "catalog_item_to_edit": catalog_item_to_edit,
         "service_record_to_edit": service_record_to_edit,
-        "section_title": section_titles.get(section, "Registro de barberos y clientes"),
+        "section_title": section_titles.get(section, "Registro de colaboradores y clientes"),
         "form": form,
         "people_page": people_page,
         "barbers": people_page,
@@ -572,7 +572,7 @@ def home(request):
         "catalog_stats": catalog_stats,
         "service_stats": service_stats,
         "menu_items": [
-            {"key": "barbers", "label": "BARBEROS / CLIENTES", "hint": ""},
+            {"key": "barbers", "label": "COLABORADORES / CLIENTES", "hint": ""},
             {"key": "catalog", "label": "PRODUCTOS Y SERVICIOS", "hint": ""},
             {"key": "services", "label": "PRODUCTOS / SERVICIOS", "hint": ""},
             {"key": "payments", "label": "PAGOS", "hint": ""},

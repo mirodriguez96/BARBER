@@ -22,7 +22,7 @@ class BarberDashboardViewsTest(TestCase):
         )
         self.employee = Employee.objects.create(
             user=self.employee_user,
-            full_name="Barbero Test",
+            full_name="Colaborador Test",
             document_id="1020304050",
             phone="3001234567",
         )
@@ -56,7 +56,7 @@ class BarberDashboardViewsTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "dashboard/home.html")
-        self.assertContains(response, "Barbero Test")
+        self.assertContains(response, "Colaborador Test")
 
     def test_barber_form_get_renders_form(self):
         self._login()
@@ -105,9 +105,9 @@ class BarberDashboardViewsTest(TestCase):
             {
                 "section": "barbers",
                 "action": "save",
-                "type": "barbero",
+                "type": "colaborador",
                 "user": new_user.pk,
-                "full_name": "Nuevo Barbero",
+                "full_name": "Nuevo Colaborador",
                 "document_id": "9988776655",
                 "phone": "3111111111",
                 "email": "",
@@ -146,14 +146,14 @@ class BarberDashboardViewsTest(TestCase):
                 "section": "barbers",
                 "action": "update",
                 "barber_id": self.employee.pk,
-                "full_name": "Barbero Editado",
+                "full_name": "Colaborador Editado",
                 "phone": "3001111111",
                 "email": "",
                 "role": User.Role.BARBERO,
             },
         )
         self.employee.refresh_from_db()
-        self.assertEqual(self.employee.full_name, "Barbero Editado")
+        self.assertEqual(self.employee.full_name, "Colaborador Editado")
         self.assertEqual(self.employee.phone, "3001111111")
         self.assertRedirects(
             response,

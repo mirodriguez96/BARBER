@@ -137,7 +137,7 @@ class BarberForm(DashboardModelForm):
         if self.instance.pk:
             existing = existing.exclude(pk=self.instance.pk)
         if existing.exists():
-            raise forms.ValidationError("Ya existe un barbero con ese documento.")
+            raise forms.ValidationError("Ya existe un colaborador con ese documento.")
         return document_id
 
     def clean_phone(self):
@@ -320,7 +320,7 @@ class CatalogItemForm(CatalogCommissionMixin, DashboardModelForm):
             "name": "Nombre",
             "sku": "Código / SKU",
             "price": "Precio",
-            "barber_commission_percent": "Comisión del barbero (%)",
+            "barber_commission_percent": "Comisión del colaborador (%)",
             "is_active": "Activo",
         }
         widgets = {
@@ -357,7 +357,7 @@ class CatalogItemEditForm(CatalogCommissionMixin, DashboardModelForm):
             "name": "Nombre",
             "description": "Descripción",
             "price": "Precio",
-            "barber_commission_percent": "Comisión del barbero (%)",
+            "barber_commission_percent": "Comisión del colaborador (%)",
         }
         widgets = {
             "kind": forms.Select(attrs={"class": "form-select"}),
@@ -395,7 +395,7 @@ class ServiceRecordForm(DashboardModelForm):
         ]
         labels = {
             "client": "Cliente",
-            "barber": "Barbero",
+            "barber": "Colaborador",
             "service": "Servicio",
             "scheduled_for": "Fecha y hora",
             "notes": "Observaciones",
@@ -508,7 +508,7 @@ class ServiceRecordEditForm(DashboardModelForm):
             "tip_amount",
         ]
         labels = {
-            "barber": "Barbero",
+            "barber": "Colaborador",
             "service": "Servicio",
             "service_price": "Valor del servicio",
             "commission_amount": "Comisión",

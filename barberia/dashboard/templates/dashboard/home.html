@@ -9,7 +9,7 @@
                 <div>
                     <p class="eyebrow mb-2">Panel operativo</p>
                     <h1 class="dashboard-page-title mb-3">Barbería Admin</h1>
-                    <p class="dashboard-page-copy mb-0">Registra barberos, catálogo y servicios desde una sola pantalla.</p>
+                    <p class="dashboard-page-copy mb-0">Registra colaboradores, catálogo y servicios desde una sola pantalla.</p>
                 </div>
                 <nav class="dashboard-menu" aria-label="Secciones del dashboard">
                     {% for item in menu_items %}
@@ -58,8 +58,8 @@
                     {% endif %}
                     {% if active_section == 'barbers' and quick_view == 'form' and not barber_to_edit and not client_to_edit %}
                         <div class="dashboard-quick-switch mb-3">
-                            <a class="dashboard-quick-switch__item {% if record_type == 'barbero' %}is-active{% endif %}"
-                               href="?section=barbers&view=form&type=barbero">Barbero</a>
+                            <a class="dashboard-quick-switch__item {% if record_type == 'colaborador' %}is-active{% endif %}"
+                               href="?section=barbers&view=form&type=colaborador">Colaborador</a>
                             <a class="dashboard-quick-switch__item {% if record_type == 'cliente' %}is-active{% endif %}"
                                href="?section=barbers&view=form&type=cliente">Cliente</a>
                         </div>
@@ -80,7 +80,7 @@
                                 <span class="dashboard-metric-card__hint">Personas registradas</span>
                             </article>
                             <article class="dashboard-metric-card">
-                                <p class="dashboard-metric-card__label mb-1">Barberos</p>
+                                <p class="dashboard-metric-card__label mb-1">Colaboradores</p>
                                 <strong class="dashboard-metric-card__value">{{ barber_stats.barbers }}</strong>
                                 <span class="dashboard-metric-card__hint">Miembros del equipo</span>
                             </article>
@@ -94,7 +94,7 @@
                             <div class="dashboard-table-shell__header">
                                 <div>
                                     <p class="eyebrow mb-1">Listado activo</p>
-                                    <h4 class="section-title mb-0">Barberos y clientes</h4>
+                                    <h4 class="section-title mb-0">Colaboradores y clientes</h4>
                                 </div>
                                 <span class="dashboard-pill">{{ people_page|length }} registros</span>
                             </div>
@@ -141,7 +141,7 @@
                                                     </td>
                                                     <td class="col-actions">
                                                         <div class="dashboard-row-actions dashboard-row-actions--controls">
-                                                            {% if person.type == 'barbero' %}
+                                                            {% if person.type == 'colaborador' %}
                                                                 <form method="get" class="dashboard-inline-form">
                                                                     <input type="hidden" name="section" value="barbers" />
                                                                     <input type="hidden" name="view" value="edit" />
@@ -398,7 +398,7 @@
                                     </div>
                                 </div>
                                 <div class="dashboard-filters__group">
-                                    <span class="dashboard-filters__label">Barbero</span>
+                                    <span class="dashboard-filters__label">Colaborador</span>
                                     <select name="filter_barber" class="dashboard-filters__select">
                                         <option value="">Todos</option>
                                         {% for barber in active_barbers %}
@@ -428,7 +428,7 @@
                                     <table class="table dashboard-table dashboard-table--services align-middle table-hover mb-0">
                                         <thead>
                                             <tr>
-                                                <th>Barbero</th>
+                                                <th>Colaborador</th>
                                                 <th>Tipo</th>
                                                 <th>Item</th>
                                                 <th>Cant.</th>
@@ -565,7 +565,7 @@
                                     </div>
                                 </div>
                                 <div class="dashboard-filters__group">
-                                    <span class="dashboard-filters__label">Barbero</span>
+                                    <span class="dashboard-filters__label">Colaborador</span>
                                     <select name="filter_barber" class="dashboard-filters__select">
                                         <option value="">Todos</option>
                                         {% for barber in active_barbers %}
@@ -596,9 +596,9 @@
                                     <table class="table dashboard-table align-middle table-hover mb-0">
                                         <thead>
                                             <tr>
-                                                <th>Barbero</th>
-                                                <th>Cortes</th>
-                                                <th>Comisión</th>
+                                                 <th>Colaborador</th>
+                                                 <th>Cortes</th>
+                                                 <th>Comisión</th>
                                                 <th>Propina</th>
                                                 <th>Total a pagar</th>
                                             </tr>
@@ -611,7 +611,7 @@
                                                             <div class="dashboard-person__avatar" aria-hidden="true">{{ barber.full_name|slice:":1"|default:"B" }}</div>
                                                             <div class="dashboard-person__body">
                                                                 <div class="dashboard-table__primary">{{ barber.full_name }}</div>
-                                                                <div class="dashboard-table__meta">Barbero</div>
+                                                                <div class="dashboard-table__meta">Colaborador</div>
                                                             </div>
                                                         </div>
                                                     </td>
@@ -665,7 +665,7 @@
                                             {% if client_to_edit %}
                                                 Modificar cliente
                                             {% else %}
-                                                Modificar barbero
+                                                Modificar colaborador
                                             {% endif %}
                                         {% elif active_section == 'services' %}
                                             {% if service_record_to_edit.service.kind == 'product' %}
@@ -688,9 +688,9 @@
                                         {% endif %}
                                     {% elif active_section == 'services' %}
                                         {% if service_record_to_edit.service.kind == 'product' %}
-                                            Cambia el barbero, el producto y la cantidad. El valor se autocompleta.
+                                            Cambia el producto y la cantidad. El valor se autocompleta.
                                         {% else %}
-                                            Cambia el barbero, el servicio y la propina. El valor y la
+                                            Cambia el colaborador, el servicio y la propina. El valor y la
                                             comisión se autocompletan según el servicio.
                                         {% endif %}
                                     {% else %}
@@ -705,7 +705,7 @@
                             {% if active_section == 'barbers' and quick_view == 'edit' and barber_to_edit %}
                                 <input type="hidden" name="action" value="update" />
                                 <input type="hidden" name="barber_id" value="{{ barber_to_edit.pk }}" />
-                                <input type="hidden" name="type" value="barbero" />
+                                <input type="hidden" name="type" value="colaborador" />
                             {% elif active_section == 'barbers' and quick_view == 'edit' and client_to_edit %}
                                 <input type="hidden" name="action" value="update" />
                                 <input type="hidden" name="client_id" value="{{ client_to_edit.pk }}" />

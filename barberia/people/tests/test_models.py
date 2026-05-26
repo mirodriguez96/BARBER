@@ -42,7 +42,7 @@ class EmployeeModelTest(TestCase):
                     username="barbero2",
                     password="testpass123",
                 ),
-                full_name="Otro Barbero",
+                full_name="Otro Colaborador",
                 document_id="1020304050",
                 phone="3111111111",
             )
@@ -57,7 +57,7 @@ class EmployeeModelTest(TestCase):
     def test_is_active_default_true(self):
         new_employee = Employee.objects.create(
             user=User.objects.create_user(username="barbero3", password="testpass123"),
-            full_name="Nuevo Barbero",
+            full_name="Nuevo Colaborador",
             document_id="9988776655",
             phone="3222222222",
         )
