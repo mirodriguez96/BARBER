@@ -96,18 +96,18 @@ class PaginationIntegrationTest(TestCase):
         self.assertEqual(len(list(barbers.object_list)), self.PAGE_SIZE)
 
     def test_barber_pagination_page_2_shows_remaining(self):
-        self._barbers(10)  # +1 from setUp = 11 total, page 2 = 1
+        self._barbers(10)  # +1 barber +1 client from setUp = 12 total, page 2 = 2
         response = self.http_client.get(self._url_with("barbers", page="2"))
         self.assertEqual(response.status_code, 200)
         barbers = response.context["barbers"]
-        self.assertEqual(len(list(barbers.object_list)), 1)
+        self.assertEqual(len(list(barbers.object_list)), 2)
 
     def test_barber_pagination_no_duplicates_across_pages(self):
         self._barbers(14)  # +1 from setUp = 15 total
         page1 = self.http_client.get(self._url_with("barbers", page="1"))
         page2 = self.http_client.get(self._url_with("barbers", page="2"))
-        ids_p1 = {e.pk for e in page1.context["barbers"].object_list}
-        ids_p2 = {e.pk for e in page2.context["barbers"].object_list}
+        ids_p1 = {e["pk"] for e in page1.context["barbers"].object_list}
+        ids_p2 = {e["pk"] for e in page2.context["barbers"].object_list}
         self.assertFalse(ids_p1 & ids_p2)
 
     # --- Catalog pagination ---
@@ -156,17 +156,17 @@ class PaginationIntegrationTest(TestCase):
         self.assertEqual(barbers.number, 1)
 
     def test_negative_page_returns_last_page(self):
-        self._barbers(10)  # +1 from setUp = 11 total, page 2 = 1
+        self._barbers(10)  # +1 barber +1 client from setUp = 12 total, page 2 = 2
         response = self.http_client.get(self._url_with("barbers", page="-1"))
         self.assertEqual(response.status_code, 200)
         barbers = response.context["barbers"]
-        self.assertEqual(len(list(barbers.object_list)), 1)
+        self.assertEqual(len(list(barbers.object_list)), 2)
         self.assertEqual(barbers.number, barbers.paginator.num_pages)
 
     def test_page_too_high_returns_last_page(self):
-        self._barbers(10)  # +1 from setUp = 11 total, page 2 = 1
+        self._barbers(10)  # +1 barber +1 client from setUp = 12 total, page 2 = 2
         response = self.http_client.get(self._url_with("barbers", page="999"))
         self.assertEqual(response.status_code, 200)
         barbers = response.context["barbers"]
-        self.assertEqual(len(list(barbers.object_list)), 1)
+        self.assertEqual(len(list(barbers.object_list)), 2)
         self.assertEqual(barbers.number, barbers.paginator.num_pages)

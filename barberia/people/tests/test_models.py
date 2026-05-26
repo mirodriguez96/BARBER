@@ -67,24 +67,34 @@ class ClientModelTest(TestCase):
     def setUp(self):
         self.client = Client.objects.create(
             full_name="María García",
+            document_id="1020304050",
             phone="3101234567",
-            email="maria@example.com",
-            notes="Cliente frecuente",
+            birth_date="1995-06-15",
         )
 
     def test_create_client(self):
         self.assertEqual(self.client.full_name, "María García")
+        self.assertEqual(self.client.document_id, "1020304050")
         self.assertEqual(self.client.phone, "3101234567")
-        self.assertEqual(self.client.email, "maria@example.com")
-        self.assertEqual(self.client.notes, "Cliente frecuente")
+        self.assertEqual(str(self.client.birth_date), "1995-06-15")
         self.assertTrue(self.client.is_active)
         self.assertEqual(Client.objects.count(), 1)
 
-    def test_optional_fields_blank(self):
-        minimal_client = Client.objects.create(full_name="Solo Nombre")
-        self.assertEqual(minimal_client.phone, "")
-        self.assertEqual(minimal_client.email, "")
-        self.assertEqual(minimal_client.notes, "")
+    def test_birth_date_optional(self):
+        client = Client.objects.create(
+            full_name="Sin Fecha",
+            document_id="9988776655",
+            phone="3111111111",
+        )
+        self.assertIsNone(client.birth_date)
+
+    def test_unique_document_id(self):
+        with self.assertRaises(IntegrityError):
+            Client.objects.create(
+                full_name="Otro Cliente",
+                document_id="1020304050",
+                phone="3222222222",
+            )
 
     def test_string_representation(self):
         self.assertEqual(str(self.client), "María García")
@@ -94,5 +104,9 @@ class ClientModelTest(TestCase):
         self.assertIsNotNone(self.client.updated_at)
 
     def test_is_active_default_true(self):
-        client = Client.objects.create(full_name="Cliente Nuevo")
+        client = Client.objects.create(
+            full_name="Cliente Nuevo",
+            document_id="1122334455",
+            phone="3000000000",
+        )
         self.assertTrue(client.is_active)

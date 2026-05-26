@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from barberia.catalog.models import CatalogItem
 from barberia.operations.models import ServiceRecord
-from barberia.people.models import Employee
+from barberia.people.models import Client, Employee
 
 
 class DashboardModelForm(forms.ModelForm):
@@ -137,6 +137,90 @@ class BarberEditForm(DashboardModelForm):
                 attrs={"class": "form-control", "placeholder": "correo@ejemplo.com"},
             ),
         }
+
+    def clean_phone(self):
+        phone = self.cleaned_data["phone"].strip()
+        if not phone:
+            raise forms.ValidationError("El teléfono es obligatorio.")
+        return phone
+
+
+class ClientForm(DashboardModelForm):
+    class Meta:
+        model = Client
+        fields = ["full_name", "document_id", "phone", "birth_date", "is_active"]
+        labels = {
+            "full_name": "Nombre completo",
+            "document_id": "Documento / cédula",
+            "phone": "Teléfono",
+            "birth_date": "Fecha de nacimiento",
+            "is_active": "Activo",
+        }
+        widgets = {
+            "full_name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Ej. María García"},
+            ),
+            "document_id": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Ej. 1020304050"},
+            ),
+            "phone": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Ej. 300 123 4567"},
+            ),
+            "birth_date": forms.DateInput(
+                attrs={"class": "form-control", "type": "date"},
+            ),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+    def clean_document_id(self):
+        document_id = self.cleaned_data["document_id"].strip()
+        existing = Client.objects.filter(document_id=document_id)
+        if self.instance.pk:
+            existing = existing.exclude(pk=self.instance.pk)
+        if existing.exists():
+            raise forms.ValidationError("Ya existe un cliente con ese documento.")
+        return document_id
+
+    def clean_phone(self):
+        phone = self.cleaned_data["phone"].strip()
+        if not phone:
+            raise forms.ValidationError("El teléfono es obligatorio.")
+        return phone
+
+
+class ClientEditForm(DashboardModelForm):
+    class Meta:
+        model = Client
+        fields = ["full_name", "document_id", "phone", "birth_date"]
+        labels = {
+            "full_name": "Nombre completo",
+            "document_id": "Documento / cédula",
+            "phone": "Teléfono",
+            "birth_date": "Fecha de nacimiento",
+        }
+        widgets = {
+            "full_name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Ej. María García"},
+            ),
+            "document_id": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Ej. 1020304050"},
+            ),
+            "phone": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Ej. 300 123 4567"},
+            ),
+            "birth_date": forms.DateInput(
+                attrs={"class": "form-control", "type": "date"},
+            ),
+        }
+
+    def clean_document_id(self):
+        document_id = self.cleaned_data["document_id"].strip()
+        existing = Client.objects.filter(document_id=document_id)
+        if self.instance.pk:
+            existing = existing.exclude(pk=self.instance.pk)
+        if existing.exists():
+            raise forms.ValidationError("Ya existe un cliente con ese documento.")
+        return document_id
 
     def clean_phone(self):
         phone = self.cleaned_data["phone"].strip()

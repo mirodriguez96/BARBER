@@ -24,9 +24,9 @@ class Employee(TimeStampedModel):
 
 class Client(TimeStampedModel):
     full_name = models.CharField(max_length=160)
-    phone = models.CharField(max_length=20, blank=True)
-    email = models.EmailField(blank=True)
-    notes = models.TextField(blank=True)
+    document_id = models.CharField(max_length=30, unique=True)
+    phone = models.CharField(max_length=20)
+    birth_date = models.DateField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
 
     def __str__(self):

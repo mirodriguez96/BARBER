@@ -1,3 +1,4 @@
+from itertools import chain
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -11,13 +12,15 @@ from django.shortcuts import get_object_or_404, redirect, render
 from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
 from barberia.operations.models import ServiceRecord
-from barberia.people.models import Employee
+from barberia.people.models import Client, Employee
 
 from .forms import (
     BarberEditForm,
     BarberForm,
     CatalogItemEditForm,
     CatalogItemForm,
+    ClientEditForm,
+    ClientForm,
     ServiceRecordEditForm,
     ServiceRecordForm,
 )
@@ -27,7 +30,9 @@ from .forms import (
 def home(request):
     section = request.GET.get("section", "barbers")
     quick_view = request.GET.get("view", "list")
+    record_type = request.GET.get("type", "barbero")
     barber_id = request.GET.get("barber")
+    client_id = request.GET.get("client")
     catalog_id = request.GET.get("catalog_item")
     service_id = request.GET.get("service_record")
     if section not in {"barbers", "catalog", "services", "payments"}:
@@ -36,6 +41,10 @@ def home(request):
     barber_to_edit = None
     if section == "barbers" and quick_view == "edit" and barber_id:
         barber_to_edit = get_object_or_404(Employee, pk=barber_id)
+
+    client_to_edit = None
+    if section == "barbers" and quick_view == "edit" and client_id:
+        client_to_edit = get_object_or_404(Client, pk=client_id)
 
     catalog_item_to_edit = None
     if section == "catalog" and quick_view == "edit" and catalog_id:
@@ -54,22 +63,24 @@ def home(request):
     if request.method == "POST":
         section = request.POST.get("section", section)
         action = request.POST.get("action", "save")
+        record_type = request.POST.get("type", "barbero")
 
-        if section == "barbers" and action == "deactivate":
+        # --- Employee (barber) actions ---
+        if section == "barbers" and action == "deactivate" and request.POST.get("barber_id"):
             barber = get_object_or_404(Employee, pk=request.POST.get("barber_id"))
             barber.is_active = False
             barber.save(update_fields=["is_active", "updated_at"])
             messages.success(request, f"{barber.full_name} fue desactivado.")
             return redirect(f"{request.path}?section=barbers&view=list")
 
-        if section == "barbers" and action == "activate":
+        if section == "barbers" and action == "activate" and request.POST.get("barber_id"):
             barber = get_object_or_404(Employee, pk=request.POST.get("barber_id"))
             barber.is_active = True
             barber.save(update_fields=["is_active", "updated_at"])
             messages.success(request, f"{barber.full_name} fue activado.")
             return redirect(f"{request.path}?section=barbers&view=list")
 
-        if section == "barbers" and action == "update":
+        if section == "barbers" and action == "update" and request.POST.get("barber_id"):
             barber = get_object_or_404(Employee, pk=request.POST.get("barber_id"))
             form = BarberEditForm(request.POST, instance=barber)
             if form.is_valid():
@@ -78,6 +89,31 @@ def home(request):
                 return redirect(f"{request.path}?section=barbers&view=list")
             quick_view = "edit"
             barber_to_edit = barber
+            messages.error(request, "Revisa los campos marcados en rojo.")
+        # --- Client actions ---
+        elif section == "barbers" and action == "deactivate" and request.POST.get("client_id"):
+            client = get_object_or_404(Client, pk=request.POST.get("client_id"))
+            client.is_active = False
+            client.save(update_fields=["is_active", "updated_at"])
+            messages.success(request, f"{client.full_name} fue desactivado.")
+            return redirect(f"{request.path}?section=barbers&view=list")
+
+        elif section == "barbers" and action == "activate" and request.POST.get("client_id"):
+            client = get_object_or_404(Client, pk=request.POST.get("client_id"))
+            client.is_active = True
+            client.save(update_fields=["is_active", "updated_at"])
+            messages.success(request, f"{client.full_name} fue activado.")
+            return redirect(f"{request.path}?section=barbers&view=list")
+
+        elif section == "barbers" and action == "update" and request.POST.get("client_id"):
+            client = get_object_or_404(Client, pk=request.POST.get("client_id"))
+            form = ClientEditForm(request.POST, instance=client)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Cliente actualizado correctamente.")
+                return redirect(f"{request.path}?section=barbers&view=list")
+            quick_view = "edit"
+            client_to_edit = client
             messages.error(request, "Revisa los campos marcados en rojo.")
         elif section == "catalog" and action == "deactivate":
             catalog_item = get_object_or_404(
@@ -141,12 +177,7 @@ def home(request):
             service_record_to_edit = service_record
             messages.error(request, "Revisa los campos marcados en rojo.")
         elif section == "services" and action == "cancel":
-            # Cancel a service (admin-only)
             service_id = request.POST.get("service_record_id")
-            # Preserve filter params for redirects when present in the
-            # POST (or GET). Build a local filter_params string so tests
-            # and runtime paths that redirect from this POST never refer
-            # to an undefined variable.
             _filter_date = request.POST.get("filter_date", request.GET.get("filter_date", ""))
             _filter_barber = request.POST.get("filter_barber", request.GET.get("filter_barber", ""))
             _parts = []
@@ -174,7 +205,10 @@ def home(request):
             messages.success(request, "Servicio anulado correctamente.")
             return redirect(f"{request.path}?section=services&view=list{filter_params_local}")
         else:
-            form_class = forms_map.get(section, BarberForm)
+            if section == "barbers":
+                form_class = ClientForm if record_type == "cliente" else BarberForm
+            else:
+                form_class = forms_map.get(section, BarberForm)
             form = form_class(request.POST, user=request.user)
             if form.is_valid():
                 record = form.save(commit=False)
@@ -185,8 +219,13 @@ def home(request):
                 messages.success(request, "Registro guardado correctamente.")
                 return redirect(f"{request.path}?section={section}")
             messages.error(request, "Revisa los campos marcados en rojo.")
-    elif section == "barbers" and quick_view == "edit" and barber_to_edit is not None:
-        form = BarberEditForm(instance=barber_to_edit)
+    elif section == "barbers" and quick_view == "edit":
+        if barber_to_edit is not None:
+            form = BarberEditForm(instance=barber_to_edit)
+        elif client_to_edit is not None:
+            form = ClientEditForm(instance=client_to_edit)
+        else:
+            form = BarberForm(user=request.user)
     elif (
         section == "catalog"
         and quick_view == "edit"
@@ -210,7 +249,10 @@ def home(request):
             instance=service_record_to_edit, user=request.user,
         )
     else:
-        form_class = forms_map.get(section, BarberForm)
+        if section == "barbers":
+            form_class = ClientForm if record_type == "cliente" else BarberForm
+        else:
+            form_class = forms_map.get(section, BarberForm)
         form = form_class(user=request.user)
 
     filter_date = request.GET.get("filter_date", "")
@@ -247,10 +289,47 @@ def home(request):
         filter_parts.append(f"filter_barber={filter_barber}")
     filter_params = "&" + "&".join(filter_parts) if filter_parts else ""
 
-    barber_list = Employee.objects.order_by("-created_at")
-    barber_paginator = Paginator(barber_list, 10)
-    barber_page_number = request.GET.get("page")
-    barbers = barber_paginator.get_page(barber_page_number)
+    # --- Combined people list (barbers + clients) ---
+    barber_qs = Employee.objects.all()
+    client_qs = Client.objects.all()
+
+    barber_data = [
+        {
+            "pk": e.pk,
+            "full_name": e.full_name,
+            "document_id": e.document_id,
+            "phone": e.phone,
+            "email": e.email,
+            "is_active": e.is_active,
+            "created_at": e.created_at,
+            "type": "barbero",
+            "type_label": "Barbero",
+        }
+        for e in barber_qs
+    ]
+    client_data = [
+        {
+            "pk": c.pk,
+            "full_name": c.full_name,
+            "document_id": c.document_id,
+            "phone": c.phone,
+            "email": "",
+            "is_active": c.is_active,
+            "created_at": c.created_at,
+            "type": "cliente",
+            "type_label": "Cliente",
+        }
+        for c in client_qs
+    ]
+    combined = sorted(
+        chain(barber_data, client_data),
+        key=lambda x: x["created_at"],
+        reverse=True,
+    )
+    people_paginator = Paginator(combined, 10)
+    people_page_number = request.GET.get("page")
+    people_page = people_paginator.get_page(people_page_number)
+
     catalog_list = CatalogItem.objects.order_by("-id")
     catalog_paginator = Paginator(catalog_list, 10)
     catalog_page_number = request.GET.get("page")
@@ -258,10 +337,13 @@ def home(request):
     service_paginator = Paginator(filtered_service_list, 10)
     service_page_number = request.GET.get("page")
     services = service_paginator.get_page(service_page_number)
+
     barber_stats = {
-        "total": barber_list.count(),
-        "active": barber_list.filter(is_active=True).count(),
-        "inactive": barber_list.filter(is_active=False).count(),
+        "total": barber_qs.count() + client_qs.count(),
+        "barbers": barber_qs.count(),
+        "clients": client_qs.count(),
+        "active": barber_qs.filter(is_active=True).count() + client_qs.filter(is_active=True).count(),
+        "inactive": barber_qs.filter(is_active=False).count() + client_qs.filter(is_active=False).count(),
     }
     catalog_stats = {
         "total": catalog_list.count(),
@@ -317,19 +399,12 @@ def home(request):
         ),
     ).order_by("full_name")
 
-    # Only include barbers that have at least one matching service record
-    # (respecting the date/filter criteria above). We filter on the
-    # annotated cuts_count to show only barbers with cuts.
     payments_qs = payments_qs.filter(cuts_count__gt=0)
 
     payments_paginator = Paginator(payments_qs, 10)
     payments_page_number = request.GET.get("page")
     payments_page = payments_paginator.get_page(payments_page_number)
 
-    # Compute an overall payments summary (totals) matching the same
-    # filter criteria used to build the per-barber payments_qs. These
-    # aggregates are used to render top-level metric cards in the
-    # payments section (total cuts, total commissions, company net).
     service_filter = Q(status=ServiceRecord.Status.DONE)
     if filter_date == "today":
         service_filter &= Q(scheduled_for__date=date.today())
@@ -343,12 +418,10 @@ def home(request):
     if filter_barber:
         service_filter &= Q(barber_id=filter_barber)
 
-    # Respect non-admin users: restrict to services where barber belongs to user
     service_qs = ServiceRecord.objects.filter(service_filter)
     if request.user.role != User.Role.ADMIN:
         service_qs = service_qs.filter(barber__user=request.user)
 
-    # Commission per service: price * commission_percent / 100
     commission_expr = ExpressionWrapper(
         F("service_price") * F("service__barber_commission_percent") / Value(100),
         output_field=DecimalField(max_digits=12, decimal_places=2),
@@ -361,21 +434,14 @@ def home(request):
         total_revenue=Coalesce(Sum("service_price"), Value(Decimal("0.00"))),
     )
 
-    # Compute company net: revenue - commissions - tips
     revenue = aggregates.get("total_revenue") or Decimal("0.00")
     commission_only = aggregates.get("total_commission") or Decimal("0.00")
     tip_total = aggregates.get("total_tips") or Decimal("0.00")
-    # commission_plus_tips is what we show in the "Comisión total" card
     commission_plus_tips = commission_only + tip_total
-
-    # Company net: revenue minus commission_only. Per request, do NOT
-    # subtract tips here because they are already included in the
-    # commission_total metric.
     company_net = revenue - commission_only
 
     payments_summary = {
         "total_cuts": int(aggregates.get("total_cuts") or 0),
-        # display commission + tips as requested
         "commission_total": commission_plus_tips,
         "tip_total": tip_total,
         "revenue_total": revenue,
@@ -383,7 +449,7 @@ def home(request):
     }
 
     section_titles = {
-        "barbers": "Administrar barberos",
+        "barbers": "Administrar barberos y clientes",
         "catalog": "Administrar productos y servicios",
         "services": "Administrar cortes y servicios",
         "payments": "Pagos — comisiones y propinas",
@@ -392,12 +458,15 @@ def home(request):
     context = {
         "active_section": section,
         "quick_view": quick_view,
+        "record_type": record_type,
         "barber_to_edit": barber_to_edit,
+        "client_to_edit": client_to_edit,
         "catalog_item_to_edit": catalog_item_to_edit,
         "service_record_to_edit": service_record_to_edit,
-        "section_title": section_titles.get(section, "Registro de barberos"),
+        "section_title": section_titles.get(section, "Registro de barberos y clientes"),
         "form": form,
-        "barbers": barbers,
+        "people_page": people_page,
+        "barbers": people_page,
         "catalog_items": catalog_items,
         "services": services,
         "payments_page": payments_page,
@@ -410,7 +479,7 @@ def home(request):
         "catalog_stats": catalog_stats,
         "service_stats": service_stats,
         "menu_items": [
-            {"key": "barbers", "label": "BARBEROS", "hint": ""},
+            {"key": "barbers", "label": "BARBEROS / CLIENTES", "hint": ""},
             {"key": "catalog", "label": "PRODUCTOS Y SERVICIOS", "hint": ""},
             {"key": "services", "label": "CORTES Y SERVICIOS", "hint": ""},
             {"key": "payments", "label": "PAGOS", "hint": ""},
