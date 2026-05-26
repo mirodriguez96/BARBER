@@ -338,11 +338,13 @@ body.auth-page {
 
 .btn-dashboard-logout {
   border: 0;
+  border-radius: 999px;
   color: #fff;
   background: linear-gradient(135deg, #7c2d12, #ea580c 55%, #fb923c);
   padding: 0.9rem 1.5rem;
   font-weight: 700;
   letter-spacing: 0.01em;
+  text-decoration: none;
   cursor: pointer;
   box-shadow:
     0 14px 30px rgba(234, 88, 12, 0.28),

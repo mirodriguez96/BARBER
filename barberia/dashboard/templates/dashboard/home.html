@@ -1,5 +1,7 @@
-{% extends 'common/base.html' %}
-{% block title %}Dashboard{% endblock %}
+{% extends "common/base.html" %}
+{% block title %}
+    Dashboard
+{% endblock title %}
 {% block content %}
     <section class="dashboard-workspace">
         <div class="dashboard-shell">
@@ -436,12 +438,17 @@
                                                                 </form>
                                                             {% endif %}
                                                             {% if is_admin and record.status != 'canceled' %}
-                                                            <form method="post" class="dashboard-inline-form js-confirmable" data-confirm="¿Anular este servicio? Esta acción marcará el servicio como Cancelado.">
+                                                                <form method="post"
+                                                                      class="dashboard-inline-form js-confirmable"
+                                                                      data-confirm="¿Anular este servicio? Esta acción marcará el servicio como Cancelado.">
                                                                     {% csrf_token %}
                                                                     <input type="hidden" name="section" value="services" />
                                                                     <input type="hidden" name="action" value="cancel" />
                                                                     <input type="hidden" name="service_record_id" value="{{ record.pk }}" />
-                                                                    <button type="submit" class="dashboard-action-btn dashboard-action-btn--danger">Anular</button>
+                                                                    <button type="submit"
+                                                                            class="dashboard-action-btn dashboard-action-btn--danger">
+                                                                        Anular
+                                                                    </button>
                                                                 </form>
                                                             {% endif %}
                                                         </div>
@@ -481,26 +488,25 @@
                             {% endif %}
                         </div>
                     {% elif active_section == 'payments' and quick_view == 'list' %}
-                            <div class="dashboard-metrics mb-3">
-                                <article class="dashboard-metric-card">
-                                    <p class="dashboard-metric-card__label mb-1">Cortes</p>
-                                    <strong class="dashboard-metric-card__value">{{ payments_summary.total_cuts }}</strong>
-                                    <span class="dashboard-metric-card__hint">Cortes completados</span>
-                                </article>
-                                <article class="dashboard-metric-card">
-                                    <p class="dashboard-metric-card__label mb-1">Comisión total</p>
-                                    <strong class="dashboard-metric-card__value">${{ payments_summary.commission_total|floatformat:2 }}</strong>
-                                    <span class="dashboard-metric-card__hint">Comisiones + propinas</span>
-                                </article>
-                                <article class="dashboard-metric-card">
-                                    <p class="dashboard-metric-card__label mb-1">Empresa (neto)</p>
-                                    <strong class="dashboard-metric-card__value">${{ payments_summary.company_net|floatformat:2 }}</strong>
-                                    <span class="dashboard-metric-card__hint">Ingresos - comisiones</span>
-                                </article>
-                            </div>
-
-                            <div class="dashboard-filters mb-3">
-                                <form method="get" class="dashboard-filters__form">
+                        <div class="dashboard-metrics mb-3">
+                            <article class="dashboard-metric-card">
+                                <p class="dashboard-metric-card__label mb-1">Cortes</p>
+                                <strong class="dashboard-metric-card__value">{{ payments_summary.total_cuts }}</strong>
+                                <span class="dashboard-metric-card__hint">Cortes completados</span>
+                            </article>
+                            <article class="dashboard-metric-card">
+                                <p class="dashboard-metric-card__label mb-1">Comisión total</p>
+                                <strong class="dashboard-metric-card__value">${{ payments_summary.commission_total|floatformat:2 }}</strong>
+                                <span class="dashboard-metric-card__hint">Comisiones + propinas</span>
+                            </article>
+                            <article class="dashboard-metric-card">
+                                <p class="dashboard-metric-card__label mb-1">Empresa (neto)</p>
+                                <strong class="dashboard-metric-card__value">${{ payments_summary.company_net|floatformat:2 }}</strong>
+                                <span class="dashboard-metric-card__hint">Ingresos - comisiones</span>
+                            </article>
+                        </div>
+                        <div class="dashboard-filters mb-3">
+                            <form method="get" class="dashboard-filters__form">
                                 <input type="hidden" name="section" value="payments" />
                                 <input type="hidden" name="view" value="list" />
                                 <div class="dashboard-filters__group">
@@ -675,6 +681,10 @@
                                         Guardar registro
                                     {% endif %}
                                 </button>
+                                {% if quick_view == 'edit' %}
+                                    <a href="?section={{ active_section }}&view=list"
+                                        class="btn btn-dashboard-logout btn-lg rounded-pill px-5">Cancelar</a>
+                                {% endif %}
                             </div>
                         </form>
                     {% endif %}
@@ -683,11 +693,14 @@
         </div>
         <!-- Confirm modal (used by js-confirmable forms) -->
         <div id="confirm-overlay" class="confirm-overlay" aria-hidden="true">
-            <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+            <div class="confirm-modal"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-labelledby="confirm-title">
                 <header class="confirm-modal__header">
                     <span class="confirm-modal__icon" aria-hidden="true">
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <path d="M10 7V11M10 13V13.01M19 10C19 14.9706 14.9706 19 10 19C5.02944 19 1 14.9706 1 10C1 5.02944 5.02944 1 10 1C14.9706 1 19 5.02944 19 10Z" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M10 7V11M10 13V13.01M19 10C19 14.9706 14.9706 19 10 19C5.02944 19 1 14.9706 1 10C1 5.02944 5.02944 1 10 1C14.9706 1 19 5.02944 19 10Z" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
                         </svg>
                     </span>
                     <h3 id="confirm-title">Anular servicio</h3>
@@ -696,12 +709,15 @@
                     <p id="confirm-message"></p>
                 </div>
                 <footer class="confirm-modal__footer">
-                    <button type="button" id="confirm-cancel" class="dashboard-action-btn dashboard-action-btn--secondary">Cancelar</button>
-                    <button type="button" id="confirm-ok" class="dashboard-action-btn dashboard-action-btn--danger">Anular</button>
+                    <button type="button"
+                            id="confirm-cancel"
+                            class="dashboard-action-btn dashboard-action-btn--secondary">Cancelar</button>
+                    <button type="button"
+                            id="confirm-ok"
+                            class="dashboard-action-btn dashboard-action-btn--danger">Anular</button>
                 </footer>
             </div>
         </div>
-
         <script>
         (function(){
             var overlay = document.getElementById('confirm-overlay');
