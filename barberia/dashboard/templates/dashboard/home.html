@@ -681,10 +681,8 @@
                                         Guardar registro
                                     {% endif %}
                                 </button>
-                                {% if quick_view == 'edit' %}
-                                    <a href="?section={{ active_section }}&view=list"
-                                        class="btn btn-dashboard-logout btn-lg rounded-pill px-5">Cancelar</a>
-                                {% endif %}
+                                <a href="?section={{ active_section }}&view=list"
+                                    class="btn btn-dashboard-logout btn-lg rounded-pill px-5">Cancelar</a>
                             </div>
                         </form>
                     {% endif %}
