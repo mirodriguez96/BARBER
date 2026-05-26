@@ -1,10 +1,12 @@
 from decimal import Decimal
+
 from django.test import TestCase
 from django.utils import timezone
+
 from barberia.accounts.models import User
-from barberia.people.models import Employee, Client
 from barberia.catalog.models import CatalogItem
 from barberia.operations.models import ServiceRecord
+from barberia.people.models import Client, Employee
 
 
 class ServiceRecordModelTest(TestCase):
@@ -108,7 +110,7 @@ class ServiceRecordModelTest(TestCase):
             scheduled_for=timezone.now(),
             service_price=Decimal("50.00"),
         )
-        self.assertEqual(record.commission_amount, Decimal("0"))
+        self.assertEqual(record.commission_amount, Decimal(0))
 
     def test_fk_protect_on_delete(self):
         record = ServiceRecord.objects.create(

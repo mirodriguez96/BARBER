@@ -1,5 +1,7 @@
 from decimal import Decimal
+
 from django.test import TestCase
+
 from barberia.catalog.models import CatalogItem
 
 

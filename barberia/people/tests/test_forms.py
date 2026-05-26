@@ -1,8 +1,8 @@
-from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.test import TestCase
 
+from barberia.dashboard.forms import BarberEditForm, BarberForm
 from barberia.people.models import Employee
-from barberia.dashboard.forms import BarberForm, BarberEditForm
 
 User = get_user_model()
 

@@ -13,7 +13,7 @@ class BarberUserCreationForm(UserCreationForm):
         for field in self.visible_fields():
             field.field.widget.attrs.setdefault("class", "form-control")
         self.fields["username"].widget.attrs.update(
-            {"placeholder": "Nombre de usuario"}
+            {"placeholder": "Nombre de usuario"},
         )
         self.fields["first_name"].widget.attrs.update({"placeholder": "Ej: Carlos"})
         self.fields["last_name"].widget.attrs.update({"placeholder": "Ej: López"})
@@ -21,6 +21,6 @@ class BarberUserCreationForm(UserCreationForm):
         self.fields["phone"].widget.attrs.update({"placeholder": "Ej: 71234567"})
         self.fields["password1"].widget.attrs.update({"placeholder": "••••••••"})
         self.fields["password2"].widget.attrs.update(
-            {"placeholder": "Repite la contraseña"}
+            {"placeholder": "Repite la contraseña"},
         )
         self.fields["role"].widget.attrs.update({"class": "form-select"})

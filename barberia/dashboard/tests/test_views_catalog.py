@@ -1,6 +1,8 @@
 from decimal import Decimal
+
 from django.test import TestCase
 from django.urls import reverse
+
 from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
 
@@ -85,14 +87,14 @@ class CatalogDashboardViewsTest(TestCase):
             price=Decimal("50.00"),
         )
         response = self.client.get(
-            self._catalog_url(section="catalog", view="edit", catalog_item=item.pk)
+            self._catalog_url(section="catalog", view="edit", catalog_item=item.pk),
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["catalog_item_to_edit"].pk, item.pk)
 
     def test_catalog_edit_get_404_for_nonexistent(self):
         response = self.client.get(
-            self._catalog_url(section="catalog", view="edit", catalog_item=999)
+            self._catalog_url(section="catalog", view="edit", catalog_item=999),
         )
         self.assertEqual(response.status_code, 404)
 

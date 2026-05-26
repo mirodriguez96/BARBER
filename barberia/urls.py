@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.views import LogoutView
 from django.urls import include, path, reverse_lazy
+
 from barberia.common import views as common_views
 
 urlpatterns = [

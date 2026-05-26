@@ -1,11 +1,13 @@
 from decimal import Decimal
+
 from django.test import TestCase
 from django.utils import timezone
+
 from barberia.accounts.models import User
-from barberia.people.models import Employee, Client
 from barberia.catalog.models import CatalogItem
+from barberia.dashboard.forms import ServiceRecordEditForm, ServiceRecordForm
 from barberia.operations.models import ServiceRecord
-from barberia.dashboard.forms import ServiceRecordForm, ServiceRecordEditForm
+from barberia.people.models import Client, Employee
 
 
 class ServiceRecordFormTest(TestCase):

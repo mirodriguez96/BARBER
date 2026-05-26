@@ -1,7 +1,9 @@
 from decimal import Decimal
+
 from django.test import TestCase
+
 from barberia.catalog.models import CatalogItem
-from barberia.dashboard.forms import CatalogItemForm, CatalogItemEditForm
+from barberia.dashboard.forms import CatalogItemEditForm, CatalogItemForm
 
 
 class CatalogItemFormTest(TestCase):

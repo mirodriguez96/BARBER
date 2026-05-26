@@ -913,6 +913,56 @@ body.auth-page {
   width: 14%;
 }
 
+/* Column helpers to avoid inline styles */
+.dashboard-table th.col-state,
+.dashboard-table td.col-state {
+  width: 110px !important;
+}
+
+.dashboard-table th.col-actions,
+.dashboard-table td.col-actions {
+  width: 320px !important;
+}
+
+/* Explicit control mixin for action layout when extra spacing is required */
+.dashboard-row-actions--controls {
+  display: flex !important;
+  gap: 8px !important;
+  align-items: center !important;
+}
+
+/* Ensure inline forms inside action cell stay on one line */
+.dashboard-row-actions--controls .dashboard-inline-form {
+  display: inline-flex !important;
+  align-items: center !important;
+  margin: 0 !important;
+}
+
+.dashboard-row-actions--controls .dashboard-inline-form .dashboard-action-btn {
+  width: auto !important;
+}
+
+/* Prevent wrapping of the actions cell content */
+.dashboard-table td.col-actions {
+  white-space: nowrap !important;
+}
+
+/* Stronger enforcement: prevent inline-forms from expanding and allow no wrapping */
+.dashboard-row-actions--controls {
+  flex-wrap: nowrap !important;
+  justify-content: flex-start !important;
+}
+
+.dashboard-row-actions--controls .dashboard-inline-form {
+  width: auto !important;
+  min-width: 0 !important;
+}
+
+.dashboard-row-actions--controls .dashboard-inline-form .dashboard-action-btn {
+  display: inline-flex !important;
+  width: auto !important;
+}
+
 .dashboard-table thead th {
   text-align: left;
   background: #f8fafc;

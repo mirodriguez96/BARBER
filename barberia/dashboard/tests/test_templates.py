@@ -1,10 +1,12 @@
 from decimal import Decimal
+
+from bs4 import BeautifulSoup
 from django.test import TestCase
 from django.urls import reverse
-from bs4 import BeautifulSoup
+
 from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
-from barberia.people.models import Employee, Client
+from barberia.people.models import Client, Employee
 
 
 class DashboardTemplateRenderingTest(TestCase):
@@ -52,7 +54,7 @@ class DashboardTemplateRenderingTest(TestCase):
     def test_pagination_links_rendered_when_multipage(self):
         for i in range(10):
             u = User.objects.create_user(
-                username=f"bpag{i}", password="pass1234", role=User.Role.BARBERO
+                username=f"bpag{i}", password="pass1234", role=User.Role.BARBERO,
             )
             Employee.objects.create(
                 user=u,
@@ -67,7 +69,7 @@ class DashboardTemplateRenderingTest(TestCase):
     def test_pagination_links_use_page_param(self):
         for i in range(10):
             u = User.objects.create_user(
-                username=f"bpp{i}", password="pass1234", role=User.Role.BARBERO
+                username=f"bpp{i}", password="pass1234", role=User.Role.BARBERO,
             )
             Employee.objects.create(
                 user=u,
@@ -86,21 +88,21 @@ class DashboardTemplateRenderingTest(TestCase):
         soup = self._soup("barbers")
         body = soup.get_text()
         self.assertTrue(
-            "no hay" in body.lower() or "sin" in body.lower() or "barberos" in body
+            "no hay" in body.lower() or "sin" in body.lower() or "barberos" in body,
         )
 
     def test_empty_catalog_shows_message(self):
         soup = self._soup("catalog")
         body = soup.get_text()
         self.assertTrue(
-            "no hay" in body.lower() or "sin" in body.lower() or "catálogo" in body
+            "no hay" in body.lower() or "sin" in body.lower() or "catálogo" in body,
         )
 
     def test_empty_services_shows_message(self):
         soup = self._soup("services")
         body = soup.get_text()
         self.assertTrue(
-            "no hay" in body.lower() or "sin" in body.lower() or "servicios" in body
+            "no hay" in body.lower() or "sin" in body.lower() or "servicios" in body,
         )
 
     # --- Metric cards ---
@@ -112,7 +114,7 @@ class DashboardTemplateRenderingTest(TestCase):
 
     def test_catalog_section_renders_stats_cards(self):
         CatalogItem.objects.create(
-            kind=CatalogItem.Kind.SERVICE, name="Test", price=Decimal("10.00")
+            kind=CatalogItem.Kind.SERVICE, name="Test", price=Decimal("10.00"),
         )
         soup = self._soup("catalog")
         cards = soup.select(".dashboard-metric-card")
@@ -124,7 +126,7 @@ class DashboardTemplateRenderingTest(TestCase):
         soup = self._soup("barbers", view="form")
         all_form_controls = soup.select(
             "input.form-control, input.form-control-lg, "
-            "select.form-select, select.form-select-lg"
+            "select.form-select, select.form-select-lg",
         )
         self.assertGreater(len(all_form_controls), 0)
 
@@ -132,7 +134,7 @@ class DashboardTemplateRenderingTest(TestCase):
         soup = self._soup("catalog", view="form")
         all_styled = soup.select(
             "input.form-control, input.form-control-lg, "
-            "select.form-select, select.form-select-lg"
+            "select.form-select, select.form-select-lg",
         )
         self.assertGreater(len(all_styled), 0)
 
@@ -140,7 +142,7 @@ class DashboardTemplateRenderingTest(TestCase):
         soup = self._soup("services", view="form")
         all_styled = soup.select(
             "input.form-control, input.form-control-lg, "
-            "select.form-select, select.form-select-lg"
+            "select.form-select, select.form-select-lg",
         )
         self.assertGreater(len(all_styled), 0)
 

@@ -1,11 +1,13 @@
 from decimal import Decimal
+
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+
 from barberia.accounts.models import User
-from barberia.people.models import Employee, Client
 from barberia.catalog.models import CatalogItem
 from barberia.operations.models import ServiceRecord
+from barberia.people.models import Client, Employee
 
 
 class ServiceDashboardViewsTest(TestCase):
@@ -60,7 +62,7 @@ class ServiceDashboardViewsTest(TestCase):
             service_price=Decimal("50.00"),
         )
         response = self.client_login.get(
-            self._services_url(section="services", view="list")
+            self._services_url(section="services", view="list"),
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "dashboard/home.html")
@@ -68,7 +70,7 @@ class ServiceDashboardViewsTest(TestCase):
     # --- Create GET ---
     def test_services_form_get(self):
         response = self.client_login.get(
-            self._services_url(section="services", view="form")
+            self._services_url(section="services", view="form"),
         )
         self.assertEqual(response.status_code, 200)
         self.assertIn("form", response.context)
@@ -115,15 +117,15 @@ class ServiceDashboardViewsTest(TestCase):
         )
         response = self.client_login.get(
             self._services_url(
-                section="services", view="edit", service_record=record.pk
-            )
+                section="services", view="edit", service_record=record.pk,
+            ),
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["service_record_to_edit"].pk, record.pk)
 
     def test_services_edit_get_404_for_nonexistent(self):
         response = self.client_login.get(
-            self._services_url(section="services", view="edit", service_record=999)
+            self._services_url(section="services", view="edit", service_record=999),
         )
         self.assertEqual(response.status_code, 404)
 
@@ -209,7 +211,7 @@ class ServiceDashboardViewsTest(TestCase):
             service_price=Decimal("50.00"),
         )
         response = self.client_login.get(
-            self._services_url(filter_barber=self.employee.pk)
+            self._services_url(filter_barber=self.employee.pk),
         )
         self.assertEqual(response.status_code, 200)
 
@@ -295,7 +297,7 @@ class ServiceBarberoAccessTest(TestCase):
     def test_barbero_cannot_edit_other_barbero_service_get(self):
         self.client.login(username="barbero1", password="pass1234")
         response = self.client.get(
-            self._services_url(view="edit", service_record=self.other_record.pk)
+            self._services_url(view="edit", service_record=self.other_record.pk),
         )
         self.assertRedirects(response, f"{self.list_url}?section=services&view=list")
 

@@ -1,4 +1,5 @@
 from django.test import TestCase
+
 from barberia.accounts.models import User
 
 

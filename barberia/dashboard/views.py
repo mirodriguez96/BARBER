@@ -1,18 +1,17 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Count, ExpressionWrapper, F, Q, Sum, Value
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum, Value
 from django.db.models.functions import Coalesce
-from django.db.models import DecimalField
 from django.shortcuts import get_object_or_404, redirect, render
 
 from barberia.accounts.models import User
-from barberia.people.models import Employee
 from barberia.catalog.models import CatalogItem
 from barberia.operations.models import ServiceRecord
+from barberia.people.models import Employee
 
 from .forms import (
     BarberEditForm,
@@ -82,7 +81,7 @@ def home(request):
             messages.error(request, "Revisa los campos marcados en rojo.")
         elif section == "catalog" and action == "deactivate":
             catalog_item = get_object_or_404(
-                CatalogItem, pk=request.POST.get("catalog_item_id")
+                CatalogItem, pk=request.POST.get("catalog_item_id"),
             )
             catalog_item.is_active = False
             catalog_item.save(update_fields=["is_active"])
@@ -90,7 +89,7 @@ def home(request):
             return redirect(f"{request.path}?section=catalog&view=list")
         elif section == "catalog" and action == "activate":
             catalog_item = get_object_or_404(
-                CatalogItem, pk=request.POST.get("catalog_item_id")
+                CatalogItem, pk=request.POST.get("catalog_item_id"),
             )
             catalog_item.is_active = True
             catalog_item.save(update_fields=["is_active"])
@@ -98,13 +97,13 @@ def home(request):
             return redirect(f"{request.path}?section=catalog&view=list")
         elif section == "catalog" and action == "update":
             catalog_item = get_object_or_404(
-                CatalogItem, pk=request.POST.get("catalog_item_id")
+                CatalogItem, pk=request.POST.get("catalog_item_id"),
             )
             form = CatalogItemEditForm(request.POST, instance=catalog_item)
             if form.is_valid():
                 form.save()
                 messages.success(
-                    request, "Producto o servicio actualizado correctamente."
+                    request, "Producto o servicio actualizado correctamente.",
                 )
                 return redirect(f"{request.path}?section=catalog&view=list")
             quick_view = "edit"
@@ -112,18 +111,18 @@ def home(request):
             messages.error(request, "Revisa los campos marcados en rojo.")
         elif section == "services" and action == "update":
             service_record = get_object_or_404(
-                ServiceRecord, pk=request.POST.get("service_record_id")
+                ServiceRecord, pk=request.POST.get("service_record_id"),
             )
             if (
                 request.user.role != User.Role.ADMIN
                 and service_record.barber.user_id != request.user.pk
             ):
                 messages.error(
-                    request, "No tienes permiso para modificar este servicio."
+                    request, "No tienes permiso para modificar este servicio.",
                 )
                 return redirect(f"{request.path}?section=services&view=list")
             form = ServiceRecordEditForm(
-                request.POST, instance=service_record, user=request.user
+                request.POST, instance=service_record, user=request.user,
             )
             if form.is_valid():
                 record = form.save(commit=False)
@@ -148,40 +147,39 @@ def home(request):
                 messages.success(request, "Registro guardado correctamente.")
                 return redirect(f"{request.path}?section={section}")
             messages.error(request, "Revisa los campos marcados en rojo.")
-    else:
-        if section == "barbers" and quick_view == "edit" and barber_to_edit is not None:
-            form = BarberEditForm(instance=barber_to_edit)
-        elif (
-            section == "catalog"
-            and quick_view == "edit"
-            and catalog_item_to_edit is not None
+    elif section == "barbers" and quick_view == "edit" and barber_to_edit is not None:
+        form = BarberEditForm(instance=barber_to_edit)
+    elif (
+        section == "catalog"
+        and quick_view == "edit"
+        and catalog_item_to_edit is not None
+    ):
+        form = CatalogItemEditForm(instance=catalog_item_to_edit)
+    elif (
+        section == "services"
+        and quick_view == "edit"
+        and service_record_to_edit is not None
+    ):
+        if (
+            request.user.role != User.Role.ADMIN
+            and service_record_to_edit.barber.user_id != request.user.pk
         ):
-            form = CatalogItemEditForm(instance=catalog_item_to_edit)
-        elif (
-            section == "services"
-            and quick_view == "edit"
-            and service_record_to_edit is not None
-        ):
-            if (
-                request.user.role != User.Role.ADMIN
-                and service_record_to_edit.barber.user_id != request.user.pk
-            ):
-                messages.error(
-                    request, "No tienes permiso para modificar este servicio."
-                )
-                return redirect(f"{request.path}?section=services&view=list")
-            form = ServiceRecordEditForm(
-                instance=service_record_to_edit, user=request.user
+            messages.error(
+                request, "No tienes permiso para modificar este servicio.",
             )
-        else:
-            form_class = forms_map.get(section, BarberForm)
-            form = form_class(user=request.user)
+            return redirect(f"{request.path}?section=services&view=list")
+        form = ServiceRecordEditForm(
+            instance=service_record_to_edit, user=request.user,
+        )
+    else:
+        form_class = forms_map.get(section, BarberForm)
+        form = form_class(user=request.user)
 
     filter_date = request.GET.get("filter_date", "")
     filter_barber = request.GET.get("filter_barber", "")
 
     service_list = ServiceRecord.objects.select_related(
-        "client", "barber", "service", "performed_by"
+        "client", "barber", "service", "performed_by",
     ).order_by("-scheduled_for")
 
     if request.user.role != User.Role.ADMIN:
@@ -190,13 +188,13 @@ def home(request):
     filtered_service_list = service_list
     if filter_date == "today":
         filtered_service_list = filtered_service_list.filter(
-            scheduled_for__date=date.today()
+            scheduled_for__date=date.today(),
         )
     elif filter_date:
         try:
             parsed = datetime.strptime(filter_date, "%Y-%m-%d").date()
             filtered_service_list = filtered_service_list.filter(
-                scheduled_for__date=parsed
+                scheduled_for__date=parsed,
             )
         except ValueError:
             pass
@@ -247,7 +245,7 @@ def home(request):
     payments_aggregate_filter = Q(service_records__status=ServiceRecord.Status.DONE)
     if filter_date == "today":
         payments_aggregate_filter &= Q(
-            service_records__scheduled_for__date=date.today()
+            service_records__scheduled_for__date=date.today(),
         )
     elif filter_date:
         try:
@@ -269,7 +267,7 @@ def home(request):
 
     payments_qs = payments_qs.annotate(
         cuts_count=Coalesce(
-            Count("service_records", filter=payments_aggregate_filter), Value(0)
+            Count("service_records", filter=payments_aggregate_filter), Value(0),
         ),
         commission_total=Coalesce(
             Sum(commission_expression, filter=payments_aggregate_filter),

@@ -1,5 +1,6 @@
 from django.test import TestCase
 from django.urls import reverse
+
 from barberia.accounts.models import User
 
 register_url = reverse("register")

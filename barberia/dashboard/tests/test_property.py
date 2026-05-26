@@ -1,8 +1,11 @@
 from decimal import Decimal
-from hypothesis import given, strategies as st, settings
+
+from hypothesis import given, settings
+from hypothesis import strategies as st
 from hypothesis.extra.django import TestCase
+
 from barberia.catalog.models import CatalogItem
-from barberia.dashboard.forms import CatalogItemForm, CatalogItemEditForm
+from barberia.dashboard.forms import CatalogItemEditForm, CatalogItemForm
 
 
 class CatalogCommissionPropertyTest(TestCase):

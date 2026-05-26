@@ -89,8 +89,8 @@
                                                 <th>Documento</th>
                                                 <th>Teléfono</th>
                                                 <th>Correo</th>
-                                                <th>Estado</th>
-                                                <th>Acciones</th>
+                                                <th class="col-state">Estado</th>
+                                                <th class="col-actions">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -110,7 +110,7 @@
                                                     </td>
                                                     <td>{{ barber.phone|default:"-" }}</td>
                                                     <td>{{ barber.email|default:"-" }}</td>
-                                                    <td>
+                                                    <td class="col-state">
                                                         <span class="dashboard-status {% if barber.is_active %}is-active{% else %}is-inactive{% endif %}">
                                                             {% if barber.is_active %}
                                                                 Activo
@@ -119,8 +119,8 @@
                                                             {% endif %}
                                                         </span>
                                                     </td>
-                                                    <td>
-                                                        <div class="dashboard-row-actions">
+                                                    <td class="col-actions">
+                                                        <div class="dashboard-row-actions dashboard-row-actions--controls">
                                                             <form method="get" class="dashboard-inline-form">
                                                                 <input type="hidden" name="section" value="barbers" />
                                                                 <input type="hidden" name="view" value="edit" />
@@ -222,9 +222,8 @@
                                                 <th>Tipo</th>
                                                 <th>Precio</th>
                                                 <th>Comisión</th>
-                                                <th>Descripción</th>
-                                                <th>Estado</th>
-                                                <th>Acciones</th>
+                                                <th class="col-state">Estado</th>
+                                                <th class="col-actions">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -250,8 +249,7 @@
                                                     </td>
                                                     <td>${{ item.price }}</td>
                                                     <td>{{ item.barber_commission_percent }}%</td>
-                                                    <td class="dashboard-table__description">{{ item.description|default:"-" }}</td>
-                                                    <td>
+                                                    <td class="col-state">
                                                         <span class="dashboard-status {% if item.is_active %}is-active{% else %}is-inactive{% endif %}">
                                                             {% if item.is_active %}
                                                                 Activo
@@ -260,8 +258,8 @@
                                                             {% endif %}
                                                         </span>
                                                     </td>
-                                                    <td>
-                                                        <div class="dashboard-row-actions">
+                                                    <td class="col-actions">
+                                                        <div class="dashboard-row-actions dashboard-row-actions--controls">
                                                             <form method="get" class="dashboard-inline-form">
                                                                 <input type="hidden" name="section" value="catalog" />
                                                                 <input type="hidden" name="view" value="edit" />
@@ -296,7 +294,7 @@
                                                 </tr>
                                             {% empty %}
                                                 <tr>
-                                                    <td colspan="7" class="dashboard-empty-state">
+                                                    <td colspan="6" class="dashboard-empty-state">
                                                         <div class="dashboard-empty-state__title">Todavía no hay productos ni servicios registrados.</div>
                                                         <div class="dashboard-empty-state__copy">
                                                             Agrega el primero desde el formulario para empezar
@@ -353,7 +351,7 @@
                                 <div class="dashboard-filters__group">
                                     <span class="dashboard-filters__label">Fecha</span>
                                     <div class="dashboard-filters__row">
-                                        <a href="?section=services&view=list&filter_date=today{% if filter_barber %}&filter_barber={{ filter_barber }}{% endif %}"
+                                        <a href="?section=services&view=list&filter_date=today{% if filter_barber %} &filter_barber={{ filter_barber }} {% endif %}"
                                            class="dashboard-filters__btn {% if filter_date == 'today' %}is-active{% endif %}">Hoy</a>
                                         <input type="date"
                                                name="filter_date"
@@ -484,7 +482,7 @@
                                 <div class="dashboard-filters__group">
                                     <span class="dashboard-filters__label">Fecha</span>
                                     <div class="dashboard-filters__row">
-                                        <a href="?section=payments&view=list&filter_date=today{% if filter_barber %}&filter_barber={{ filter_barber }}{% endif %}"
+                                        <a href="?section=payments&view=list&filter_date=today{% if filter_barber %} &filter_barber={{ filter_barber }} {% endif %}"
                                            class="dashboard-filters__btn {% if filter_date == 'today' %}is-active{% endif %}">Hoy</a>
                                         <input type="date"
                                                name="filter_date"
@@ -518,33 +516,7 @@
                                 </div>
                                 <span class="dashboard-pill">{{ payments_page|length }} registros</span>
                             </div>
-                            {% if payments_summary and request.user.role == 'ADMIN' %}
-                                <div class="dashboard-metrics mb-3">
-                                    <article class="dashboard-metric-card">
-                                        <p class="dashboard-metric-card__label mb-1">Cortes totales</p>
-                                        <strong class="dashboard-metric-card__value">{{ payments_summary.total_cuts }}</strong>
-                                        <span class="dashboard-metric-card__hint">Cortes (filtro aplicado)</span>
-                                    </article>
-                                    <article class="dashboard-metric-card">
-                                        <p class="dashboard-metric-card__label mb-1">Ingresos</p>
-                                        <strong class="dashboard-metric-card__value">${{ payments_summary.total_revenue|floatformat:2
-                                        }}</strong>
-                                        <span class="dashboard-metric-card__hint">Ventas totales</span>
-                                    </article>
-                                    <article class="dashboard-metric-card">
-                                        <p class="dashboard-metric-card__label mb-1">Comisiones</p>
-                                        <strong class="dashboard-metric-card__value">${{ payments_summary.total_commissions|floatformat:2
-                                        }}</strong>
-                                        <span class="dashboard-metric-card__hint">Comisiones a barberos</span>
-                                    </article>
-                                    <article class="dashboard-metric-card">
-                                        <p class="dashboard-metric-card__label mb-1">Ganancia neta</p>
-                                        <strong class="dashboard-metric-card__value">${{ payments_summary.company_earnings|floatformat:2
-                                        }}</strong>
-                                        <span class="dashboard-metric-card__hint">Ingresos - comisiones + propinas</span>
-                                    </article>
-                                </div>
-                            {% endif %}
+                            {# Admin summary removed — kept view-only in backend. #}
                             <div class="dashboard-table-wrap">
                                 <div class="table-responsive">
                                     <table class="table dashboard-table align-middle table-hover mb-0">
@@ -578,7 +550,7 @@
                                                 </tr>
                                             {% empty %}
                                                 <tr>
-                                                    <td colspan="4" class="dashboard-empty-state">
+                                                    <td colspan="5" class="dashboard-empty-state">
                                                         <div class="dashboard-empty-state__title">No hay datos de pagos disponibles.</div>
                                                         <div class="dashboard-empty-state__copy">
                                                             Los pagos se generan automáticamente cuando se

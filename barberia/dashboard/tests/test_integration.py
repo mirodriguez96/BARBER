@@ -1,12 +1,14 @@
 from datetime import datetime
 from decimal import Decimal
+
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+
 from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
-from barberia.people.models import Employee, Client
 from barberia.operations.models import ServiceRecord
+from barberia.people.models import Client, Employee
 
 
 class PaginationIntegrationTest(TestCase):
@@ -137,7 +139,7 @@ class PaginationIntegrationTest(TestCase):
     def test_services_pagination_filter_plus_pagination(self):
         self._services(15)
         response = self.http_client.get(
-            self._url_with("services", filter_barber=self.employee.pk, page="2")
+            self._url_with("services", filter_barber=self.employee.pk, page="2"),
         )
         self.assertEqual(response.status_code, 200)
         services = response.context["services"]

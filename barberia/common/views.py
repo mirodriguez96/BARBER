@@ -7,13 +7,13 @@ class StyledAuthenticationForm(AuthenticationForm):
     username = forms.CharField(
         label="Usuario",
         widget=forms.TextInput(
-            attrs={"class": "form-control", "placeholder": "Tu usuario"}
+            attrs={"class": "form-control", "placeholder": "Tu usuario"},
         ),
     )
     password = forms.CharField(
         label="Contraseña",
         widget=forms.PasswordInput(
-            attrs={"class": "form-control", "placeholder": "Tu contraseña"}
+            attrs={"class": "form-control", "placeholder": "Tu contraseña"},
         ),
     )
 

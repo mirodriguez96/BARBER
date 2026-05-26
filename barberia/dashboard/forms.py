@@ -46,10 +46,10 @@ class ServiceCatalogSelect(forms.Select):
     queryset = None
 
     def create_option(
-        self, name, value, label, selected, index, subindex=None, attrs=None
+        self, name, value, label, selected, index, subindex=None, attrs=None,
     ):
         option = super().create_option(
-            name, value, label, selected, index, subindex, attrs
+            name, value, label, selected, index, subindex, attrs,
         )
         raw_value = getattr(value, "value", value)
         if raw_value and self.queryset is not None:
@@ -57,7 +57,7 @@ class ServiceCatalogSelect(forms.Select):
             if service:
                 option["attrs"]["data-price"] = str(service.price)
                 option["attrs"]["data-commission"] = str(
-                    service.barber_commission_percent
+                    service.barber_commission_percent,
                 )
         return option
 
@@ -77,16 +77,16 @@ class BarberForm(DashboardModelForm):
         widgets = {
             "user": forms.Select(attrs={"class": "form-select"}),
             "full_name": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Ej. Juan Pérez"}
+                attrs={"class": "form-control", "placeholder": "Ej. Juan Pérez"},
             ),
             "document_id": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Ej. 1020304050"}
+                attrs={"class": "form-control", "placeholder": "Ej. 1020304050"},
             ),
             "phone": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Ej. 300 123 4567"}
+                attrs={"class": "form-control", "placeholder": "Ej. 300 123 4567"},
             ),
             "email": forms.EmailInput(
-                attrs={"class": "form-control", "placeholder": "correo@ejemplo.com"}
+                attrs={"class": "form-control", "placeholder": "correo@ejemplo.com"},
             ),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
@@ -128,13 +128,13 @@ class BarberEditForm(DashboardModelForm):
         }
         widgets = {
             "full_name": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Ej. Juan Pérez"}
+                attrs={"class": "form-control", "placeholder": "Ej. Juan Pérez"},
             ),
             "phone": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Ej. 300 123 4567"}
+                attrs={"class": "form-control", "placeholder": "Ej. 300 123 4567"},
             ),
             "email": forms.EmailInput(
-                attrs={"class": "form-control", "placeholder": "correo@ejemplo.com"}
+                attrs={"class": "form-control", "placeholder": "correo@ejemplo.com"},
             ),
         }
 
@@ -183,7 +183,6 @@ class CatalogItemForm(CatalogCommissionMixin, DashboardModelForm):
         labels = {
             "kind": "Tipo",
             "name": "Nombre",
-            "description": "Descripción",
             "sku": "Código / SKU",
             "price": "Precio",
             "barber_commission_percent": "Comisión del barbero (%)",
@@ -192,23 +191,23 @@ class CatalogItemForm(CatalogCommissionMixin, DashboardModelForm):
         widgets = {
             "kind": forms.Select(attrs={"class": "form-select"}),
             "name": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Ej. Corte degradado"}
+                attrs={"class": "form-control", "placeholder": "Ej. Corte degradado"},
             ),
             "description": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "rows": 4,
                     "placeholder": "Detalle del producto o servicio",
-                }
+                },
             ),
             "sku": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Ej. PROD-001"}
+                attrs={"class": "form-control", "placeholder": "Ej. PROD-001"},
             ),
             "price": forms.NumberInput(
-                attrs={"class": "form-control", "step": "0.01", "min": "0"}
+                attrs={"class": "form-control", "step": "0.01", "min": "0"},
             ),
             "barber_commission_percent": forms.NumberInput(
-                attrs={"class": "form-control", "step": "0.01", "min": "0"}
+                attrs={"class": "form-control", "step": "0.01", "min": "0"},
             ),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
@@ -228,20 +227,20 @@ class CatalogItemEditForm(CatalogCommissionMixin, DashboardModelForm):
         widgets = {
             "kind": forms.Select(attrs={"class": "form-select"}),
             "name": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Ej. Corte degradado"}
+                attrs={"class": "form-control", "placeholder": "Ej. Corte degradado"},
             ),
             "description": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "rows": 4,
                     "placeholder": "Detalle del producto o servicio",
-                }
+                },
             ),
             "price": forms.NumberInput(
-                attrs={"class": "form-control", "step": "0.01", "min": "0"}
+                attrs={"class": "form-control", "step": "0.01", "min": "0"},
             ),
             "barber_commission_percent": forms.NumberInput(
-                attrs={"class": "form-control", "step": "0.01", "min": "0"}
+                attrs={"class": "form-control", "step": "0.01", "min": "0"},
             ),
         }
 
@@ -273,17 +272,17 @@ class ServiceRecordForm(DashboardModelForm):
             "client": forms.Select(attrs={"class": "form-select"}),
             "barber": forms.Select(attrs={"class": "form-select"}),
             "service": ServiceCatalogSelect(
-                attrs={"class": "form-select", "data-service-selector": "true"}
+                attrs={"class": "form-select", "data-service-selector": "true"},
             ),
             "scheduled_for": forms.DateTimeInput(
-                attrs={"class": "form-control", "type": "datetime-local"}
+                attrs={"class": "form-control", "type": "datetime-local"},
             ),
             "notes": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "rows": 4,
                     "placeholder": "Observaciones del servicio",
-                }
+                },
             ),
             "service_price": forms.NumberInput(
                 attrs={
@@ -291,7 +290,7 @@ class ServiceRecordForm(DashboardModelForm):
                     "step": "0.01",
                     "min": "0",
                     "readonly": "readonly",
-                }
+                },
             ),
             "commission_amount": forms.NumberInput(
                 attrs={
@@ -299,7 +298,7 @@ class ServiceRecordForm(DashboardModelForm):
                     "step": "0.01",
                     "min": "0",
                     "readonly": "readonly",
-                }
+                },
             ),
             "tip_amount": forms.NumberInput(
                 attrs={
@@ -307,7 +306,7 @@ class ServiceRecordForm(DashboardModelForm):
                     "step": "0.01",
                     "min": "0",
                     "placeholder": "Opcional",
-                }
+                },
             ),
         }
 
@@ -318,14 +317,14 @@ class ServiceRecordForm(DashboardModelForm):
         self.fields["client"].widget.attrs["aria-label"] = "Cliente opcional"
         if self.user and hasattr(self.user, "employee"):
             self.fields["barber"].queryset = Employee.objects.filter(
-                pk=self.user.employee.pk, is_active=True
+                pk=self.user.employee.pk, is_active=True,
             )
         else:
             self.fields["barber"].queryset = Employee.objects.filter(is_active=True)
         self.fields["service"].queryset = CatalogItem.objects.filter(is_active=True)
         self.fields["service"].widget.queryset = self.fields["service"].queryset
         self.fields["scheduled_for"].initial = timezone.localtime(
-            timezone.now()
+            timezone.now(),
         ).strftime("%Y-%m-%dT%H:%M")
         self.fields["service_price"].initial = self._service_price_initial()
         self.fields["commission_amount"].initial = self._commission_initial()
@@ -371,7 +370,7 @@ class ServiceRecordEditForm(DashboardModelForm):
         widgets = {
             "barber": forms.Select(attrs={"class": "form-select"}),
             "service": ServiceCatalogSelect(
-                attrs={"class": "form-select", "data-service-selector": "true"}
+                attrs={"class": "form-select", "data-service-selector": "true"},
             ),
             "service_price": forms.NumberInput(
                 attrs={
@@ -379,7 +378,7 @@ class ServiceRecordEditForm(DashboardModelForm):
                     "step": "0.01",
                     "min": "0",
                     "readonly": "readonly",
-                }
+                },
             ),
             "commission_amount": forms.NumberInput(
                 attrs={
@@ -387,7 +386,7 @@ class ServiceRecordEditForm(DashboardModelForm):
                     "step": "0.01",
                     "min": "0",
                     "readonly": "readonly",
-                }
+                },
             ),
             "tip_amount": forms.NumberInput(
                 attrs={
@@ -395,7 +394,7 @@ class ServiceRecordEditForm(DashboardModelForm):
                     "step": "0.01",
                     "min": "0",
                     "placeholder": "Opcional",
-                }
+                },
             ),
         }
 
@@ -403,7 +402,7 @@ class ServiceRecordEditForm(DashboardModelForm):
         super().__init__(*args, **kwargs)
         if self.user and hasattr(self.user, "employee"):
             self.fields["barber"].queryset = Employee.objects.filter(
-                pk=self.user.employee.pk, is_active=True
+                pk=self.user.employee.pk, is_active=True,
             )
         else:
             self.fields["barber"].queryset = Employee.objects.filter(is_active=True)
