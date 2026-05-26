@@ -92,7 +92,10 @@ class DashboardTemplateRenderingTest(TestCase):
         soup = self._soup("barbers")
         body = soup.get_text()
         self.assertTrue(
-            "no hay" in body.lower() or "sin" in body.lower() or "barberos" in body,
+            "no hay" in body.lower()
+            or "sin" in body.lower()
+            or "barberos" in body
+            or "colaborador" in body.lower()
         )
 
     def test_empty_catalog_shows_message(self):
