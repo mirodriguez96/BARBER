@@ -63,6 +63,18 @@ document.addEventListener("DOMContentLoaded", function () {
     applyProductValues();
   }
 
+  document
+    .querySelectorAll(".dashboard-filters__form")
+    .forEach(function (form) {
+      form
+        .querySelectorAll("select, input:not([type=hidden])")
+        .forEach(function (el) {
+          el.addEventListener("change", function () {
+            form.requestSubmit();
+          });
+        });
+    });
+
   const barberField = document.getElementById("id_barber");
   const servicesForm = document.querySelector(".dashboard-form");
   if (barberField && servicesForm) {

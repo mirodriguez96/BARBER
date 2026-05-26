@@ -35,6 +35,12 @@ class ServiceDashboardViewsTest(TestCase):
             barber_commission_percent=Decimal("20.00"),
             is_active=True,
         )
+        self.product = CatalogItem.objects.create(
+            kind=CatalogItem.Kind.PRODUCT,
+            name="Gel fijador",
+            price=Decimal("30.00"),
+            is_active=True,
+        )
         self.client_login = self.client
         self.client_login.login(username="barber_admin", password="pass1234")
         self.list_url = reverse("dashboard:home")
@@ -216,6 +222,70 @@ class ServiceDashboardViewsTest(TestCase):
             self._services_url(filter_barber=self.employee.pk),
         )
         self.assertEqual(response.status_code, 200)
+
+    # --- Kind filter ---
+    def test_services_filter_by_kind_service_shows_only_services(self):
+        ServiceRecord.objects.create(
+            barber=self.employee,
+            service=self.service,
+            performed_by=self.user,
+            scheduled_for=timezone.now(),
+            service_price=Decimal("50.00"),
+        )
+        ServiceRecord.objects.create(
+            service=self.product,
+            performed_by=self.user,
+            scheduled_for=timezone.now(),
+            service_price=Decimal("30.00"),
+            quantity=1,
+        )
+        response = self.client_login.get(
+            self._services_url(filter_kind="service"),
+        )
+        records = list(response.context["services"].object_list)
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0].service.kind, CatalogItem.Kind.SERVICE)
+
+    def test_services_filter_by_kind_product_shows_only_products(self):
+        ServiceRecord.objects.create(
+            barber=self.employee,
+            service=self.service,
+            performed_by=self.user,
+            scheduled_for=timezone.now(),
+            service_price=Decimal("50.00"),
+        )
+        ServiceRecord.objects.create(
+            service=self.product,
+            performed_by=self.user,
+            scheduled_for=timezone.now(),
+            service_price=Decimal("30.00"),
+            quantity=1,
+        )
+        response = self.client_login.get(
+            self._services_url(filter_kind="product"),
+        )
+        records = list(response.context["services"].object_list)
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0].service.kind, CatalogItem.Kind.PRODUCT)
+
+    def test_services_filter_kind_empty_shows_both(self):
+        ServiceRecord.objects.create(
+            barber=self.employee,
+            service=self.service,
+            performed_by=self.user,
+            scheduled_for=timezone.now(),
+            service_price=Decimal("50.00"),
+        )
+        ServiceRecord.objects.create(
+            service=self.product,
+            performed_by=self.user,
+            scheduled_for=timezone.now(),
+            service_price=Decimal("30.00"),
+            quantity=1,
+        )
+        response = self.client_login.get(self._services_url())
+        records = list(response.context["services"].object_list)
+        self.assertEqual(len(records), 2)
 
     # --- Pagination ---
     def test_services_pagination(self):

@@ -341,6 +341,7 @@ def home(request):
 
     filter_date = request.GET.get("filter_date", "")
     filter_barber = request.GET.get("filter_barber", "")
+    filter_kind = request.GET.get("filter_kind", "")
 
     service_list = ServiceRecord.objects.select_related(
         "client",
@@ -369,11 +370,22 @@ def home(request):
     if filter_barber:
         filtered_service_list = filtered_service_list.filter(barber_id=filter_barber)
 
+    if filter_kind == "service":
+        filtered_service_list = filtered_service_list.filter(
+            service__kind=CatalogItem.Kind.SERVICE,
+        )
+    elif filter_kind == "product":
+        filtered_service_list = filtered_service_list.filter(
+            service__kind=CatalogItem.Kind.PRODUCT,
+        )
+
     filter_parts = []
     if filter_date:
         filter_parts.append(f"filter_date={filter_date}")
     if filter_barber:
         filter_parts.append(f"filter_barber={filter_barber}")
+    if filter_kind:
+        filter_parts.append(f"filter_kind={filter_kind}")
     filter_params = "&" + "&".join(filter_parts) if filter_parts else ""
 
     # --- Combined people list (barbers + clients) ---
@@ -469,6 +481,10 @@ def home(request):
         payments_aggregate_filter &= Q(service_records__barber_id=filter_barber)
         payments_qs = payments_qs.filter(pk=filter_barber)
 
+    payments_aggregate_filter &= ~Q(
+        service_records__service__kind=CatalogItem.Kind.PRODUCT,
+    )
+
     commission_expression = ExpressionWrapper(
         F("service_records__service_price")
         * F("service_records__service__barber_commission_percent")
@@ -509,6 +525,8 @@ def home(request):
 
     if filter_barber:
         service_filter &= Q(barber_id=filter_barber)
+
+    service_filter &= ~Q(service__kind=CatalogItem.Kind.PRODUCT)
 
     service_qs = ServiceRecord.objects.filter(service_filter)
     if request.user.role != User.Role.ADMIN:
@@ -567,6 +585,7 @@ def home(request):
         "filter_params": filter_params,
         "filter_date": filter_date,
         "filter_barber": filter_barber,
+        "filter_kind": filter_kind,
         "active_barbers": Employee.objects.filter(is_active=True),
         "barber_stats": barber_stats,
         "catalog_stats": catalog_stats,

@@ -382,14 +382,14 @@
                                 <span class="dashboard-metric-card__hint">Ventas de productos</span>
                             </article>
                         </div>
-                        <div class="dashboard-filters mb-3">
+                    <div class="dashboard-filters mb-3">
                             <form method="get" class="dashboard-filters__form">
                                 <input type="hidden" name="section" value="services" />
                                 <input type="hidden" name="view" value="list" />
                                 <div class="dashboard-filters__group">
                                     <span class="dashboard-filters__label">Fecha</span>
                                     <div class="dashboard-filters__row">
-                                        <a href="?section=services&view=list&filter_date=today{% if filter_barber %} &filter_barber={{ filter_barber }} {% endif %}"
+                                        <a href="?section=services&view=list&filter_date=today{% if filter_barber %}&filter_barber={{ filter_barber }}{% endif %}{% if filter_kind %}&filter_kind={{ filter_kind }}{% endif %}"
                                            class="dashboard-filters__btn {% if filter_date == 'today' %}is-active{% endif %}">Hoy</a>
                                         <input type="date"
                                                name="filter_date"
@@ -409,8 +409,17 @@
                                         {% endfor %}
                                     </select>
                                 </div>
-                                <button type="submit" class="dashboard-filters__submit">Filtrar</button>
-                                {% if filter_date or filter_barber %}
+                                <div class="dashboard-filters__group">
+                                    <span class="dashboard-filters__label">Tipo</span>
+                                    <div class="dashboard-filters__row">
+                                        <select name="filter_kind" class="dashboard-filters__select">
+                                            <option value="">Todos</option>
+                                            <option value="service" {% if filter_kind == 'service' %}selected{% endif %}>Servicios</option>
+                                            <option value="product" {% if filter_kind == 'product' %}selected{% endif %}>Productos</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                {% if filter_date or filter_barber or filter_kind %}
                                     <a href="?section=services&view=list" class="dashboard-filters__clear">Limpiar</a>
                                 {% endif %}
                             </form>
@@ -576,7 +585,6 @@
                                         {% endfor %}
                                     </select>
                                 </div>
-                                <button type="submit" class="dashboard-filters__submit">Filtrar</button>
                                 {% if filter_date or filter_barber %}
                                     <a href="?section=payments&view=list" class="dashboard-filters__clear">Limpiar</a>
                                 {% endif %}
