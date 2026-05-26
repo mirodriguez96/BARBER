@@ -561,7 +561,7 @@ def home(request):
     section_titles = {
         "barbers": "Administrar colaboradores y clientes",
         "catalog": "Administrar productos y servicios",
-        "services": "Administrar productos y servicios",
+        "services": "Administrar ventas y servicios realizados",
         "payments": "Pagos — comisiones y propinas",
     }
 
@@ -593,7 +593,7 @@ def home(request):
         "menu_items": [
             {"key": "barbers", "label": "COLABORADORES / CLIENTES", "hint": ""},
             {"key": "catalog", "label": "PRODUCTOS Y SERVICIOS", "hint": ""},
-            {"key": "services", "label": "PRODUCTOS / SERVICIOS", "hint": ""},
+            {"key": "services", "label": "VENTAS", "hint": ""},
             {"key": "payments", "label": "PAGOS", "hint": ""},
         ],
         "is_admin": request.user.role == User.Role.ADMIN,
