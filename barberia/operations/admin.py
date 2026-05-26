@@ -12,6 +12,7 @@ class ServiceRecordAdmin(admin.ModelAdmin):
         "status",
         "scheduled_for",
         "service_price",
+        "quantity",
         "commission_amount",
         "tip_amount",
     )

@@ -17,10 +17,16 @@ class ServiceRecord(models.Model):
         blank=True,
     )
     barber = models.ForeignKey(
-        "people.Employee", on_delete=models.PROTECT, related_name="service_records",
+        "people.Employee",
+        on_delete=models.PROTECT,
+        related_name="service_records",
+        null=True,
+        blank=True,
     )
     service = models.ForeignKey(
-        "catalog.CatalogItem", on_delete=models.PROTECT, related_name="service_records",
+        "catalog.CatalogItem",
+        on_delete=models.PROTECT,
+        related_name="service_records",
     )
     performed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -30,13 +36,24 @@ class ServiceRecord(models.Model):
     scheduled_for = models.DateTimeField()
     completed_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.SCHEDULED,
+        max_length=20,
+        choices=Status.choices,
+        default=Status.SCHEDULED,
     )
     notes = models.TextField(blank=True)
     service_price = models.DecimalField(max_digits=10, decimal_places=2)
-    commission_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    quantity = models.PositiveIntegerField(default=1)
+    commission_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
     tip_amount = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True,
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
     )
 
     def __str__(self):

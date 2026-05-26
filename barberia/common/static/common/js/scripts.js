@@ -9,7 +9,9 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   const kindSelect = document.getElementById("id_kind");
-  const commissionField = document.getElementById("id_barber_commission_percent");
+  const commissionField = document.getElementById(
+    "id_barber_commission_percent",
+  );
   if (kindSelect && commissionField) {
     const toggleCommission = () => {
       if (kindSelect.value === "product") {
@@ -23,7 +25,9 @@ document.addEventListener("DOMContentLoaded", function () {
     toggleCommission();
   }
 
-  const serviceSelect = document.querySelector('[data-service-selector="true"]');
+  const serviceSelect = document.querySelector(
+    '[data-service-selector="true"]',
+  );
   const servicePrice = document.getElementById("id_service_price");
   const commissionAmount = document.getElementById("id_commission_amount");
 
@@ -37,5 +41,37 @@ document.addEventListener("DOMContentLoaded", function () {
     };
     serviceSelect.addEventListener("change", applyServiceValues);
     applyServiceValues();
+  }
+
+  const productSelect = document.querySelector(
+    '[data-product-selector="true"]',
+  );
+  const productQuantity = document.getElementById("id_quantity");
+  const productPrice = document.getElementById("id_service_price");
+
+  if (productSelect && productQuantity && productPrice) {
+    const applyProductValues = () => {
+      const idx = productSelect.selectedIndex;
+      const option = productSelect.options[idx];
+      const unitPrice = parseFloat(option?.getAttribute("data-price") || "0");
+      const qty = parseInt(productQuantity.value, 10) || 1;
+      productPrice.value = (unitPrice * qty).toFixed(2);
+    };
+    productSelect.addEventListener("change", applyProductValues);
+    productQuantity.addEventListener("change", applyProductValues);
+    productQuantity.addEventListener("input", applyProductValues);
+    applyProductValues();
+  }
+
+  const barberField = document.getElementById("id_barber");
+  const servicesForm = document.querySelector(".dashboard-form");
+  if (barberField && servicesForm) {
+    servicesForm.addEventListener("submit", function (e) {
+      if (!barberField.value) {
+        e.preventDefault();
+        alert("Debes seleccionar un barbero para registrar un servicio.");
+        barberField.focus();
+      }
+    });
   }
 });

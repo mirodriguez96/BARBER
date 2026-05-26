@@ -29,6 +29,7 @@ class BarberFormTest(TestCase):
             "document_id": "1020304050",
             "phone": "3001234567",
             "email": "juan@example.com",
+            "role": User.Role.BARBERO,
         }
 
     def test_valid_form_creates_employee(self):
@@ -119,6 +120,7 @@ class BarberEditFormTest(TestCase):
             "full_name": "Juan Actualizado",
             "phone": "3111111111",
             "email": "nuevo@email.com",
+            "role": User.Role.BARBERO,
         }
 
     def test_valid_edit_form_updates_employee(self):
@@ -158,7 +160,12 @@ class BarberEditFormTest(TestCase):
 
     def test_email_optional_on_edit(self):
         form = BarberEditForm(
-            data={"full_name": "Juan Pérez", "phone": "3001234567", "email": ""},
+            data={
+                "full_name": "Juan Pérez",
+                "phone": "3001234567",
+                "email": "",
+                "role": User.Role.BARBERO,
+            },
             instance=self.employee,
         )
         self.assertTrue(form.is_valid())

@@ -64,6 +64,14 @@
                                href="?section=barbers&view=form&type=cliente">Cliente</a>
                         </div>
                     {% endif %}
+                    {% if active_section == 'services' and quick_view == 'form' and not service_record_to_edit %}
+                        <div class="dashboard-quick-switch mb-3">
+                            <a class="dashboard-quick-switch__item {% if service_type == 'servicio' %}is-active{% endif %}"
+                               href="?section=services&view=form&service_type=servicio">Servicio</a>
+                            <a class="dashboard-quick-switch__item {% if service_type == 'producto' %}is-active{% endif %}"
+                               href="?section=services&view=form&service_type=producto">Producto</a>
+                        </div>
+                    {% endif %}
                     {% if active_section == 'barbers' and quick_view == 'list' %}
                         <div class="dashboard-metrics mb-4">
                             <article class="dashboard-metric-card">
@@ -361,17 +369,17 @@
                             <article class="dashboard-metric-card">
                                 <p class="dashboard-metric-card__label mb-1">Total</p>
                                 <strong class="dashboard-metric-card__value">{{ service_stats.total }}</strong>
-                                <span class="dashboard-metric-card__hint">Cortes y servicios registrados</span>
+                                <span class="dashboard-metric-card__hint">Productos y servicios registrados</span>
                             </article>
                             <article class="dashboard-metric-card">
-                                <p class="dashboard-metric-card__label mb-1">Realizados</p>
-                                <strong class="dashboard-metric-card__value">{{ service_stats.done }}</strong>
-                                <span class="dashboard-metric-card__hint">Servicios completados</span>
+                                <p class="dashboard-metric-card__label mb-1">Servicios</p>
+                                <strong class="dashboard-metric-card__value">{{ service_stats.services }}</strong>
+                                <span class="dashboard-metric-card__hint">Cortes y servicios</span>
                             </article>
                             <article class="dashboard-metric-card">
-                                <p class="dashboard-metric-card__label mb-1">Programados</p>
-                                <strong class="dashboard-metric-card__value">{{ service_stats.scheduled }}</strong>
-                                <span class="dashboard-metric-card__hint">Pendientes por atender</span>
+                                <p class="dashboard-metric-card__label mb-1">Productos</p>
+                                <strong class="dashboard-metric-card__value">{{ service_stats.products }}</strong>
+                                <span class="dashboard-metric-card__hint">Ventas de productos</span>
                             </article>
                         </div>
                         <div class="dashboard-filters mb-3">
@@ -411,7 +419,7 @@
                             <div class="dashboard-table-shell__header">
                                 <div>
                                     <p class="eyebrow mb-1">Listado activo</p>
-                                    <h4 class="section-title mb-0">Cortes y servicios</h4>
+                                    <h4 class="section-title mb-0">Productos y servicios</h4>
                                 </div>
                                 <span class="dashboard-pill">{{ services|length }} registros</span>
                             </div>
@@ -421,7 +429,9 @@
                                         <thead>
                                             <tr>
                                                 <th>Barbero</th>
-                                                <th>Servicio</th>
+                                                <th>Tipo</th>
+                                                <th>Item</th>
+                                                <th>Cant.</th>
                                                 <th>Valor</th>
                                                 <th>Propina</th>
                                                 <th>Estado</th>
@@ -441,6 +451,9 @@
                                                         </div>
                                                     </td>
                                                     <td>
+                                                        <span class="dashboard-table__chip">{{ record.service.get_kind_display }}</span>
+                                                    </td>
+                                                    <td>
                                                         <div class="dashboard-table__primary">{{ record.service.name }}</div>
                                                         <div class="dashboard-table__meta">
                                                             {% if record.client %}
@@ -450,6 +463,7 @@
                                                             {% endif %}
                                                         </div>
                                                     </td>
+                                                    <td>{{ record.quantity }}</td>
                                                     <td>${{ record.service_price }}</td>
                                                     <td>${{ record.tip_amount|default_if_none:'0.00' }}</td>
                                                     <td>
@@ -470,7 +484,7 @@
                                                             {% if is_admin and record.status != 'canceled' %}
                                                                 <form method="post"
                                                                       class="dashboard-inline-form js-confirmable"
-                                                                      data-confirm="¿Anular este servicio? Esta acción marcará el servicio como Cancelado.">
+                                                                      data-confirm="¿Anular este registro? Esta acción marcará el registro como Cancelado.">
                                                                     {% csrf_token %}
                                                                     <input type="hidden" name="section" value="services" />
                                                                     <input type="hidden" name="action" value="cancel" />
@@ -486,8 +500,8 @@
                                                 </tr>
                                             {% empty %}
                                                 <tr>
-                                                    <td colspan="6" class="dashboard-empty-state">
-                                                        <div class="dashboard-empty-state__title">Todavía no hay cortes ni servicios registrados.</div>
+                                                    <td colspan="8" class="dashboard-empty-state">
+                                                        <div class="dashboard-empty-state__title">Todavía no hay productos ni servicios registrados.</div>
                                                         <div class="dashboard-empty-state__copy">
                                                             Registra el primero desde el formulario para ver
                                                             el listado aquí.
@@ -654,7 +668,11 @@
                                                 Modificar barbero
                                             {% endif %}
                                         {% elif active_section == 'services' %}
-                                            Modificar corte o servicio
+                                            {% if service_record_to_edit.service.kind == 'product' %}
+                                                Modificar producto
+                                            {% else %}
+                                                Modificar corte o servicio
+                                            {% endif %}
                                         {% else %}
                                             Modificar producto o servicio
                                         {% endif %}
@@ -669,8 +687,12 @@
                                             el estado permanecen intactos.
                                         {% endif %}
                                     {% elif active_section == 'services' %}
-                                        Cambia el barbero, el servicio y la propina. El valor y la
-                                        comisión se autocompletan según el servicio.
+                                        {% if service_record_to_edit.service.kind == 'product' %}
+                                            Cambia el barbero, el producto y la cantidad. El valor se autocompleta.
+                                        {% else %}
+                                            Cambia el barbero, el servicio y la propina. El valor y la
+                                            comisión se autocompletan según el servicio.
+                                        {% endif %}
                                     {% else %}
                                         Actualiza nombre, tipo, precio, comisión y descripción.
                                     {% endif %}
@@ -690,6 +712,8 @@
                                 <input type="hidden" name="type" value="cliente" />
                             {% elif active_section == 'barbers' and quick_view == 'form' %}
                                 <input type="hidden" name="type" value="{{ record_type }}" />
+                            {% elif active_section == 'services' and quick_view == 'form' %}
+                                <input type="hidden" name="type" value="{{ service_type }}" />
                             {% elif active_section == 'catalog' and quick_view == 'edit' and catalog_item_to_edit %}
                                 <input type="hidden" name="action" value="update" />
                                 <input type="hidden"

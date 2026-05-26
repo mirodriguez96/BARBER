@@ -39,7 +39,8 @@ class EmployeeModelTest(TestCase):
         with self.assertRaises(IntegrityError):
             Employee.objects.create(
                 user=User.objects.create_user(
-                    username="barbero2", password="testpass123",
+                    username="barbero2",
+                    password="testpass123",
                 ),
                 full_name="Otro Barbero",
                 document_id="1020304050",

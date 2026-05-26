@@ -54,7 +54,9 @@ class DashboardTemplateRenderingTest(TestCase):
     def test_pagination_links_rendered_when_multipage(self):
         for i in range(10):
             u = User.objects.create_user(
-                username=f"bpag{i}", password="pass1234", role=User.Role.BARBERO,
+                username=f"bpag{i}",
+                password="pass1234",
+                role=User.Role.BARBERO,
             )
             Employee.objects.create(
                 user=u,
@@ -69,7 +71,9 @@ class DashboardTemplateRenderingTest(TestCase):
     def test_pagination_links_use_page_param(self):
         for i in range(10):
             u = User.objects.create_user(
-                username=f"bpp{i}", password="pass1234", role=User.Role.BARBERO,
+                username=f"bpp{i}",
+                password="pass1234",
+                role=User.Role.BARBERO,
             )
             Employee.objects.create(
                 user=u,
@@ -114,7 +118,9 @@ class DashboardTemplateRenderingTest(TestCase):
 
     def test_catalog_section_renders_stats_cards(self):
         CatalogItem.objects.create(
-            kind=CatalogItem.Kind.SERVICE, name="Test", price=Decimal("10.00"),
+            kind=CatalogItem.Kind.SERVICE,
+            name="Test",
+            price=Decimal("10.00"),
         )
         soup = self._soup("catalog")
         cards = soup.select(".dashboard-metric-card")

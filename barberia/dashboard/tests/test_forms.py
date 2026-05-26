@@ -30,7 +30,8 @@ class DashboardModelFormTest(TestCase):
     def test_bootstrapify_textarea(self):
         form = _CatalogDashboardForm()
         self.assertIn(
-            "form-control", form.fields["description"].widget.attrs.get("class", ""),
+            "form-control",
+            form.fields["description"].widget.attrs.get("class", ""),
         )
 
     def test_autocomplete_off_set(self):

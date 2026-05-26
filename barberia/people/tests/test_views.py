@@ -105,11 +105,13 @@ class BarberDashboardViewsTest(TestCase):
             {
                 "section": "barbers",
                 "action": "save",
+                "type": "barbero",
                 "user": new_user.pk,
                 "full_name": "Nuevo Barbero",
                 "document_id": "9988776655",
                 "phone": "3111111111",
                 "email": "",
+                "role": User.Role.BARBERO,
             },
         )
         self.assertEqual(Employee.objects.count(), 2)
@@ -147,6 +149,7 @@ class BarberDashboardViewsTest(TestCase):
                 "full_name": "Barbero Editado",
                 "phone": "3001111111",
                 "email": "",
+                "role": User.Role.BARBERO,
             },
         )
         self.employee.refresh_from_db()

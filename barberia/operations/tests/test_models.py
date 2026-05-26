@@ -110,7 +110,7 @@ class ServiceRecordModelTest(TestCase):
             scheduled_for=timezone.now(),
             service_price=Decimal("50.00"),
         )
-        self.assertEqual(record.commission_amount, Decimal(0))
+        self.assertIsNone(record.commission_amount)
 
     def test_fk_protect_on_delete(self):
         record = ServiceRecord.objects.create(
