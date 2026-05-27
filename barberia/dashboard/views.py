@@ -235,6 +235,7 @@ def home(request):
                             product=product,
                             quantity=-quantity_diff,
                             movement_type=InventoryMovement.MovementType.ADJUSTMENT,
+                            unit_cost=product.price,
                             created_by=request.user,
                             reference_sale=record,
                             notes="Ajuste por modificación de venta",
@@ -268,8 +269,9 @@ def home(request):
                 if movement.is_supply:
                     movement.quantity = -abs(movement.quantity)
                 movement.created_by = request.user
-                movement.save()
                 product = movement.product
+                movement.unit_cost = product.price
+                movement.save()
                 product.current_stock += movement.quantity
                 product.save(update_fields=["current_stock"])
                 messages.success(request, "Ajuste de stock registrado correctamente.")
@@ -347,10 +349,12 @@ def home(request):
                     product = record.service
                     product.current_stock -= record.quantity
                     product.save(update_fields=["current_stock"])
+                    unit_price = record.service_price / record.quantity
                     InventoryMovement.objects.create(
                         product=product,
                         quantity=-record.quantity,
                         movement_type=InventoryMovement.MovementType.SALE,
+                        unit_cost=unit_price,
                         created_by=request.user,
                         reference_sale=record,
                     )
