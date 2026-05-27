@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
-from barberia.operations.models import Sale
+from barberia.operations.models import Purchase, Sale
 from barberia.people.models import Client, Employee
 
 
@@ -144,3 +144,40 @@ class SaleModelTest(TestCase):
             product_price=Decimal("50.00"),
         )
         self.assertEqual(record.notes, "")
+
+
+class PurchaseModelTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="purchase_admin",
+            password="pass1234",
+            role=User.Role.ADMIN,
+        )
+        self.product = CatalogItem.objects.create(
+            kind=CatalogItem.Kind.PRODUCT,
+            name="Shampoo",
+            price=Decimal("150.00"),
+        )
+
+    def test_create_purchase(self):
+        purchase = Purchase.objects.create(
+            product=self.product,
+            quantity=10,
+            unit_cost=Decimal("80.00"),
+            notes="Compra test",
+            created_by=self.user,
+        )
+        self.assertEqual(purchase.product, self.product)
+        self.assertEqual(purchase.quantity, 10)
+        self.assertEqual(purchase.unit_cost, Decimal("80.00"))
+        self.assertEqual(purchase.notes, "Compra test")
+        self.assertEqual(purchase.created_by, self.user)
+
+    def test_str_representation(self):
+        purchase = Purchase.objects.create(
+            product=self.product,
+            quantity=4,
+            unit_cost=Decimal("50.00"),
+            created_by=self.user,
+        )
+        self.assertEqual(str(purchase), "Compra - Shampoo x4")

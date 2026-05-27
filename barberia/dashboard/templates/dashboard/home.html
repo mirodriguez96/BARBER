@@ -48,7 +48,7 @@
                         </div>
                         <span class="dashboard-user-badge">{{ request.user.get_full_name|default:request.user.username }}</span>
                     </div>
-                    {% if active_section == 'barbers' or active_section == 'catalog' or active_section == 'sales' or active_section == 'inventory' %}
+                    {% if active_section == 'barbers' or active_section == 'catalog' or active_section == 'sales' or active_section == 'inventory' or active_section == 'compras' %}
                         <div class="dashboard-quick-switch mb-4">
                             <a class="dashboard-quick-switch__item {% if quick_view == 'list' %}is-active{% endif %}"
                                href="?section={{ active_section }}&view=list">Lista de registros</a>
@@ -76,8 +76,11 @@
                         <div class="dashboard-quick-switch mb-3">
                             <a class="dashboard-quick-switch__item {% if inventory_action == 'adjust' %}is-active{% endif %}"
                                href="?section=inventory&view=form&inventory_action=adjust">Ajuste</a>
-                            <a class="dashboard-quick-switch__item {% if inventory_action == 'purchase' %}is-active{% endif %}"
-                               href="?section=inventory&view=form&inventory_action=purchase">Compra</a>
+                        </div>
+                    {% endif %}
+                    {% if active_section == 'compras' and quick_view == 'form' %}
+                        <div class="dashboard-quick-switch mb-3">
+                            <a class="dashboard-quick-switch__item is-active" href="?section=compras&view=form">Compra</a>
                         </div>
                     {% endif %}
                     {% if active_section == 'barbers' and quick_view == 'list' %}
@@ -575,8 +578,6 @@
                                 <div class="d-flex gap-2">
                                     <a href="?section=inventory&view=form&inventory_action=adjust"
                                        class="dashboard-action-btn">Ajustar stock</a>
-                                    <a href="?section=inventory&view=form&inventory_action=purchase"
-                                       class="dashboard-action-btn dashboard-action-btn--secondary">Registrar compra</a>
                                 </div>
                             </div>
                             <div class="dashboard-table-wrap">
@@ -641,6 +642,58 @@
                                     {% endif %}
                                 </div>
                             {% endif %}
+                        </div>
+                    {% elif active_section == 'compras' and quick_view == 'list' %}
+                        <div class="dashboard-metrics mb-3">
+                            <article class="dashboard-metric-card">
+                                <p class="dashboard-metric-card__label mb-1">Total compras</p>
+                                <strong class="dashboard-metric-card__value">{{ purchase_stats.total }}</strong>
+                                <span class="dashboard-metric-card__hint">Compras registradas</span>
+                            </article>
+                            <article class="dashboard-metric-card">
+                                <p class="dashboard-metric-card__label mb-1">Monto total</p>
+                                <strong class="dashboard-metric-card__value">${{ purchase_stats.total_amount|floatformat:2 }}</strong>
+                                <span class="dashboard-metric-card__hint">Costo acumulado</span>
+                            </article>
+                        </div>
+                        <div class="dashboard-table-shell">
+                            <div class="dashboard-table-shell__header">
+                                <div>
+                                    <p class="eyebrow mb-1">Compras recientes</p>
+                                    <h4 class="section-title mb-0">Historial de adquisiciones</h4>
+                                </div>
+                                <a href="?section=compras&view=form" class="dashboard-action-btn dashboard-action-btn--secondary">Nueva compra</a>
+                            </div>
+                            <div class="dashboard-table-wrap">
+                                <div class="table-responsive">
+                                    <table class="table dashboard-table align-middle table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Producto</th>
+                                                <th>Cantidad</th>
+                                                <th>Costo unitario</th>
+                                                <th>Total</th>
+                                                <th>Fecha</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for purchase in purchase_page %}
+                                                <tr>
+                                                    <td>{{ purchase.product.name }}</td>
+                                                    <td>{{ purchase.quantity }}</td>
+                                                    <td>${{ purchase.unit_cost }}</td>
+                                                    <td>${{ purchase.total_cost|floatformat:2 }}</td>
+                                                    <td>{{ purchase.created_at|date:"Y-m-d H:i" }}</td>
+                                                </tr>
+                                            {% empty %}
+                                                <tr>
+                                                    <td colspan="5" class="dashboard-empty-state">No hay compras registradas.</td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     {% elif active_section == 'inventory' and quick_view == 'history' %}
                         {% if movement_product %}
@@ -844,12 +897,10 @@
                                             {% else %}
                                                 Modificar corte o servicio
                                             {% endif %}
+                                        {% elif active_section == 'compras' %}
+                                            Registrar compra
                                         {% elif active_section == 'inventory' %}
-                                            {% if inventory_action == 'purchase' %}
-                                                Registrar compra
-                                            {% else %}
-                                                Ajustar stock
-                                            {% endif %}
+                                            Ajustar stock
                                         {% else %}
                                             Modificar producto o servicio
                                         {% endif %}
@@ -870,12 +921,10 @@
                                             Cambia el colaborador, el servicio y la propina. El valor y la
                                             comisión se autocompletan según el servicio.
                                         {% endif %}
+                                    {% elif active_section == 'compras' %}
+                                        Registra una compra para incrementar el stock del producto.
                                     {% elif active_section == 'inventory' %}
-                                        {% if inventory_action == 'purchase' %}
-                                            Registra una compra para incrementar el stock del producto.
-                                        {% else %}
-                                            Ajusta manualmente el stock. Usa valores negativos para reducir.
-                                        {% endif %}
+                                        Ajusta manualmente el stock. Usa valores negativos para reducir.
                                     {% else %}
                                         Actualiza nombre, tipo, precio, comisión y descripción.
                                     {% endif %}
@@ -907,8 +956,10 @@
                                 <input type="hidden"
                                        name="sale_id"
                                        value="{{ sale_to_edit.pk }}" />
+                            {% elif active_section == 'compras' and quick_view == 'form' %}
+                                <input type="hidden" name="action" value="save" />
                             {% elif active_section == 'inventory' and quick_view == 'form' %}
-                                <input type="hidden" name="action" value="{{ inventory_action }}" />
+                                <input type="hidden" name="action" value="adjust" />
                             {% endif %}
                             <div class="dashboard-form-grid">
                                  {% for field in form %}

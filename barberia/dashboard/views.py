@@ -13,7 +13,7 @@ from django.utils import timezone
 from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
 from barberia.inventory.models import InventoryMovement
-from barberia.operations.models import Sale
+from barberia.operations.models import Purchase, Sale
 from barberia.people.models import Client, Employee
 
 from .forms import (
@@ -24,9 +24,9 @@ from .forms import (
     ClientEditForm,
     ClientForm,
     InventoryAdjustForm,
-    InventoryPurchaseForm,
     ProductSaleEditForm,
     ProductSaleForm,
+    PurchaseForm,
     SaleEditForm,
     SaleForm,
 )
@@ -44,7 +44,7 @@ def home(request):
     inventory_action = request.GET.get("inventory_action", "adjust")
     sale_id = request.GET.get("sale")
     product_id = request.GET.get("product")
-    if section not in {"barbers", "catalog", "sales", "payments", "inventory"}:
+    if section not in {"barbers", "catalog", "sales", "payments", "inventory", "compras"}:
         quick_view = "form"
 
     barber_to_edit = None
@@ -68,7 +68,7 @@ def home(request):
         "catalog": CatalogItemForm,
     }
 
-    inventory_purchase_form = None
+    purchase_form = None
     inventory_adjust_form = None
 
     if request.method == "POST":
@@ -246,19 +246,26 @@ def home(request):
             quick_view = "edit"
             sale_to_edit = sale
             messages.error(request, "Revisa los campos marcados en rojo.")
-        elif section == "inventory" and action == "purchase":
-            form = InventoryPurchaseForm(request.POST, user=request.user)
+        elif section == "compras" and action == "save":
+            form = PurchaseForm(request.POST, user=request.user)
             if form.is_valid():
-                movement = form.save(commit=False)
-                movement.movement_type = InventoryMovement.MovementType.PURCHASE
-                movement.created_by = request.user
-                movement.save()
-                product = movement.product
-                product.current_stock += movement.quantity
+                purchase = form.save(commit=False)
+                purchase.created_by = request.user
+                purchase.save()
+                product = purchase.product
+                product.current_stock += purchase.quantity
                 product.save(update_fields=["current_stock"])
+                InventoryMovement.objects.create(
+                    product=product,
+                    quantity=purchase.quantity,
+                    movement_type=InventoryMovement.MovementType.PURCHASE,
+                    unit_cost=purchase.unit_cost,
+                    created_by=request.user,
+                    notes=purchase.notes,
+                )
                 messages.success(request, "Compra registrada correctamente.")
-                return redirect(f"{request.path}?section=inventory&view=list")
-            inventory_purchase_form = form
+                return redirect(f"{request.path}?section=compras&view=list")
+            purchase_form = form
             messages.error(request, "Revisa los campos marcados en rojo.")
 
         elif section == "inventory" and action == "adjust":
@@ -406,12 +413,12 @@ def home(request):
             form_class = ProductSaleForm if sale_type == "producto" else SaleForm
             form = form_class(user=request.user)
         elif section == "inventory":
-            if inventory_action == "purchase":
-                form = InventoryPurchaseForm(user=request.user)
-            elif inventory_action == "adjust":
+            if inventory_action == "adjust":
                 form = InventoryAdjustForm(user=request.user)
             else:
                 form = None
+        elif section == "compras":
+            form = PurchaseForm(user=request.user)
         else:
             form_class = forms_map.get(section, BarberForm)
             form = form_class(user=request.user)
@@ -658,6 +665,31 @@ def home(request):
     inventory_page_number = request.GET.get("page")
     inventory_page = inventory_paginator.get_page(inventory_page_number)
 
+    purchase_page = None
+    purchase_stats = None
+    if section == "compras" and quick_view == "list":
+        purchase_qs = Purchase.objects.select_related("product", "created_by").annotate(
+            total_cost=ExpressionWrapper(
+                F("quantity") * F("unit_cost"),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
+            )
+        ).order_by("-created_at")
+        purchase_page = Paginator(purchase_qs, 10).get_page(request.GET.get("page"))
+        purchase_stats = {
+            "total": purchase_qs.count(),
+            "total_amount": purchase_qs.aggregate(
+                total=Coalesce(
+                    Sum(
+                        ExpressionWrapper(
+                            F("quantity") * F("unit_cost"),
+                            output_field=DecimalField(max_digits=12, decimal_places=2),
+                        )
+                    ),
+                    Value(Decimal("0.00")),
+                )
+            )["total"],
+        }
+
     movement_product = None
     inventory_movements_page = None
     if quick_view == "history" and product_id:
@@ -679,6 +711,7 @@ def home(request):
         "sales": "Administrar ventas y servicios realizados",
         "payments": "Pagos — comisiones y propinas",
         "inventory": "Inventario — control de stock",
+        "compras": "Compras — registro de adquisiciones",
     }
 
     context = {
@@ -710,7 +743,9 @@ def home(request):
         "sale_stats": sale_stats,
         "inventory_page": inventory_page,
         "inventory_stats": inventory_stats,
-        "inventory_purchase_form": inventory_purchase_form,
+        "purchase_page": purchase_page,
+        "purchase_stats": purchase_stats,
+        "purchase_form": purchase_form,
         "inventory_adjust_form": inventory_adjust_form,
         "inventory_action": inventory_action,
         "movement_product": movement_product,
@@ -719,6 +754,7 @@ def home(request):
             {"key": "barbers", "label": "COLABORADORES / CLIENTES", "hint": ""},
             {"key": "catalog", "label": "PRODUCTOS Y SERVICIOS", "hint": ""},
             {"key": "sales", "label": "VENTAS", "hint": ""},
+            {"key": "compras", "label": "COMPRAS", "hint": ""},
             {"key": "payments", "label": "PAGOS", "hint": ""},
             {"key": "inventory", "label": "INVENTARIO", "hint": ""},
         ],

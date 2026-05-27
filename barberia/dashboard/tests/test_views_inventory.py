@@ -54,6 +54,11 @@ class InventoryDashboardViewsTest(TestCase):
         qs = "&".join(f"{k}={v}" for k, v in params.items())
         return f"{self.list_url}?{qs}"
 
+    def _purchase_url(self, **params):
+        params.setdefault("section", "compras")
+        qs = "&".join(f"{k}={v}" for k, v in params.items())
+        return f"{self.list_url}?{qs}"
+
     def _sales_url(self, **params):
         params.setdefault("section", "sales")
         qs = "&".join(f"{k}={v}" for k, v in params.items())
@@ -156,10 +161,8 @@ class InventoryDashboardViewsTest(TestCase):
         self.assertIn("is_supply", form.fields)
         self.assertIn("quantity", form.fields)
 
-    def test_inventory_purchase_form_get(self):
-        response = self.client.get(
-            self._inv_url(view="form", inventory_action="purchase"),
-        )
+    def test_purchase_form_get(self):
+        response = self.client.get(self._purchase_url(view="form"))
         self.assertEqual(response.status_code, 200)
         form = response.context["form"]
         self.assertIn("unit_cost", form.fields)
@@ -176,23 +179,23 @@ class InventoryDashboardViewsTest(TestCase):
 
     # --- Purchase POST ---
 
-    def test_inventory_purchase_post_success(self):
+    def test_purchase_post_success(self):
         data = {
-            "section": "inventory",
-            "action": "purchase",
+            "section": "compras",
+            "action": "save",
             "product": self.product_2.pk,
             "quantity": "15",
             "unit_cost": "80.00",
             "notes": "Compra de prueba",
         }
         response = self.client.post(self.list_url, data)
-        self.assertRedirects(response, f"{self.list_url}?section=inventory&view=list")
+        self.assertRedirects(response, f"{self.list_url}?section=compras&view=list")
 
-    def test_inventory_purchase_increments_stock(self):
+    def test_purchase_increments_stock(self):
         initial_stock = self.product_2.current_stock
         data = {
-            "section": "inventory",
-            "action": "purchase",
+            "section": "compras",
+            "action": "save",
             "product": self.product_2.pk,
             "quantity": "15",
             "unit_cost": "80.00",
@@ -201,11 +204,11 @@ class InventoryDashboardViewsTest(TestCase):
         self.product_2.refresh_from_db()
         self.assertEqual(self.product_2.current_stock, initial_stock + 15)
 
-    def test_inventory_purchase_multiple_times_accumulates(self):
+    def test_purchase_multiple_times_accumulates(self):
         for qty in ["5", "10", "3"]:
             data = {
-                "section": "inventory",
-                "action": "purchase",
+                "section": "compras",
+                "action": "save",
                 "product": self.product_2.pk,
                 "quantity": qty,
                 "unit_cost": "50.00",
@@ -214,43 +217,20 @@ class InventoryDashboardViewsTest(TestCase):
         self.product_2.refresh_from_db()
         self.assertEqual(self.product_2.current_stock, 18)
 
-    def test_inventory_purchase_creates_movement(self):
+    def test_purchase_post_invalid_empty_product(self):
         data = {
-            "section": "inventory",
-            "action": "purchase",
-            "product": self.product_1.pk,
-            "quantity": "10",
-            "unit_cost": "50.00",
-            "notes": "Compra test",
-        }
-        self.client.post(self.list_url, data)
-        movements = InventoryMovement.objects.filter(
-            product=self.product_1,
-            movement_type=InventoryMovement.MovementType.PURCHASE,
-        )
-        self.assertEqual(movements.count(), 1)
-        movement = movements.first()
-        self.assertEqual(movement.quantity, 10)
-        self.assertEqual(movement.unit_cost, Decimal("50.00"))
-        self.assertEqual(movement.notes, "Compra test")
-        self.assertEqual(movement.created_by, self.user)
-
-    def test_inventory_purchase_post_invalid_empty_product(self):
-        data = {
-            "section": "inventory",
-            "action": "purchase",
+            "section": "compras",
+            "action": "save",
             "product": "",
             "quantity": "",
         }
         response = self.client.post(self.list_url, data)
         self.assertEqual(response.status_code, 200)
-        self.assertIn("inventory_purchase_form", response.context)
-        self.assertIsNotNone(response.context["inventory_purchase_form"])
+        self.assertIn("purchase_form", response.context)
+        self.assertIsNotNone(response.context["purchase_form"])
 
-    def test_inventory_purchase_form_product_queryset_only_products(self):
-        response = self.client.get(
-            self._inv_url(view="form", inventory_action="purchase"),
-        )
+    def test_purchase_form_product_queryset_only_products(self):
+        response = self.client.get(self._purchase_url(view="form"))
         form = response.context["form"]
         qs = form.fields["product"].queryset
         for item in qs:
@@ -615,11 +595,11 @@ class InventoryDashboardViewsTest(TestCase):
 
     # --- Inventory section context for barbero user ---
 
-    def test_menu_includes_inventory(self):
+    def test_menu_includes_compras(self):
         response = self.client.get(self._inv_url(view="list"))
         menu = response.context["menu_items"]
         keys = [m["key"] for m in menu]
-        self.assertIn("inventory", keys)
+        self.assertIn("compras", keys)
 
 
 class InventoryBarberoAccessTest(TestCase):
@@ -648,10 +628,8 @@ class InventoryBarberoAccessTest(TestCase):
         response = self.client.get(f"{self.list_url}?section=inventory&view=list")
         self.assertEqual(response.status_code, 200)
 
-    def test_barbero_can_access_inventory_form(self):
-        response = self.client.get(
-            f"{self.list_url}?section=inventory&view=form&inventory_action=purchase",
-        )
+    def test_barbero_can_access_purchase_form(self):
+        response = self.client.get(f"{self.list_url}?section=compras&view=form")
         self.assertEqual(response.status_code, 200)
 
     def test_barbero_stats_visible(self):

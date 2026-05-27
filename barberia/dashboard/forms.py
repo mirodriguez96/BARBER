@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from barberia.catalog.models import CatalogItem
 from barberia.inventory.models import InventoryMovement
-from barberia.operations.models import Sale
+from barberia.operations.models import Purchase, Sale
 from barberia.people.models import Client, Employee
 
 
@@ -737,7 +737,7 @@ class ProductSaleEditForm(DashboardModelForm):
 
 class InventoryPurchaseForm(DashboardModelForm):
     class Meta:
-        model = InventoryMovement
+        model = Purchase
         fields = [
             "product",
             "quantity",
@@ -772,6 +772,10 @@ class InventoryPurchaseForm(DashboardModelForm):
         self.fields["product"].queryset = CatalogItem.objects.filter(
             kind=CatalogItem.Kind.PRODUCT,
         )
+
+
+class PurchaseForm(InventoryPurchaseForm):
+    pass
 
 
 class InventoryAdjustForm(DashboardModelForm):

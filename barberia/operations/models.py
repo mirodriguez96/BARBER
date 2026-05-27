@@ -63,3 +63,27 @@ class Sale(models.Model):
     def __str__(self):
         client_label = self.client or "Cliente no registrado"
         return f"{client_label} - {self.product}"
+
+
+class Purchase(models.Model):
+    product = models.ForeignKey(
+        "catalog.CatalogItem",
+        on_delete=models.PROTECT,
+        related_name="purchases",
+    )
+    quantity = models.PositiveIntegerField()
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2)
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="purchases",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Compra"
+        verbose_name_plural = "Compras"
+
+    def __str__(self):
+        return f"Compra - {self.product.name} x{self.quantity}"

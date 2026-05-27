@@ -20,20 +20,6 @@ class InventoryMovementModelTest(TestCase):
             price=Decimal("150.00"),
         )
 
-    def test_create_purchase_movement(self):
-        movement = InventoryMovement.objects.create(
-            product=self.product,
-            quantity=10,
-            movement_type=InventoryMovement.MovementType.PURCHASE,
-            unit_cost=Decimal("80.00"),
-            created_by=self.user,
-        )
-        self.assertEqual(movement.product, self.product)
-        self.assertEqual(movement.quantity, 10)
-        self.assertEqual(movement.movement_type, "purchase")
-        self.assertEqual(movement.unit_cost, Decimal("80.00"))
-        self.assertIsNotNone(movement.created_at)
-
     def test_create_sale_movement(self):
         movement = InventoryMovement.objects.create(
             product=self.product,
@@ -74,6 +60,20 @@ class InventoryMovementModelTest(TestCase):
         )
         expected = "Compra - Shampoo x10"
         self.assertEqual(str(movement), expected)
+
+    def test_create_purchase_movement(self):
+        movement = InventoryMovement.objects.create(
+            product=self.product,
+            quantity=10,
+            movement_type=InventoryMovement.MovementType.PURCHASE,
+            unit_cost=Decimal("80.00"),
+            created_by=self.user,
+        )
+        self.assertEqual(movement.product, self.product)
+        self.assertEqual(movement.quantity, 10)
+        self.assertEqual(movement.movement_type, "purchase")
+        self.assertEqual(movement.unit_cost, Decimal("80.00"))
+        self.assertIsNotNone(movement.created_at)
 
     def test_str_sale_representation(self):
         movement = InventoryMovement.objects.create(
