@@ -2,7 +2,7 @@ from django.conf import settings
 from django.db import models
 
 
-class ServiceRecord(models.Model):
+class Sale(models.Model):
     class Status(models.TextChoices):
         SCHEDULED = "scheduled", "Programado"
         IN_PROGRESS = "in_progress", "En proceso"
@@ -12,26 +12,26 @@ class ServiceRecord(models.Model):
     client = models.ForeignKey(
         "people.Client",
         on_delete=models.PROTECT,
-        related_name="service_records",
+        related_name="sales",
         null=True,
         blank=True,
     )
-    barber = models.ForeignKey(
+    employee = models.ForeignKey(
         "people.Employee",
         on_delete=models.PROTECT,
-        related_name="service_records",
+        related_name="sales",
         null=True,
         blank=True,
     )
-    service = models.ForeignKey(
+    product = models.ForeignKey(
         "catalog.CatalogItem",
         on_delete=models.PROTECT,
-        related_name="service_records",
+        related_name="sales",
     )
     performed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
-        related_name="performed_services",
+        related_name="performed_sales",
     )
     scheduled_for = models.DateTimeField()
     completed_at = models.DateTimeField(null=True, blank=True)
@@ -41,7 +41,7 @@ class ServiceRecord(models.Model):
         default=Status.SCHEDULED,
     )
     notes = models.TextField(blank=True)
-    service_price = models.DecimalField(max_digits=10, decimal_places=2)
+    product_price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField(default=1)
     commission_amount = models.DecimalField(
         max_digits=10,
@@ -56,6 +56,10 @@ class ServiceRecord(models.Model):
         blank=True,
     )
 
+    class Meta:
+        verbose_name = "Venta"
+        verbose_name_plural = "Ventas"
+
     def __str__(self):
         client_label = self.client or "Cliente no registrado"
-        return f"{client_label} - {self.service}"
+        return f"{client_label} - {self.product}"

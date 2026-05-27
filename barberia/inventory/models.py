@@ -27,7 +27,7 @@ class InventoryMovement(models.Model):
         default=Decimal("0.00"),
     )
     reference_sale = models.ForeignKey(
-        "operations.ServiceRecord",
+        "operations.Sale",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

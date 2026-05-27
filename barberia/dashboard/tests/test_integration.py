@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
-from barberia.operations.models import ServiceRecord
+from barberia.operations.models import Sale
 from barberia.people.models import Client, Employee
 
 
@@ -76,15 +76,15 @@ class PaginationIntegrationTest(TestCase):
                 sku=f"ITM{i:04d}",
             )
 
-    def _services(self, count: int):
+    def _sales(self, count: int):
         for i in range(count):
-            ServiceRecord.objects.create(
-                barber=self.employee,
+            Sale.objects.create(
+                employee=self.employee,
                 client=self.client_web if i % 2 == 0 else None,
-                service=self.service,
+                product=self.service,
                 performed_by=self.user,
                 scheduled_for=timezone.make_aware(datetime(2025, 1, 1, i, 0, 0)),
-                service_price=Decimal("50.00"),
+                product_price=Decimal("50.00"),
                 commission_amount=Decimal("10.00"),
             )
 
@@ -132,20 +132,20 @@ class PaginationIntegrationTest(TestCase):
     # --- Services pagination ---
 
     def test_services_pagination_page_2_shows_remaining(self):
-        self._services(12)
-        response = self.http_client.get(self._url_with("services", page="2"))
+        self._sales(12)
+        response = self.http_client.get(self._url_with("sales", page="2"))
         self.assertEqual(response.status_code, 200)
-        services = response.context["services"]
-        self.assertEqual(len(list(services.object_list)), 2)
+        sales = response.context["sales"]
+        self.assertEqual(len(list(sales.object_list)), 2)
 
     def test_services_pagination_filter_plus_pagination(self):
-        self._services(15)
+        self._sales(15)
         response = self.http_client.get(
-            self._url_with("services", filter_barber=self.employee.pk, page="2"),
+            self._url_with("sales", filter_barber=self.employee.pk, page="2"),
         )
         self.assertEqual(response.status_code, 200)
-        services = response.context["services"]
-        self.assertEqual(len(list(services.object_list)), 5)
+        sales = response.context["sales"]
+        self.assertEqual(len(list(sales.object_list)), 5)
 
     # --- Edge cases ---
 

@@ -5,11 +5,11 @@ from django.utils import timezone
 
 from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
-from barberia.operations.models import ServiceRecord
+from barberia.operations.models import Sale
 from barberia.people.models import Client, Employee
 
 
-class ServiceRecordModelTest(TestCase):
+class SaleModelTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             username="barber_admin",
@@ -34,113 +34,113 @@ class ServiceRecordModelTest(TestCase):
         )
 
     def test_create_service_record(self):
-        record = ServiceRecord.objects.create(
+        record = Sale.objects.create(
             client=self.client,
-            barber=self.employee,
-            service=self.service,
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
             commission_amount=Decimal("10.00"),
         )
-        self.assertEqual(record.status, ServiceRecord.Status.SCHEDULED)
-        self.assertEqual(record.service_price, Decimal("50.00"))
+        self.assertEqual(record.status, Sale.Status.SCHEDULED)
+        self.assertEqual(record.product_price, Decimal("50.00"))
         self.assertEqual(record.commission_amount, Decimal("10.00"))
 
     def test_str_with_client(self):
-        record = ServiceRecord.objects.create(
+        record = Sale.objects.create(
             client=self.client,
-            barber=self.employee,
-            service=self.service,
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
         )
         expected = f"{self.client} - {self.service}"
         self.assertEqual(str(record), expected)
 
     def test_str_without_client(self):
-        record = ServiceRecord.objects.create(
-            barber=self.employee,
-            service=self.service,
+        record = Sale.objects.create(
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
         )
         expected = "Cliente no registrado - Corte de cabello"
         self.assertEqual(str(record), expected)
 
     def test_status_scheduled_default(self):
-        record = ServiceRecord.objects.create(
-            barber=self.employee,
-            service=self.service,
+        record = Sale.objects.create(
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
         )
-        self.assertEqual(record.status, ServiceRecord.Status.SCHEDULED)
+        self.assertEqual(record.status, Sale.Status.SCHEDULED)
 
     def test_status_choices(self):
-        record = ServiceRecord.objects.create(
-            barber=self.employee,
-            service=self.service,
+        record = Sale.objects.create(
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
-            status=ServiceRecord.Status.DONE,
+            product_price=Decimal("50.00"),
+            status=Sale.Status.DONE,
             completed_at=timezone.now(),
         )
-        self.assertEqual(record.status, ServiceRecord.Status.DONE)
+        self.assertEqual(record.status, Sale.Status.DONE)
 
     def test_tip_amount_nullable(self):
-        record = ServiceRecord.objects.create(
-            barber=self.employee,
-            service=self.service,
+        record = Sale.objects.create(
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
         )
         self.assertIsNone(record.tip_amount)
 
     def test_commission_amount_default_zero(self):
-        record = ServiceRecord.objects.create(
-            barber=self.employee,
-            service=self.service,
+        record = Sale.objects.create(
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
         )
         self.assertIsNone(record.commission_amount)
 
     def test_fk_protect_on_delete(self):
-        record = ServiceRecord.objects.create(
-            barber=self.employee,
-            service=self.service,
+        record = Sale.objects.create(
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
         )
         record_pk = record.pk
         with self.assertRaises(Exception):
             self.employee.delete()
-        self.assertTrue(ServiceRecord.objects.filter(pk=record_pk).exists())
+        self.assertTrue(Sale.objects.filter(pk=record_pk).exists())
 
     def test_completed_at_null_when_scheduled(self):
-        record = ServiceRecord.objects.create(
-            barber=self.employee,
-            service=self.service,
+        record = Sale.objects.create(
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
         )
         self.assertIsNone(record.completed_at)
 
     def test_notes_blank_by_default(self):
-        record = ServiceRecord.objects.create(
-            barber=self.employee,
-            service=self.service,
+        record = Sale.objects.create(
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
         )
         self.assertEqual(record.notes, "")

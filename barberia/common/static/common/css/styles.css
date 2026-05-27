@@ -842,7 +842,7 @@ body.auth-page {
   min-width: 1080px;
 }
 
-.dashboard-table--services {
+.dashboard-table--sales {
   min-width: 980px;
 }
 
@@ -894,25 +894,25 @@ body.auth-page {
   width: 20%;
 }
 
-.dashboard-table--services th:nth-child(1) {
+.dashboard-table--sales th:nth-child(1) {
   width: 22%;
 }
-.dashboard-table--services th:nth-child(2) {
+.dashboard-table--sales th:nth-child(2) {
   width: 22%;
 }
-.dashboard-table--services th:nth-child(3) {
+.dashboard-table--sales th:nth-child(3) {
   width: 10%;
 }
-.dashboard-table--services th:nth-child(4) {
+.dashboard-table--sales th:nth-child(4) {
   width: 11%;
 }
-.dashboard-table--services th:nth-child(5) {
+.dashboard-table--sales th:nth-child(5) {
   width: 10%;
 }
-.dashboard-table--services th:nth-child(6) {
+.dashboard-table--sales th:nth-child(6) {
   width: 11%;
 }
-.dashboard-table--services th:nth-child(7) {
+.dashboard-table--sales th:nth-child(7) {
   width: 14%;
 }
 
@@ -998,11 +998,11 @@ body.auth-page {
   white-space: nowrap;
 }
 
-.dashboard-table--services tbody td:nth-child(3),
-.dashboard-table--services tbody td:nth-child(4),
-.dashboard-table--services tbody td:nth-child(5),
-.dashboard-table--services tbody td:nth-child(6),
-.dashboard-table--services tbody td:nth-child(7) {
+.dashboard-table--sales tbody td:nth-child(3),
+.dashboard-table--sales tbody td:nth-child(4),
+.dashboard-table--sales tbody td:nth-child(5),
+.dashboard-table--sales tbody td:nth-child(6),
+.dashboard-table--sales tbody td:nth-child(7) {
   white-space: nowrap;
 }
 
@@ -1521,7 +1521,7 @@ body.auth-page {
     min-width: 12rem;
   }
 
-  .dashboard-table--services {
+  .dashboard-table--sales {
     min-width: 820px;
   }
 

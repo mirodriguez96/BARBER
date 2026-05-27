@@ -1,21 +1,21 @@
 from django.contrib import admin
 
-from .models import ServiceRecord
+from .models import Sale
 
 
-@admin.register(ServiceRecord)
-class ServiceRecordAdmin(admin.ModelAdmin):
+@admin.register(Sale)
+class SaleAdmin(admin.ModelAdmin):
     list_display = (
         "client",
-        "barber",
-        "service",
+        "employee",
+        "product",
         "status",
         "scheduled_for",
-        "service_price",
+        "product_price",
         "quantity",
         "commission_amount",
         "tip_amount",
     )
-    list_filter = ("status", "scheduled_for", "barber")
-    search_fields = ("client__full_name", "barber__full_name", "service__name", "notes")
-    autocomplete_fields = ("client", "barber", "service", "performed_by")
+    list_filter = ("status", "scheduled_for", "employee")
+    search_fields = ("client__full_name", "employee__full_name", "product__name", "notes")
+    autocomplete_fields = ("client", "employee", "product", "performed_by")

@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
-from barberia.operations.models import ServiceRecord
+from barberia.operations.models import Sale
 from barberia.people.models import Client, Employee
 
 
@@ -47,8 +47,8 @@ class ServiceDashboardViewsTest(TestCase):
         self.client_login.login(username="barber_admin", password="pass1234")
         self.list_url = reverse("dashboard:home")
 
-    def _services_url(self, **params):
-        params.setdefault("section", "services")
+    def _sales_url(self, **params):
+        params.setdefault("section", "sales")
         params.setdefault("view", "list")
         qs = "&".join(f"{k}={v}" for k, v in params.items())
         return f"{self.list_url}?{qs}"
@@ -61,16 +61,16 @@ class ServiceDashboardViewsTest(TestCase):
 
     # --- List ---
     def test_services_list_view(self):
-        ServiceRecord.objects.create(
+        Sale.objects.create(
             client=self.client_model,
-            barber=self.employee,
-            service=self.service,
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
         )
         response = self.client_login.get(
-            self._services_url(section="services", view="list"),
+            self._sales_url(section="sales", view="list"),
         )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "dashboard/home.html")
@@ -78,7 +78,7 @@ class ServiceDashboardViewsTest(TestCase):
     # --- Create GET ---
     def test_services_form_get(self):
         response = self.client_login.get(
-            self._services_url(section="services", view="form"),
+            self._sales_url(section="sales", view="form"),
         )
         self.assertEqual(response.status_code, 200)
         self.assertIn("form", response.context)
@@ -86,28 +86,28 @@ class ServiceDashboardViewsTest(TestCase):
     # --- Create POST ---
     def test_services_create_post_success(self):
         data = {
-            "section": "services",
-            "barber": self.employee.pk,
+            "section": "sales",
+            "employee": self.employee.pk,
             "client": self.client_model.pk,
-            "service": self.service.pk,
+            "product": self.service.pk,
             "scheduled_for": timezone.localtime().strftime("%Y-%m-%dT%H:%M"),
-            "service_price": "50.00",
+            "product_price": "50.00",
             "commission_amount": "10.00",
             "tip_amount": "5.00",
             "notes": "Nota de prueba",
         }
         response = self.client_login.post(self.list_url, data)
-        self.assertRedirects(response, f"{self.list_url}?section=services")
-        self.assertTrue(ServiceRecord.objects.filter(notes="Nota de prueba").exists())
-        record = ServiceRecord.objects.get(notes="Nota de prueba")
-        self.assertEqual(record.status, ServiceRecord.Status.DONE)
+        self.assertRedirects(response, f"{self.list_url}?section=sales")
+        self.assertTrue(Sale.objects.filter(notes="Nota de prueba").exists())
+        record = Sale.objects.get(notes="Nota de prueba")
+        self.assertEqual(record.status, Sale.Status.DONE)
         self.assertEqual(record.performed_by, self.user)
 
     def test_services_create_post_invalid(self):
         data = {
-            "section": "services",
-            "barber": "",
-            "service": "",
+            "section": "sales",
+            "employee": "",
+            "product": "",
         }
         response = self.client_login.post(self.list_url, data)
         self.assertEqual(response.status_code, 200)
@@ -115,68 +115,68 @@ class ServiceDashboardViewsTest(TestCase):
 
     # --- Edit GET ---
     def test_services_edit_get_loads_instance(self):
-        record = ServiceRecord.objects.create(
+        record = Sale.objects.create(
             client=self.client_model,
-            barber=self.employee,
-            service=self.service,
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
         )
         response = self.client_login.get(
-            self._services_url(
-                section="services",
+            self._sales_url(
+                section="sales",
                 view="edit",
-                service_record=record.pk,
+                sale=record.pk,
             ),
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["service_record_to_edit"].pk, record.pk)
+        self.assertEqual(response.context["sale_to_edit"].pk, record.pk)
 
     def test_services_edit_get_404_for_nonexistent(self):
         response = self.client_login.get(
-            self._services_url(section="services", view="edit", service_record=999),
+            self._sales_url(section="sales", view="edit", sale=999),
         )
         self.assertEqual(response.status_code, 404)
 
     # --- Edit POST ---
     def test_services_edit_post_transitions_scheduled_to_done(self):
-        record = ServiceRecord.objects.create(
-            barber=self.employee,
-            service=self.service,
+        record = Sale.objects.create(
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
-            status=ServiceRecord.Status.SCHEDULED,
+            product_price=Decimal("50.00"),
+            status=Sale.Status.SCHEDULED,
         )
         data = {
             "action": "update",
-            "section": "services",
-            "service_record_id": record.pk,
-            "barber": self.employee.pk,
-            "service": self.service.pk,
-            "service_price": "50.00",
+            "section": "sales",
+            "sale_id": record.pk,
+            "employee": self.employee.pk,
+            "product": self.service.pk,
+            "product_price": "50.00",
             "commission_amount": "10.00",
             "tip_amount": "0.00",
         }
         response = self.client_login.post(self.list_url, data)
-        self.assertRedirects(response, f"{self.list_url}?section=services&view=list")
+        self.assertRedirects(response, f"{self.list_url}?section=sales&view=list")
         record.refresh_from_db()
-        self.assertEqual(record.status, ServiceRecord.Status.DONE)
+        self.assertEqual(record.status, Sale.Status.DONE)
 
     def test_services_edit_post_invalid(self):
-        record = ServiceRecord.objects.create(
-            barber=self.employee,
-            service=self.service,
+        record = Sale.objects.create(
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
         )
         data = {
             "action": "update",
-            "section": "services",
-            "service_record_id": record.pk,
-            "barber": "",
+            "section": "sales",
+            "sale_id": record.pk,
+            "employee": "",
             "service": "",
         }
         response = self.client_login.post(self.list_url, data)
@@ -184,126 +184,126 @@ class ServiceDashboardViewsTest(TestCase):
 
     # --- Date filter ---
     def test_services_filter_by_today(self):
-        ServiceRecord.objects.create(
-            barber=self.employee,
-            service=self.service,
+        Sale.objects.create(
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
         )
-        response = self.client_login.get(self._services_url(filter_date="today"))
+        response = self.client_login.get(self._sales_url(filter_date="today"))
         self.assertEqual(response.status_code, 200)
 
     def test_services_filter_by_date(self):
         now = timezone.localtime()
         date_str = now.strftime("%Y-%m-%d")
-        ServiceRecord.objects.create(
-            barber=self.employee,
-            service=self.service,
+        Sale.objects.create(
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=now,
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
         )
-        response = self.client_login.get(self._services_url(filter_date=date_str))
+        response = self.client_login.get(self._sales_url(filter_date=date_str))
         self.assertEqual(response.status_code, 200)
 
     def test_services_filter_by_invalid_date(self):
-        response = self.client_login.get(self._services_url(filter_date="not-a-date"))
+        response = self.client_login.get(self._sales_url(filter_date="not-a-date"))
         self.assertEqual(response.status_code, 200)
 
     # --- Barber filter ---
     def test_services_filter_by_barber(self):
-        ServiceRecord.objects.create(
-            barber=self.employee,
-            service=self.service,
+        Sale.objects.create(
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
         )
         response = self.client_login.get(
-            self._services_url(filter_barber=self.employee.pk),
+            self._sales_url(filter_barber=self.employee.pk),
         )
         self.assertEqual(response.status_code, 200)
 
     # --- Kind filter ---
     def test_services_filter_by_kind_service_shows_only_services(self):
-        ServiceRecord.objects.create(
-            barber=self.employee,
-            service=self.service,
+        Sale.objects.create(
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
         )
-        ServiceRecord.objects.create(
-            service=self.product,
+        Sale.objects.create(
+            product=self.product,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("30.00"),
+            product_price=Decimal("30.00"),
             quantity=1,
         )
         response = self.client_login.get(
-            self._services_url(filter_kind="service"),
+            self._sales_url(filter_kind="service"),
         )
-        records = list(response.context["services"].object_list)
+        records = list(response.context["sales"].object_list)
         self.assertEqual(len(records), 1)
-        self.assertEqual(records[0].service.kind, CatalogItem.Kind.SERVICE)
+        self.assertEqual(records[0].product.kind, CatalogItem.Kind.SERVICE)
 
     def test_services_filter_by_kind_product_shows_only_products(self):
-        ServiceRecord.objects.create(
-            barber=self.employee,
-            service=self.service,
+        Sale.objects.create(
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
         )
-        ServiceRecord.objects.create(
-            service=self.product,
+        Sale.objects.create(
+            product=self.product,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("30.00"),
+            product_price=Decimal("30.00"),
             quantity=1,
         )
         response = self.client_login.get(
-            self._services_url(filter_kind="product"),
+            self._sales_url(filter_kind="product"),
         )
-        records = list(response.context["services"].object_list)
+        records = list(response.context["sales"].object_list)
         self.assertEqual(len(records), 1)
-        self.assertEqual(records[0].service.kind, CatalogItem.Kind.PRODUCT)
+        self.assertEqual(records[0].product.kind, CatalogItem.Kind.PRODUCT)
 
     def test_services_filter_kind_empty_shows_both(self):
-        ServiceRecord.objects.create(
-            barber=self.employee,
-            service=self.service,
+        Sale.objects.create(
+            employee=self.employee,
+            product=self.service,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
         )
-        ServiceRecord.objects.create(
-            service=self.product,
+        Sale.objects.create(
+            product=self.product,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("30.00"),
+            product_price=Decimal("30.00"),
             quantity=1,
         )
-        response = self.client_login.get(self._services_url())
-        records = list(response.context["services"].object_list)
+        response = self.client_login.get(self._sales_url())
+        records = list(response.context["sales"].object_list)
         self.assertEqual(len(records), 2)
 
     # --- Pagination ---
     def test_services_pagination(self):
         for i in range(12):
-            ServiceRecord.objects.create(
-                barber=self.employee,
-                service=self.service,
+            Sale.objects.create(
+                employee=self.employee,
+                product=self.service,
                 performed_by=self.user,
                 scheduled_for=timezone.now(),
-                service_price=Decimal("50.00"),
+                product_price=Decimal("50.00"),
             )
-        response = self.client_login.get(self._services_url(page=1))
+        response = self.client_login.get(self._sales_url(page=1))
         self.assertEqual(response.status_code, 200)
-        services = response.context["services"]
-        self.assertIsNotNone(services)
-        self.assertLessEqual(len(list(services)), 10)
+        sales = response.context["sales"]
+        self.assertIsNotNone(sales)
+        self.assertLessEqual(len(list(sales)), 10)
 
 
 class ServiceBarberoAccessTest(TestCase):
@@ -341,135 +341,135 @@ class ServiceBarberoAccessTest(TestCase):
             price=Decimal("50.00"),
             sku="SRV010",
         )
-        self.own_record = ServiceRecord.objects.create(
-            barber=self.barbero_emp,
-            service=self.service_item,
+        self.own_record = Sale.objects.create(
+            employee=self.barbero_emp,
+            product=self.service_item,
             performed_by=self.barbero_user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
         )
-        self.other_record = ServiceRecord.objects.create(
-            barber=self.other_emp,
-            service=self.service_item,
+        self.other_record = Sale.objects.create(
+            employee=self.other_emp,
+            product=self.service_item,
             performed_by=self.other_user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
+            product_price=Decimal("50.00"),
         )
         self.list_url = reverse("dashboard:home")
 
-    def _services_url(self, **params):
-        params.setdefault("section", "services")
+    def _sales_url(self, **params):
+        params.setdefault("section", "sales")
         qs = "&".join(f"{k}={v}" for k, v in params.items())
         return f"{self.list_url}?{qs}"
 
     def test_barbero_sees_only_own_services_in_list(self):
         self.client.login(username="barbero1", password="pass1234")
-        response = self.client.get(self._services_url())
-        services = list(response.context["services"].object_list)
-        self.assertIn(self.own_record, services)
-        self.assertNotIn(self.other_record, services)
+        response = self.client.get(self._sales_url())
+        sales = list(response.context["sales"].object_list)
+        self.assertIn(self.own_record, sales)
+        self.assertNotIn(self.other_record, sales)
 
     def test_barbero_cannot_edit_other_barbero_service_get(self):
         self.client.login(username="barbero1", password="pass1234")
         response = self.client.get(
-            self._services_url(view="edit", service_record=self.other_record.pk),
+            self._sales_url(view="edit", sale=self.other_record.pk),
         )
-        self.assertRedirects(response, f"{self.list_url}?section=services&view=list")
+        self.assertRedirects(response, f"{self.list_url}?section=sales&view=list")
 
     def test_barbero_cannot_edit_other_barbero_service_post(self):
         self.client.login(username="barbero1", password="pass1234")
         data = {
             "action": "update",
-            "section": "services",
-            "service_record_id": self.other_record.pk,
-            "barber": self.barbero_emp.pk,
-            "service": self.service_item.pk,
-            "service_price": "50.00",
+            "section": "sales",
+            "sale_id": self.other_record.pk,
+            "employee": self.barbero_emp.pk,
+            "product": self.service_item.pk,
+            "product_price": "50.00",
             "commission_amount": "10.00",
         }
         response = self.client.post(self.list_url, data)
-        self.assertRedirects(response, f"{self.list_url}?section=services&view=list")
+        self.assertRedirects(response, f"{self.list_url}?section=sales&view=list")
 
     def test_barbero_can_edit_own_service(self):
         self.client.login(username="barbero1", password="pass1234")
         data = {
             "action": "update",
-            "section": "services",
-            "service_record_id": self.own_record.pk,
-            "barber": self.barbero_emp.pk,
-            "service": self.service_item.pk,
-            "service_price": "50.00",
+            "section": "sales",
+            "sale_id": self.own_record.pk,
+            "employee": self.barbero_emp.pk,
+            "product": self.service_item.pk,
+            "product_price": "50.00",
             "commission_amount": "10.00",
             "tip_amount": "5.00",
         }
         response = self.client.post(self.list_url, data)
-        self.assertRedirects(response, f"{self.list_url}?section=services&view=list")
+        self.assertRedirects(response, f"{self.list_url}?section=sales&view=list")
         self.own_record.refresh_from_db()
         self.assertEqual(self.own_record.tip_amount, Decimal("5.00"))
 
     def test_barbero_cannot_cancel_service(self):
         self.client.login(username="barbero1", password="pass1234")
-        record = ServiceRecord.objects.create(
-            barber=self.other_emp,
-            service=self.service_item,
+        record = Sale.objects.create(
+            employee=self.other_emp,
+            product=self.service_item,
             performed_by=self.other_user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
-            status=ServiceRecord.Status.SCHEDULED,
+            product_price=Decimal("50.00"),
+            status=Sale.Status.SCHEDULED,
         )
         data = {
             "action": "cancel",
-            "section": "services",
-            "service_record_id": record.pk,
+            "section": "sales",
+            "sale_id": record.pk,
         }
         response = self.client.post(self.list_url, data)
-        self.assertRedirects(response, f"{self.list_url}?section=services&view=list")
+        self.assertRedirects(response, f"{self.list_url}?section=sales&view=list")
         record.refresh_from_db()
-        self.assertNotEqual(record.status, ServiceRecord.Status.CANCELED)
+        self.assertNotEqual(record.status, Sale.Status.CANCELED)
 
     def test_admin_sees_all_services_in_list(self):
         self.client.login(username="admin", password="pass1234")
-        response = self.client.get(self._services_url())
-        services = list(response.context["services"].object_list)
-        self.assertIn(self.own_record, services)
-        self.assertIn(self.other_record, services)
+        response = self.client.get(self._sales_url())
+        sales = list(response.context["sales"].object_list)
+        self.assertIn(self.own_record, sales)
+        self.assertIn(self.other_record, sales)
 
     def test_admin_can_edit_any_service(self):
         self.client.login(username="admin", password="pass1234")
         data = {
             "action": "update",
-            "section": "services",
-            "service_record_id": self.other_record.pk,
-            "barber": self.other_emp.pk,
-            "service": self.service_item.pk,
-            "service_price": "50.00",
+            "section": "sales",
+            "sale_id": self.other_record.pk,
+            "employee": self.other_emp.pk,
+            "product": self.service_item.pk,
+            "product_price": "50.00",
             "commission_amount": "10.00",
             "tip_amount": "3.00",
         }
         response = self.client.post(self.list_url, data)
-        self.assertRedirects(response, f"{self.list_url}?section=services&view=list")
+        self.assertRedirects(response, f"{self.list_url}?section=sales&view=list")
         self.other_record.refresh_from_db()
         self.assertEqual(self.other_record.tip_amount, Decimal("3.00"))
 
     def test_admin_can_cancel_service(self):
         self.client.login(username="admin", password="pass1234")
-        record = ServiceRecord.objects.create(
-            barber=self.other_emp,
-            service=self.service_item,
+        record = Sale.objects.create(
+            employee=self.other_emp,
+            product=self.service_item,
             performed_by=self.other_user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("50.00"),
-            status=ServiceRecord.Status.SCHEDULED,
+            product_price=Decimal("50.00"),
+            status=Sale.Status.SCHEDULED,
         )
         data = {
             "action": "cancel",
-            "section": "services",
-            "service_record_id": record.pk,
+            "section": "sales",
+            "sale_id": record.pk,
         }
         response = self.client.post(self.list_url, data)
-        self.assertRedirects(response, f"{self.list_url}?section=services&view=list")
+        self.assertRedirects(response, f"{self.list_url}?section=sales&view=list")
         record.refresh_from_db()
-        self.assertEqual(record.status, ServiceRecord.Status.CANCELED)
+        self.assertEqual(record.status, Sale.Status.CANCELED)
 
 
 class ProductRecordDashboardViewsTest(TestCase):
@@ -504,55 +504,55 @@ class ProductRecordDashboardViewsTest(TestCase):
         self.client.login(username="admin_prod", password="pass1234")
         self.list_url = reverse("dashboard:home")
 
-    def _services_url(self, **params):
-        params.setdefault("section", "services")
+    def _sales_url(self, **params):
+        params.setdefault("section", "sales")
         qs = "&".join(f"{k}={v}" for k, v in params.items())
         return f"{self.list_url}?{qs}"
 
-    # --- Form GET with service_type ---
+    # --- Form GET with sale_type ---
     def test_products_form_get_with_service_type_producto(self):
         response = self.client.get(
-            self._services_url(view="form", service_type="producto"),
+            self._sales_url(view="form", sale_type="producto"),
         )
         self.assertEqual(response.status_code, 200)
         self.assertIn("form", response.context)
         form = response.context["form"]
-        self.assertNotIn("barber", form.fields)
+        self.assertNotIn("employee", form.fields)
         self.assertIn("quantity", form.fields)
 
     def test_products_form_get_defaults_to_servicio(self):
-        response = self.client.get(self._services_url(view="form"))
+        response = self.client.get(self._sales_url(view="form"))
         self.assertEqual(response.status_code, 200)
         form = response.context["form"]
-        self.assertIn("barber", form.fields)
+        self.assertIn("employee", form.fields)
 
     # --- Create POST ---
     def test_products_create_post_success(self):
         data = {
-            "section": "services",
+            "section": "sales",
             "type": "producto",
-            "service": self.product.pk,
+            "product": self.product.pk,
             "quantity": "3",
-            "service_price": "300.00",
+            "product_price": "300.00",
             "notes": "Producto de prueba",
         }
         response = self.client.post(self.list_url, data)
-        self.assertRedirects(response, f"{self.list_url}?section=services")
+        self.assertRedirects(response, f"{self.list_url}?section=sales")
         self.assertTrue(
-            ServiceRecord.objects.filter(notes="Producto de prueba").exists()
+            Sale.objects.filter(notes="Producto de prueba").exists()
         )
-        record = ServiceRecord.objects.get(notes="Producto de prueba")
+        record = Sale.objects.get(notes="Producto de prueba")
         self.assertEqual(record.quantity, 3)
-        self.assertEqual(record.service_price, Decimal("300.00"))
-        self.assertEqual(record.status, ServiceRecord.Status.DONE)
+        self.assertEqual(record.product_price, Decimal("300.00"))
+        self.assertEqual(record.status, Sale.Status.DONE)
         self.assertIsNone(record.commission_amount)
         self.assertIsNotNone(record.scheduled_for)
 
     def test_products_create_post_invalid(self):
         data = {
-            "section": "services",
+            "section": "sales",
             "type": "producto",
-            "service": "",
+            "product": "",
             "quantity": "1",
         }
         response = self.client.post(self.list_url, data)
@@ -561,122 +561,122 @@ class ProductRecordDashboardViewsTest(TestCase):
 
     # --- Edit GET ---
     def test_products_edit_get_loads_instance(self):
-        record = ServiceRecord.objects.create(
-            service=self.product,
+        record = Sale.objects.create(
+            product=self.product,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("200.00"),
+            product_price=Decimal("200.00"),
             quantity=2,
         )
         response = self.client.get(
-            self._services_url(view="edit", service_record=record.pk),
+            self._sales_url(view="edit", sale=record.pk),
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["service_record_to_edit"].pk, record.pk)
+        self.assertEqual(response.context["sale_to_edit"].pk, record.pk)
         form = response.context["form"]
-        self.assertNotIn("barber", form.fields)
+        self.assertNotIn("employee", form.fields)
         self.assertIn("quantity", form.fields)
 
     def test_products_edit_get_404_for_nonexistent(self):
         response = self.client.get(
-            self._services_url(view="edit", service_record=999),
+            self._sales_url(view="edit", sale=999),
         )
         self.assertEqual(response.status_code, 404)
 
     # --- Edit POST ---
     def test_products_edit_post_updates_quantity_and_price(self):
-        record = ServiceRecord.objects.create(
-            service=self.product,
+        record = Sale.objects.create(
+            product=self.product,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("100.00"),
+            product_price=Decimal("100.00"),
             quantity=1,
         )
         data = {
             "action": "update",
-            "section": "services",
-            "service_record_id": record.pk,
-            "service": self.product.pk,
+            "section": "sales",
+            "sale_id": record.pk,
+            "product": self.product.pk,
             "quantity": "5",
-            "service_price": "500.00",
+            "product_price": "500.00",
         }
         response = self.client.post(self.list_url, data)
-        self.assertRedirects(response, f"{self.list_url}?section=services&view=list")
+        self.assertRedirects(response, f"{self.list_url}?section=sales&view=list")
         record.refresh_from_db()
         self.assertEqual(record.quantity, 5)
-        self.assertEqual(record.service_price, Decimal("500.00"))
+        self.assertEqual(record.product_price, Decimal("500.00"))
 
     def test_products_edit_post_invalid(self):
-        record = ServiceRecord.objects.create(
-            service=self.product,
+        record = Sale.objects.create(
+            product=self.product,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("100.00"),
+            product_price=Decimal("100.00"),
             quantity=1,
         )
         data = {
             "action": "update",
-            "section": "services",
-            "service_record_id": record.pk,
-            "service": "",
+            "section": "sales",
+            "sale_id": record.pk,
+            "product": "",
         }
         response = self.client.post(self.list_url, data)
         self.assertEqual(response.status_code, 200)
 
     # --- Combined list ---
     def test_combined_list_shows_service_and_product_records(self):
-        ServiceRecord.objects.create(
-            service=self.service_item,
-            barber=self.employee,
+        Sale.objects.create(
+            product=self.service_item,
+            employee=self.employee,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("60.00"),
+            product_price=Decimal("60.00"),
         )
-        ServiceRecord.objects.create(
-            service=self.product,
+        Sale.objects.create(
+            product=self.product,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("100.00"),
+            product_price=Decimal("100.00"),
             quantity=1,
         )
-        response = self.client.get(self._services_url(view="list"))
+        response = self.client.get(self._sales_url(view="list"))
         self.assertEqual(response.status_code, 200)
-        services = list(response.context["services"].object_list)
-        self.assertEqual(len(services), 2)
+        sales = list(response.context["sales"].object_list)
+        self.assertEqual(len(sales), 2)
 
     # --- Stats ---
-    def test_products_service_stats_include_separate_counts(self):
-        ServiceRecord.objects.create(
-            service=self.service_item,
-            barber=self.employee,
+    def test_products_sale_stats_include_separate_counts(self):
+        Sale.objects.create(
+            product=self.service_item,
+            employee=self.employee,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("60.00"),
+            product_price=Decimal("60.00"),
         )
-        ServiceRecord.objects.create(
-            service=self.product,
+        Sale.objects.create(
+            product=self.product,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("100.00"),
+            product_price=Decimal("100.00"),
             quantity=1,
         )
-        response = self.client.get(self._services_url(view="list"))
-        stats = response.context["service_stats"]
-        self.assertEqual(stats["services"], 1)
+        response = self.client.get(self._sales_url(view="list"))
+        stats = response.context["sale_stats"]
+        self.assertEqual(stats["sales"], 1)
         self.assertEqual(stats["products"], 1)
 
     # --- Pagination includes product records ---
     def test_products_pagination(self):
         for i in range(12):
-            ServiceRecord.objects.create(
-                service=self.service_item,
-                barber=self.employee,
+            Sale.objects.create(
+                product=self.service_item,
+                employee=self.employee,
                 performed_by=self.user,
                 scheduled_for=timezone.now(),
-                service_price=Decimal("60.00"),
+                product_price=Decimal("60.00"),
             )
-        response = self.client.get(self._services_url(page=1))
+        response = self.client.get(self._sales_url(page=1))
         self.assertEqual(response.status_code, 200)
-        services = response.context["services"]
-        self.assertIsNotNone(services)
-        self.assertLessEqual(len(list(services)), 10)
+        sales = response.context["sales"]
+        self.assertIsNotNone(sales)
+        self.assertLessEqual(len(list(sales)), 10)

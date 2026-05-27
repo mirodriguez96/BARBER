@@ -8,7 +8,7 @@ from django.utils import timezone
 from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
 from barberia.inventory.models import InventoryMovement
-from barberia.operations.models import ServiceRecord
+from barberia.operations.models import Sale
 from barberia.people.models import Employee
 
 
@@ -54,8 +54,8 @@ class InventoryDashboardViewsTest(TestCase):
         qs = "&".join(f"{k}={v}" for k, v in params.items())
         return f"{self.list_url}?{qs}"
 
-    def _services_url(self, **params):
-        params.setdefault("section", "services")
+    def _sales_url(self, **params):
+        params.setdefault("section", "sales")
         qs = "&".join(f"{k}={v}" for k, v in params.items())
         return f"{self.list_url}?{qs}"
 
@@ -385,11 +385,11 @@ class InventoryDashboardViewsTest(TestCase):
     def test_product_sale_auto_decrements_stock(self):
         initial_stock = self.product_1.current_stock
         data = {
-            "section": "services",
+            "section": "sales",
             "type": "producto",
-            "service": self.product_1.pk,
+            "product": self.product_1.pk,
             "quantity": "3",
-            "service_price": "300.00",
+            "product_price": "300.00",
         }
         self.client.post(self.list_url, data)
         self.product_1.refresh_from_db()
@@ -398,11 +398,11 @@ class InventoryDashboardViewsTest(TestCase):
     def test_product_sale_with_multiple_quantity_decrements_accordingly(self):
         initial_stock = self.product_1.current_stock
         data = {
-            "section": "services",
+            "section": "sales",
             "type": "producto",
-            "service": self.product_1.pk,
+            "product": self.product_1.pk,
             "quantity": "7",
-            "service_price": "700.00",
+            "product_price": "700.00",
         }
         self.client.post(self.list_url, data)
         self.product_1.refresh_from_db()
@@ -410,11 +410,11 @@ class InventoryDashboardViewsTest(TestCase):
 
     def test_product_sale_creates_sale_movement(self):
         data = {
-            "section": "services",
+            "section": "sales",
             "type": "producto",
-            "service": self.product_1.pk,
+            "product": self.product_1.pk,
             "quantity": "2",
-            "service_price": "200.00",
+            "product_price": "200.00",
         }
         self.client.post(self.list_url, data)
         movements = InventoryMovement.objects.filter(
@@ -429,15 +429,15 @@ class InventoryDashboardViewsTest(TestCase):
 
     def test_product_sale_creates_sale_movement_with_correct_reference(self):
         data = {
-            "section": "services",
+            "section": "sales",
             "type": "producto",
-            "service": self.product_1.pk,
+            "product": self.product_1.pk,
             "quantity": "1",
-            "service_price": "100.00",
+            "product_price": "100.00",
             "notes": "Venta test",
         }
         self.client.post(self.list_url, data)
-        record = ServiceRecord.objects.get(notes="Venta test")
+        record = Sale.objects.get(notes="Venta test")
         movements = InventoryMovement.objects.filter(
             product=self.product_1,
             movement_type=InventoryMovement.MovementType.SALE,
@@ -448,11 +448,11 @@ class InventoryDashboardViewsTest(TestCase):
     def test_service_sale_does_not_affect_stock(self):
         initial_stock = self.product_1.current_stock
         data = {
-            "section": "services",
-            "barber": self.employee.pk,
-            "service": self.service_item.pk,
+            "section": "sales",
+            "employee": self.employee.pk,
+            "product": self.service_item.pk,
             "scheduled_for": timezone.localtime().strftime("%Y-%m-%dT%H:%M"),
-            "service_price": "60.00",
+            "product_price": "60.00",
             "commission_amount": "12.00",
         }
         self.client.post(self.list_url, data)
@@ -465,11 +465,11 @@ class InventoryDashboardViewsTest(TestCase):
         self.product_2.current_stock = 10
         self.product_2.save()
         data = {
-            "section": "services",
+            "section": "sales",
             "type": "producto",
-            "service": self.product_1.pk,
+            "product": self.product_1.pk,
             "quantity": "5",
-            "service_price": "500.00",
+            "product_price": "500.00",
         }
         self.client.post(self.list_url, data)
         self.product_2.refresh_from_db()
@@ -478,60 +478,60 @@ class InventoryDashboardViewsTest(TestCase):
     # --- Auto-decrement on product sale edit ---
 
     def test_product_edit_increases_stock_when_quantity_decreased(self):
-        record = ServiceRecord.objects.create(
-            service=self.product_1,
+        record = Sale.objects.create(
+            product=self.product_1,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("500.00"),
+            product_price=Decimal("500.00"),
             quantity=5,
         )
         data = {
             "action": "update",
-            "section": "services",
-            "service_record_id": record.pk,
-            "service": self.product_1.pk,
+            "section": "sales",
+            "sale_id": record.pk,
+            "product": self.product_1.pk,
             "quantity": "3",
-            "service_price": "300.00",
+            "product_price": "300.00",
         }
         self.client.post(self.list_url, data)
         self.product_1.refresh_from_db()
         self.assertEqual(self.product_1.current_stock, 22)
 
     def test_product_edit_decreases_stock_when_quantity_increased(self):
-        record = ServiceRecord.objects.create(
-            service=self.product_1,
+        record = Sale.objects.create(
+            product=self.product_1,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("200.00"),
+            product_price=Decimal("200.00"),
             quantity=2,
         )
         data = {
             "action": "update",
-            "section": "services",
-            "service_record_id": record.pk,
-            "service": self.product_1.pk,
+            "section": "sales",
+            "sale_id": record.pk,
+            "product": self.product_1.pk,
             "quantity": "5",
-            "service_price": "500.00",
+            "product_price": "500.00",
         }
         self.client.post(self.list_url, data)
         self.product_1.refresh_from_db()
         self.assertEqual(self.product_1.current_stock, 17)
 
     def test_product_edit_creates_adjustment_movement(self):
-        record = ServiceRecord.objects.create(
-            service=self.product_1,
+        record = Sale.objects.create(
+            product=self.product_1,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("200.00"),
+            product_price=Decimal("200.00"),
             quantity=2,
         )
         data = {
             "action": "update",
-            "section": "services",
-            "service_record_id": record.pk,
-            "service": self.product_1.pk,
+            "section": "sales",
+            "sale_id": record.pk,
+            "product": self.product_1.pk,
             "quantity": "4",
-            "service_price": "400.00",
+            "product_price": "400.00",
         }
         self.client.post(self.list_url, data)
         movements = InventoryMovement.objects.filter(
@@ -545,20 +545,20 @@ class InventoryDashboardViewsTest(TestCase):
         self.assertEqual(movement.notes, "Ajuste por modificación de venta")
 
     def test_product_edit_no_movement_when_quantity_unchanged(self):
-        record = ServiceRecord.objects.create(
-            service=self.product_1,
+        record = Sale.objects.create(
+            product=self.product_1,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("300.00"),
+            product_price=Decimal("300.00"),
             quantity=3,
         )
         data = {
             "action": "update",
-            "section": "services",
-            "service_record_id": record.pk,
-            "service": self.product_1.pk,
+            "section": "sales",
+            "sale_id": record.pk,
+            "product": self.product_1.pk,
             "quantity": "3",
-            "service_price": "300.00",
+            "product_price": "300.00",
         }
         self.client.post(self.list_url, data)
         movements = InventoryMovement.objects.filter(
@@ -568,21 +568,21 @@ class InventoryDashboardViewsTest(TestCase):
         self.assertEqual(movements.count(), 0)
 
     def test_product_edit_quantity_from_1_to_1_no_change(self):
-        record = ServiceRecord.objects.create(
-            service=self.product_1,
+        record = Sale.objects.create(
+            product=self.product_1,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("100.00"),
+            product_price=Decimal("100.00"),
             quantity=1,
         )
         initial_stock = self.product_1.current_stock
         data = {
             "action": "update",
-            "section": "services",
-            "service_record_id": record.pk,
-            "service": self.product_1.pk,
+            "section": "sales",
+            "sale_id": record.pk,
+            "product": self.product_1.pk,
             "quantity": "1",
-            "service_price": "100.00",
+            "product_price": "100.00",
         }
         self.client.post(self.list_url, data)
         self.product_1.refresh_from_db()
@@ -594,20 +594,20 @@ class InventoryDashboardViewsTest(TestCase):
         self.assertEqual(movements.count(), 0)
 
     def test_product_edit_quantity_to_zero(self):
-        record = ServiceRecord.objects.create(
-            service=self.product_1,
+        record = Sale.objects.create(
+            product=self.product_1,
             performed_by=self.user,
             scheduled_for=timezone.now(),
-            service_price=Decimal("300.00"),
+            product_price=Decimal("300.00"),
             quantity=3,
         )
         data = {
             "action": "update",
-            "section": "services",
-            "service_record_id": record.pk,
-            "service": self.product_1.pk,
+            "section": "sales",
+            "sale_id": record.pk,
+            "product": self.product_1.pk,
             "quantity": "0",
-            "service_price": "0.00",
+            "product_price": "0.00",
         }
         self.client.post(self.list_url, data)
         self.product_1.refresh_from_db()

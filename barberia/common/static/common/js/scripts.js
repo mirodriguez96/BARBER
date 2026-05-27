@@ -28,7 +28,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const serviceSelect = document.querySelector(
     '[data-service-selector="true"]',
   );
-  const servicePrice = document.getElementById("id_service_price");
+  const servicePrice = document.getElementById("id_product_price");
   const commissionAmount = document.getElementById("id_commission_amount");
 
   if (serviceSelect && servicePrice && commissionAmount) {
@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", function () {
     '[data-product-selector="true"]',
   );
   const productQuantity = document.getElementById("id_quantity");
-  const productPrice = document.getElementById("id_service_price");
+  const productPrice = document.getElementById("id_product_price");
 
   if (productSelect && productQuantity && productPrice) {
     const applyProductValues = () => {
@@ -75,10 +75,10 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-  const barberField = document.getElementById("id_barber");
-  const servicesForm = document.querySelector(".dashboard-form");
-  if (barberField && servicesForm) {
-    servicesForm.addEventListener("submit", function (e) {
+  const barberField = document.getElementById("id_employee");
+  const salesForm = document.querySelector(".dashboard-form");
+  if (barberField && salesForm) {
+    salesForm.addEventListener("submit", function (e) {
       if (!barberField.value) {
         e.preventDefault();
         alert("Debes seleccionar un colaborador para registrar un servicio.");

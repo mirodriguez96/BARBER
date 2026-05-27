@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from barberia.catalog.models import CatalogItem
 from barberia.inventory.models import InventoryMovement
-from barberia.operations.models import ServiceRecord
+from barberia.operations.models import Sale
 from barberia.people.models import Client, Employee
 
 
@@ -67,11 +67,11 @@ class ServiceCatalogSelect(forms.Select):
         )
         raw_value = getattr(value, "value", value)
         if raw_value and self.queryset is not None:
-            service = self.queryset.filter(pk=raw_value).first()
-            if service:
-                option["attrs"]["data-price"] = str(service.price)
+            item = self.queryset.filter(pk=raw_value).first()
+            if item:
+                option["attrs"]["data-price"] = str(item.price)
                 option["attrs"]["data-commission"] = str(
-                    service.barber_commission_percent,
+                    item.barber_commission_percent,
                 )
         return option
 
@@ -392,33 +392,44 @@ class CatalogItemEditForm(CatalogCommissionMixin, DashboardModelForm):
         }
 
 
-class ServiceRecordForm(DashboardModelForm):
+class SaleForm(DashboardModelForm):
+    product_price = forms.DecimalField(
+        label="Valor del servicio",
+        widget=forms.NumberInput(attrs={"readonly": "readonly"}),
+        required=False,
+    )
+    commission_amount = forms.DecimalField(
+        label="Comisión del colaborador",
+        widget=forms.NumberInput(attrs={"readonly": "readonly"}),
+        required=False,
+    )
+
     class Meta:
-        model = ServiceRecord
+        model = Sale
         fields = [
-            "barber",
+            "employee",
             "client",
             "scheduled_for",
-            "service",
-            "service_price",
+            "product",
+            "product_price",
             "commission_amount",
             "tip_amount",
             "notes",
         ]
         labels = {
             "client": "Cliente",
-            "barber": "Colaborador",
-            "service": "Servicio",
+            "employee": "Colaborador",
+            "product": "Servicio",
             "scheduled_for": "Fecha y hora",
             "notes": "Observaciones",
-            "service_price": "Valor del servicio",
-            "commission_amount": "Comisión",
+            "product_price": "Valor del servicio",
+            "commission_amount": "Comisión del colaborador",
             "tip_amount": "Propina",
         }
         widgets = {
             "client": forms.Select(attrs={"class": "form-select"}),
-            "barber": forms.Select(attrs={"class": "form-select"}),
-            "service": ServiceCatalogSelect(
+            "employee": forms.Select(attrs={"class": "form-select"}),
+            "product": ServiceCatalogSelect(
                 attrs={"class": "form-select", "data-service-selector": "true"},
             ),
             "scheduled_for": forms.DateTimeInput(
@@ -429,14 +440,6 @@ class ServiceRecordForm(DashboardModelForm):
                     "class": "form-control",
                     "rows": 4,
                     "placeholder": "Observaciones del servicio",
-                },
-            ),
-            "service_price": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "step": "0.01",
-                    "min": "0",
-                    "readonly": "readonly",
                 },
             ),
             "commission_amount": forms.NumberInput(
@@ -463,89 +466,90 @@ class ServiceRecordForm(DashboardModelForm):
         self.fields["client"].empty_label = "Cliente no registrado"
         self.fields["client"].widget.attrs["aria-label"] = "Cliente opcional"
         if self.user and self.user.role == "admin":
-            self.fields["barber"].queryset = Employee.objects.filter(is_active=True)
+            self.fields["employee"].queryset = Employee.objects.filter(is_active=True)
         elif self.user:
             try:
                 employee = self.user.employee
-                self.fields["barber"].queryset = Employee.objects.filter(
+                self.fields["employee"].queryset = Employee.objects.filter(
                     pk=employee.pk,
                     is_active=True,
                 )
             except Exception:
-                self.fields["barber"].queryset = Employee.objects.filter(is_active=True)
+                self.fields["employee"].queryset = Employee.objects.filter(
+                    is_active=True,
+                )
         else:
-            self.fields["barber"].queryset = Employee.objects.filter(is_active=True)
-        self.fields["barber"].required = True
-        self.fields["barber"].widget.attrs["required"] = True
-        self.fields["service"].queryset = CatalogItem.objects.filter(
+            self.fields["employee"].queryset = Employee.objects.filter(is_active=True)
+        self.fields["employee"].required = True
+        self.fields["employee"].widget.attrs["required"] = True
+        self.fields["product"].queryset = CatalogItem.objects.filter(
             is_active=True,
             kind=CatalogItem.Kind.SERVICE,
         )
-        self.fields["service"].widget.queryset = self.fields["service"].queryset
+        self.fields["product"].widget.queryset = self.fields["product"].queryset
         self.fields["scheduled_for"].initial = timezone.localtime(
             timezone.now(),
         ).strftime("%Y-%m-%dT%H:%M")
-        self.fields["service_price"].initial = self._service_price_initial()
+        self.fields["product_price"].initial = self._product_price_initial()
         self.fields["commission_amount"].initial = self._commission_initial()
-        self.fields["service_price"].disabled = True
+        self.fields["product_price"].disabled = True
         self.fields["commission_amount"].disabled = True
 
-    def _selected_service(self):
-        service = None
+    def _selected_product(self):
+        product = None
         if self.is_bound:
-            service_id = self.data.get(self.add_prefix("service"))
-            if service_id:
-                service = self.fields["service"].queryset.filter(pk=service_id).first()
-        elif self.instance and self.instance.pk and self.instance.service_id:
-            service = self.instance.service
-        return service
+            product_id = self.data.get(self.add_prefix("product"))
+            if product_id:
+                product = (
+                    self.fields["product"]
+                    .queryset.filter(pk=product_id)
+                    .first()
+                )
+        elif self.instance and self.instance.pk and self.instance.product_id:
+            product = self.instance.product
+        return product
 
-    def _service_price_initial(self):
-        service = self._selected_service()
-        return service.price if service else None
+    def _product_price_initial(self):
+        product = self._selected_product()
+        return product.price if product else None
 
     def _commission_initial(self):
-        service = self._selected_service()
-        return service.barber_commission_percent if service else None
+        product = self._selected_product()
+        return product.barber_commission_percent if product else None
 
 
-class ServiceRecordEditForm(DashboardModelForm):
+class SaleEditForm(DashboardModelForm):
+    product_price = forms.DecimalField(
+        label="Valor del servicio",
+        widget=forms.NumberInput(attrs={"readonly": "readonly"}),
+        required=False,
+    )
+    commission_amount = forms.DecimalField(
+        label="Comisión del colaborador",
+        widget=forms.NumberInput(attrs={"readonly": "readonly"}),
+        required=False,
+    )
+
     class Meta:
-        model = ServiceRecord
+        model = Sale
         fields = [
-            "barber",
-            "service",
-            "service_price",
+            "employee",
+            "product",
+            "product_price",
             "commission_amount",
             "tip_amount",
         ]
         labels = {
-            "barber": "Colaborador",
-            "service": "Servicio",
-            "service_price": "Valor del servicio",
-            "commission_amount": "Comisión",
+            "employee": "Colaborador",
+            "product": "Servicio",
+            "product_price": "Valor del servicio",
+            "commission_amount": "Comisión del colaborador",
             "tip_amount": "Propina",
         }
         widgets = {
-            "barber": forms.Select(attrs={"class": "form-select"}),
-            "service": ServiceCatalogSelect(
+            "employee": forms.Select(attrs={"class": "form-select"}),
+            "product": ServiceCatalogSelect(
                 attrs={"class": "form-select", "data-service-selector": "true"},
-            ),
-            "service_price": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "step": "0.01",
-                    "min": "0",
-                    "readonly": "readonly",
-                },
-            ),
-            "commission_amount": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "step": "0.01",
-                    "min": "0",
-                    "readonly": "readonly",
-                },
             ),
             "tip_amount": forms.NumberInput(
                 attrs={
@@ -560,60 +564,70 @@ class ServiceRecordEditForm(DashboardModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.user and hasattr(self.user, "employee"):
-            self.fields["barber"].queryset = Employee.objects.filter(
+            self.fields["employee"].queryset = Employee.objects.filter(
                 pk=self.user.employee.pk,
                 is_active=True,
             )
         else:
-            self.fields["barber"].queryset = Employee.objects.filter(is_active=True)
-        self.fields["barber"].required = True
-        self.fields["barber"].widget.attrs["required"] = True
-        self.fields["service"].queryset = CatalogItem.objects.filter(
+            self.fields["employee"].queryset = Employee.objects.filter(is_active=True)
+        self.fields["employee"].required = True
+        self.fields["employee"].widget.attrs["required"] = True
+        self.fields["product"].queryset = CatalogItem.objects.filter(
             is_active=True,
             kind=CatalogItem.Kind.SERVICE,
         )
-        self.fields["service"].widget.queryset = self.fields["service"].queryset
-        self.fields["service_price"].initial = self._service_price_initial()
+        self.fields["product"].widget.queryset = self.fields["product"].queryset
+        self.fields["product_price"].initial = self._product_price_initial()
         self.fields["commission_amount"].initial = self._commission_initial()
-        self.fields["service_price"].disabled = True
+        self.fields["product_price"].disabled = True
         self.fields["commission_amount"].disabled = True
 
-    def _selected_service(self):
-        service = None
+    def _selected_product(self):
+        product = None
         if self.is_bound:
-            service_id = self.data.get(self.add_prefix("service"))
-            if service_id:
-                service = self.fields["service"].queryset.filter(pk=service_id).first()
-        elif self.instance and self.instance.pk and self.instance.service_id:
-            service = self.instance.service
-        return service
+            product_id = self.data.get(self.add_prefix("product"))
+            if product_id:
+                product = (
+                    self.fields["product"]
+                    .queryset.filter(pk=product_id)
+                    .first()
+                )
+        elif self.instance and self.instance.pk and self.instance.product_id:
+            product = self.instance.product
+        return product
 
-    def _service_price_initial(self):
-        service = self._selected_service()
-        return service.price if service else None
+    def _product_price_initial(self):
+        product = self._selected_product()
+        return product.price if product else None
 
     def _commission_initial(self):
-        service = self._selected_service()
-        return service.barber_commission_percent if service else None
+        product = self._selected_product()
+        return product.barber_commission_percent if product else None
 
 
-class ProductRecordForm(DashboardModelForm):
+class ProductSaleForm(DashboardModelForm):
+    product_price = forms.DecimalField(
+        label="Valor total",
+        widget=forms.NumberInput(attrs={"readonly": "readonly"}),
+        required=False,
+    )
+
     class Meta:
-        model = ServiceRecord
+        model = Sale
         fields = [
-            "service",
+            "product",
             "quantity",
-            "service_price",
+            "product_price",
             "notes",
         ]
         labels = {
-            "service": "Producto",
+            "product": "Producto",
             "quantity": "Cantidad",
             "notes": "Observaciones",
-            "service_price": "Valor total",
+            "product_price": "Valor total",
         }
         widgets = {
-            "service": ServiceCatalogSelect(
+            "product": ServiceCatalogSelect(
                 attrs={"class": "form-select", "data-product-selector": "true"},
             ),
             "quantity": forms.NumberInput(
@@ -631,55 +645,57 @@ class ProductRecordForm(DashboardModelForm):
                     "placeholder": "Observaciones del producto",
                 },
             ),
-            "service_price": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "step": "0.01",
-                    "min": "0",
-                    "readonly": "readonly",
-                },
-            ),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["service"].queryset = CatalogItem.objects.filter(
+        self.fields["product"].queryset = CatalogItem.objects.filter(
             kind=CatalogItem.Kind.PRODUCT,
         )
-        self.fields["service"].widget.queryset = self.fields["service"].queryset
-        self.fields["service_price"].initial = self._service_price_initial()
-        self.fields["service_price"].disabled = True
+        self.fields["product"].widget.queryset = self.fields["product"].queryset
+        self.fields["product_price"].initial = self._product_price_initial()
+        self.fields["product_price"].disabled = True
 
-    def _selected_service(self):
-        service = None
+    def _selected_product(self):
+        product = None
         if self.is_bound:
-            service_id = self.data.get(self.add_prefix("service"))
-            if service_id:
-                service = self.fields["service"].queryset.filter(pk=service_id).first()
-        elif self.instance and self.instance.pk and self.instance.service_id:
-            service = self.instance.service
-        return service
+            product_id = self.data.get(self.add_prefix("product"))
+            if product_id:
+                product = (
+                    self.fields["product"]
+                    .queryset.filter(pk=product_id)
+                    .first()
+                )
+        elif self.instance and self.instance.pk and self.instance.product_id:
+            product = self.instance.product
+        return product
 
-    def _service_price_initial(self):
-        service = self._selected_service()
-        return service.price if service else None
+    def _product_price_initial(self):
+        product = self._selected_product()
+        return product.price if product else None
 
 
-class ProductRecordEditForm(DashboardModelForm):
+class ProductSaleEditForm(DashboardModelForm):
+    product_price = forms.DecimalField(
+        label="Valor total",
+        widget=forms.NumberInput(attrs={"readonly": "readonly"}),
+        required=False,
+    )
+
     class Meta:
-        model = ServiceRecord
+        model = Sale
         fields = [
-            "service",
+            "product",
             "quantity",
-            "service_price",
+            "product_price",
         ]
         labels = {
-            "service": "Producto",
+            "product": "Producto",
             "quantity": "Cantidad",
-            "service_price": "Valor total",
+            "product_price": "Valor total",
         }
         widgets = {
-            "service": ServiceCatalogSelect(
+            "product": ServiceCatalogSelect(
                 attrs={"class": "form-select", "data-product-selector": "true"},
             ),
             "quantity": forms.NumberInput(
@@ -689,38 +705,34 @@ class ProductRecordEditForm(DashboardModelForm):
                     "step": "1",
                 },
             ),
-            "service_price": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "step": "0.01",
-                    "min": "0",
-                    "readonly": "readonly",
-                },
-            ),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["service"].queryset = CatalogItem.objects.filter(
+        self.fields["product"].queryset = CatalogItem.objects.filter(
             kind=CatalogItem.Kind.PRODUCT,
         )
-        self.fields["service"].widget.queryset = self.fields["service"].queryset
-        self.fields["service_price"].initial = self._service_price_initial()
-        self.fields["service_price"].disabled = True
+        self.fields["product"].widget.queryset = self.fields["product"].queryset
+        self.fields["product_price"].initial = self._product_price_initial()
+        self.fields["product_price"].disabled = True
 
-    def _selected_service(self):
-        service = None
+    def _selected_product(self):
+        product = None
         if self.is_bound:
-            service_id = self.data.get(self.add_prefix("service"))
-            if service_id:
-                service = self.fields["service"].queryset.filter(pk=service_id).first()
-        elif self.instance and self.instance.pk and self.instance.service_id:
-            service = self.instance.service
-        return service
+            product_id = self.data.get(self.add_prefix("product"))
+            if product_id:
+                product = (
+                    self.fields["product"]
+                    .queryset.filter(pk=product_id)
+                    .first()
+                )
+        elif self.instance and self.instance.pk and self.instance.product_id:
+            product = self.instance.product
+        return product
 
-    def _service_price_initial(self):
-        service = self._selected_service()
-        return service.price if service else None
+    def _product_price_initial(self):
+        product = self._selected_product()
+        return product.price if product else None
 
 
 class InventoryPurchaseForm(DashboardModelForm):
