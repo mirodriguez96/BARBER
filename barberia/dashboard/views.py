@@ -643,6 +643,17 @@ def home(request):
         "with_stock": inventory_products.filter(current_stock__gt=0).count(),
         "out_of_stock": inventory_products.filter(current_stock__lte=0).count(),
     }
+    inventory_stats["total_value"] = inventory_products.aggregate(
+        total=Coalesce(
+            Sum(
+                ExpressionWrapper(
+                    F("current_stock") * F("price"),
+                    output_field=DecimalField(max_digits=12, decimal_places=2),
+                )
+            ),
+            Value(Decimal("0.00")),
+        )
+    )["total"]
     inventory_paginator = Paginator(inventory_products, 10)
     inventory_page_number = request.GET.get("page")
     inventory_page = inventory_paginator.get_page(inventory_page_number)

@@ -1017,6 +1017,14 @@ body.auth-page {
   background: rgba(59, 130, 246, 0.04);
 }
 
+.dashboard-table tbody tr.dashboard-table__row--low-stock {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.dashboard-table tbody tr.dashboard-table__row--low-stock:hover {
+  background: rgba(239, 68, 68, 0.12);
+}
+
 .dashboard-table__primary {
   font-weight: 700;
   color: #0f172a;

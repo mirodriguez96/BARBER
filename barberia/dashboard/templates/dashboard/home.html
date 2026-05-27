@@ -556,14 +556,14 @@
                                 <span class="dashboard-metric-card__hint">Productos registrados</span>
                             </article>
                             <article class="dashboard-metric-card">
-                                <p class="dashboard-metric-card__label mb-1">Con stock</p>
-                                <strong class="dashboard-metric-card__value">{{ inventory_stats.with_stock }}</strong>
-                                <span class="dashboard-metric-card__hint">Productos con stock &gt; 0</span>
-                            </article>
-                            <article class="dashboard-metric-card">
                                 <p class="dashboard-metric-card__label mb-1">Sin stock</p>
                                 <strong class="dashboard-metric-card__value">{{ inventory_stats.out_of_stock }}</strong>
                                 <span class="dashboard-metric-card__hint">Productos agotados</span>
+                            </article>
+                            <article class="dashboard-metric-card">
+                                <p class="dashboard-metric-card__label mb-1">Valor inventario</p>
+                                <strong class="dashboard-metric-card__value">${{ inventory_stats.total_value|floatformat:2 }}</strong>
+                                <span class="dashboard-metric-card__hint">Cantidad x precio unitario</span>
                             </article>
                         </div>
                         <div class="dashboard-table-shell">
@@ -593,7 +593,7 @@
                                         </thead>
                                         <tbody>
                                             {% for product in inventory_page %}
-                                                <tr>
+                                                <tr class="{% if product.current_stock <= 5 %}dashboard-table__row--low-stock{% endif %}">
                                                     <td>
                                                         <div class="dashboard-table__primary">{{ product.name }}</div>
                                                         <div class="dashboard-table__meta">{{ product.description|truncatechars:60 }}</div>
