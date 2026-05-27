@@ -104,14 +104,14 @@ class InventoryMovementModelTest(TestCase):
         )
         self.assertTrue(movement.is_supply)
 
-    def test_unit_cost_nullable(self):
+    def test_unit_cost_defaults_to_zero(self):
         movement = InventoryMovement.objects.create(
             product=self.product,
             quantity=5,
             movement_type=InventoryMovement.MovementType.ADJUSTMENT,
             created_by=self.user,
         )
-        self.assertIsNone(movement.unit_cost)
+        self.assertEqual(movement.unit_cost, Decimal("0.00"))
 
     def test_reference_sale_nullable(self):
         movement = InventoryMovement.objects.create(
