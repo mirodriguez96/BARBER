@@ -7,9 +7,7 @@
         <div class="dashboard-shell">
             <aside class="dashboard-sidebar">
                 <div>
-                    <p class="eyebrow mb-2">Panel operativo</p>
-                    <h1 class="dashboard-page-title mb-3">Barbería Admin</h1>
-                    <p class="dashboard-page-copy mb-0">Registra colaboradores, catálogo y servicios desde una sola pantalla.</p>
+                    <h1 class="dashboard-page-title dashboard-page-title--inverse mb-3">{{ company.name|default:"Barbería Admin" }}</h1>
                 </div>
                 <nav class="dashboard-menu" aria-label="Secciones del dashboard">
                     {% for item in menu_items %}
@@ -78,36 +76,64 @@
                                href="?section=inventory&view=form&inventory_action=adjust">Ajuste</a>
                         </div>
                     {% endif %}
-                    {% if active_section == 'compras' and quick_view == 'form' %}
-                        <div class="dashboard-quick-switch mb-3">
-                            <a class="dashboard-quick-switch__item is-active" href="?section=compras&view=form">Compra</a>
+                    {% if active_section == 'config' %}
+                        <div class="dashboard-config-shell">
+                            <div class="dashboard-config-card">
+                                <p class="mb-4 text-muted">
+                                    Estos datos se usan como información principal del negocio. Solo se permite registrar una empresa.
+                                </p>
+                                <form method="post" class="dashboard-form dashboard-config-form">
+                                    {% csrf_token %}
+                                    <div class="dashboard-form-grid">
+                                        {% for field in company_form %}
+                                            <div class="dashboard-field-card">
+                                                <div class="dashboard-field-card__head">
+                                                    <label class="form-label mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                                    {% if field.field.required %}<span class="dashboard-field-card__required">Obligatorio</span>{% endif %}
+                                                </div>
+                                                <div class="dashboard-field-card__body">
+                                                    {{ field }}
+                                                    {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+                                                    {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>{% endif %}
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="dashboard-form-gap" aria-hidden="true"></div>
+                                    <div class="dashboard-form__actions mt-4">
+                                        <button type="submit"
+                                                class="btn btn-dashboard-primary btn-lg rounded-pill px-5">
+                                            {% if company %}
+                                                Actualizar datos
+                                            {% else %}
+                                                Guardar datos
+                                            {% endif %}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
                     {% endif %}
                     {% if active_section == 'barbers' and quick_view == 'list' %}
-                        <div class="dashboard-metrics mb-4">
-                            <article class="dashboard-metric-card">
-                                <p class="dashboard-metric-card__label mb-1">Total</p>
-                                <strong class="dashboard-metric-card__value">{{ barber_stats.total }}</strong>
-                                <span class="dashboard-metric-card__hint">Personas registradas</span>
-                            </article>
-                            <article class="dashboard-metric-card">
-                                <p class="dashboard-metric-card__label mb-1">Colaboradores</p>
-                                <strong class="dashboard-metric-card__value">{{ barber_stats.barbers }}</strong>
-                                <span class="dashboard-metric-card__hint">Miembros del equipo</span>
-                            </article>
-                            <article class="dashboard-metric-card">
-                                <p class="dashboard-metric-card__label mb-1">Clientes</p>
-                                <strong class="dashboard-metric-card__value">{{ barber_stats.clients }}</strong>
-                                <span class="dashboard-metric-card__hint">Clientes registrados</span>
-                            </article>
-                        </div>
-                        <div class="dashboard-table-shell">
-                            <div class="dashboard-table-shell__header">
-                                <div>
-                                    <p class="eyebrow mb-1">Listado activo</p>
-                                    <h4 class="section-title mb-0">Colaboradores y clientes</h4>
-                                </div>
-                                <span class="dashboard-pill">{{ people_page|length }} registros</span>
+                        <div class="dashboard-section-spacer" aria-hidden="true"></div>
+                        <div class="dashboard-table-shell mt-4">
+                            <div class="dashboard-table-shell__header mt-3">
+                                <form method="get"
+                                      class="dashboard-filters__form dashboard-filters__form--compact">
+                                    <input type="hidden" name="section" value="barbers" />
+                                    <input type="hidden" name="view" value="list" />
+                                    <div class="dashboard-filters__group">
+                                        <label class="dashboard-filters__label" for="barber_search">Nombre</label>
+                                        <input type="search"
+                                               id="barber_search"
+                                               name="barber_search"
+                                               value="{{ barber_search }}"
+                                               class="dashboard-filters__input"
+                                               placeholder="Buscar colaborador o cliente"
+                                               autocomplete="off" />
+                                    </div>
+                                    {% if barber_search %}<a href="?section=barbers&view=list" class="dashboard-filters__clear">Limpiar</a>{% endif %}
+                                </form>
                             </div>
                             <div class="dashboard-table-wrap">
                                 <div class="table-responsive">
@@ -165,7 +191,10 @@
                                                                         <input type="hidden" name="section" value="barbers" />
                                                                         <input type="hidden" name="action" value="deactivate" />
                                                                         <input type="hidden" name="barber_id" value="{{ person.pk }}" />
-                                                                        <button type="submit" class="dashboard-action-btn dashboard-action-btn--danger">Desactivar</button>
+                                                                        <button type="submit"
+                                                                                class="dashboard-action-btn dashboard-action-btn--danger">
+                                                                            Desactivar
+                                                                        </button>
                                                                     </form>
                                                                 {% else %}
                                                                     <form method="post" class="dashboard-inline-form">
@@ -173,7 +202,10 @@
                                                                         <input type="hidden" name="section" value="barbers" />
                                                                         <input type="hidden" name="action" value="activate" />
                                                                         <input type="hidden" name="barber_id" value="{{ person.pk }}" />
-                                                                        <button type="submit" class="dashboard-action-btn dashboard-action-btn--success">Activar</button>
+                                                                        <button type="submit"
+                                                                                class="dashboard-action-btn dashboard-action-btn--success">
+                                                                            Activar
+                                                                        </button>
                                                                     </form>
                                                                 {% endif %}
                                                             {% else %}
@@ -189,7 +221,10 @@
                                                                         <input type="hidden" name="section" value="barbers" />
                                                                         <input type="hidden" name="action" value="deactivate" />
                                                                         <input type="hidden" name="client_id" value="{{ person.pk }}" />
-                                                                        <button type="submit" class="dashboard-action-btn dashboard-action-btn--danger">Desactivar</button>
+                                                                        <button type="submit"
+                                                                                class="dashboard-action-btn dashboard-action-btn--danger">
+                                                                            Desactivar
+                                                                        </button>
                                                                     </form>
                                                                 {% else %}
                                                                     <form method="post" class="dashboard-inline-form">
@@ -197,7 +232,10 @@
                                                                         <input type="hidden" name="section" value="barbers" />
                                                                         <input type="hidden" name="action" value="activate" />
                                                                         <input type="hidden" name="client_id" value="{{ person.pk }}" />
-                                                                        <button type="submit" class="dashboard-action-btn dashboard-action-btn--success">Activar</button>
+                                                                        <button type="submit"
+                                                                                class="dashboard-action-btn dashboard-action-btn--success">
+                                                                            Activar
+                                                                        </button>
                                                                     </form>
                                                                 {% endif %}
                                                             {% endif %}
@@ -223,45 +261,51 @@
                                 <div class="dashboard-pagination">
                                     {% if people_page.has_previous %}
                                         <a class="dashboard-pagination__link"
-                                           href="?section=barbers&view=list&page=1">Primera</a>
+                                           href="?section=barbers&view=list{{ barber_filter_params }}&page=1">Primera</a>
                                         <a class="dashboard-pagination__link"
-                                           href="?section=barbers&view=list&page={{ people_page.previous_page_number }}">Anterior</a>
+                                           href="?section=barbers&view=list{{ barber_filter_params }}&page={{ people_page.previous_page_number }}">Anterior</a>
                                     {% endif %}
                                     <span class="dashboard-pagination__info">Página {{ people_page.number }} de {{ people_page.paginator.num_pages }}</span>
                                     {% if people_page.has_next %}
                                         <a class="dashboard-pagination__link"
-                                           href="?section=barbers&view=list&page={{ people_page.next_page_number }}">Siguiente</a>
+                                           href="?section=barbers&view=list{{ barber_filter_params }}&page={{ people_page.next_page_number }}">Siguiente</a>
                                         <a class="dashboard-pagination__link"
-                                           href="?section=barbers&view=list&page={{ people_page.paginator.num_pages }}">Última</a>
+                                           href="?section=barbers&view=list{{ barber_filter_params }}&page={{ people_page.paginator.num_pages }}">Última</a>
                                     {% endif %}
                                 </div>
                             {% endif %}
                         </div>
                     {% elif active_section == 'catalog' and quick_view == 'list' %}
-                        <div class="dashboard-metrics mb-4">
-                            <article class="dashboard-metric-card">
-                                <p class="dashboard-metric-card__label mb-1">Total</p>
-                                <strong class="dashboard-metric-card__value">{{ catalog_stats.total }}</strong>
-                                <span class="dashboard-metric-card__hint">Items registrados</span>
-                            </article>
-                            <article class="dashboard-metric-card">
-                                <p class="dashboard-metric-card__label mb-1">Productos</p>
-                                <strong class="dashboard-metric-card__value">{{ catalog_stats.products }}</strong>
-                                <span class="dashboard-metric-card__hint">Inventario comercial</span>
-                            </article>
-                            <article class="dashboard-metric-card">
-                                <p class="dashboard-metric-card__label mb-1">Servicios</p>
-                                <strong class="dashboard-metric-card__value">{{ catalog_stats.sales }}</strong>
-                                <span class="dashboard-metric-card__hint">Servicios de agenda</span>
-                            </article>
-                        </div>
-                        <div class="dashboard-table-shell">
+                        <div class="dashboard-table-shell mt-4">
                             <div class="dashboard-table-shell__header">
-                                <div>
-                                    <p class="eyebrow mb-1">Listado activo</p>
-                                    <h4 class="section-title mb-0">Productos y servicios</h4>
-                                </div>
-                                <span class="dashboard-pill">{{ catalog_items|length }} registros</span>
+                                <form method="get"
+                                      class="dashboard-filters__form dashboard-filters__form--compact">
+                                    <input type="hidden" name="section" value="catalog" />
+                                    <input type="hidden" name="view" value="list" />
+                                    <div class="dashboard-filters__group">
+                                        <label class="dashboard-filters__label" for="catalog_search">Nombre</label>
+                                        <input type="search"
+                                               id="catalog_search"
+                                               name="catalog_search"
+                                               value="{{ catalog_search }}"
+                                               class="dashboard-filters__input"
+                                               placeholder="Buscar producto"
+                                               autocomplete="off" />
+                                    </div>
+                                    <div class="dashboard-filters__group">
+                                        <label class="dashboard-filters__label" for="catalog_kind">Tipo</label>
+                                        <select id="catalog_kind"
+                                                name="catalog_kind"
+                                                class="dashboard-filters__input">
+                                            <option value="">Todos</option>
+                                            <option value="product" {% if catalog_kind == 'product' %}selected{% endif %}>Producto</option>
+                                            <option value="service" {% if catalog_kind == 'service' %}selected{% endif %}>Servicio</option>
+                                        </select>
+                                    </div>
+                                    {% if catalog_search or catalog_kind %}
+                                        <a href="?section=catalog&view=list" class="dashboard-filters__clear">Limpiar</a>
+                                    {% endif %}
+                                </form>
                             </div>
                             <div class="dashboard-table-wrap">
                                 <div class="table-responsive">
@@ -345,7 +389,7 @@
                                             {% empty %}
                                                 <tr>
                                                     <td colspan="6" class="dashboard-empty-state">
-                                                        <div class="dashboard-empty-state__title">Todavía no hay productos ni servicios registrados.</div>
+                                                        <div class="dashboard-empty-state__title">No hay catálogo de productos ni servicios registrado todavía.</div>
                                                         <div class="dashboard-empty-state__copy">
                                                             Agrega el primero desde el formulario para empezar
                                                             a gestionar el catálogo.
@@ -361,46 +405,29 @@
                                 <div class="dashboard-pagination">
                                     {% if catalog_items.has_previous %}
                                         <a class="dashboard-pagination__link"
-                                           href="?section=catalog&view=list&page=1">Primera</a>
+                                           href="?section=catalog&view=list{{ catalog_filter_params }}&page=1">Primera</a>
                                         <a class="dashboard-pagination__link"
-                                           href="?section=catalog&view=list&page={{ catalog_items.previous_page_number }}">Anterior</a>
+                                           href="?section=catalog&view=list{{ catalog_filter_params }}&page={{ catalog_items.previous_page_number }}">Anterior</a>
                                     {% endif %}
                                     <span class="dashboard-pagination__info">Página {{ catalog_items.number }} de {{ catalog_items.paginator.num_pages }}</span>
                                     {% if catalog_items.has_next %}
                                         <a class="dashboard-pagination__link"
-                                           href="?section=catalog&view=list&page={{ catalog_items.next_page_number }}">Siguiente</a>
+                                           href="?section=catalog&view=list{{ catalog_filter_params }}&page={{ catalog_items.next_page_number }}">Siguiente</a>
                                         <a class="dashboard-pagination__link"
-                                           href="?section=catalog&view=list&page={{ catalog_items.paginator.num_pages }}">Última</a>
+                                           href="?section=catalog&view=list{{ catalog_filter_params }}&page={{ catalog_items.paginator.num_pages }}">Última</a>
                                     {% endif %}
                                 </div>
                             {% endif %}
                         </div>
                     {% elif active_section == 'sales' and quick_view == 'list' %}
-                        <div class="dashboard-metrics mb-4">
-                            <article class="dashboard-metric-card">
-                                <p class="dashboard-metric-card__label mb-1">Total</p>
-                                <strong class="dashboard-metric-card__value">{{ sale_stats.total }}</strong>
-                                <span class="dashboard-metric-card__hint">Ventas y servicios registrados</span>
-                            </article>
-                            <article class="dashboard-metric-card">
-                                <p class="dashboard-metric-card__label mb-1">Servicios</p>
-                                <strong class="dashboard-metric-card__value">{{ sale_stats.sales }}</strong>
-                                <span class="dashboard-metric-card__hint">Cortes y servicios</span>
-                            </article>
-                            <article class="dashboard-metric-card">
-                                <p class="dashboard-metric-card__label mb-1">Productos</p>
-                                <strong class="dashboard-metric-card__value">{{ sale_stats.products }}</strong>
-                                <span class="dashboard-metric-card__hint">Ventas de productos</span>
-                            </article>
-                        </div>
-                    <div class="dashboard-filters mb-3">
+                        <div class="dashboard-filters mb-3">
                             <form method="get" class="dashboard-filters__form">
-                                 <input type="hidden" name="section" value="sales" />
+                                <input type="hidden" name="section" value="sales" />
                                 <input type="hidden" name="view" value="list" />
                                 <div class="dashboard-filters__group">
                                     <span class="dashboard-filters__label">Fecha</span>
                                     <div class="dashboard-filters__row">
-                                         <a href="?section=sales&view=list&filter_date=today{% if filter_barber %}&filter_barber={{ filter_barber }}{% endif %}{% if filter_kind %}&filter_kind={{ filter_kind }}{% endif %}"
+                                        <a href="?section=sales&view=list&filter_date=today{% if filter_barber %}&filter_barber={{ filter_barber }}{% endif %}{% if filter_kind %}&filter_kind={{ filter_kind }}{% endif %}"
                                            class="dashboard-filters__btn {% if filter_date == 'today' %}is-active{% endif %}">Hoy</a>
                                         <input type="date"
                                                name="filter_date"
@@ -435,14 +462,9 @@
                                 {% endif %}
                             </form>
                         </div>
+                        <div class="dashboard-section-spacer" aria-hidden="true"></div>
                         <div class="dashboard-table-shell">
-                            <div class="dashboard-table-shell__header">
-                                <div>
-                                    <p class="eyebrow mb-1">Listado activo</p>
-                                    <h4 class="section-title mb-0">Productos y servicios</h4>
-                                </div>
-                                <span class="dashboard-pill">{{ sales|length }} registros</span>
-                            </div>
+                            <div class="dashboard-table-shell__header"></div>
                             <div class="dashboard-table-wrap">
                                 <div class="table-responsive">
                                     <table class="table dashboard-table dashboard-table--sales align-middle table-hover mb-0">
@@ -495,7 +517,7 @@
                                                         <div class="dashboard-row-actions dashboard-row-actions--controls">
                                                             {% if record.status != 'canceled' %}
                                                                 <form method="get" class="dashboard-inline-form">
-                                                                     <input type="hidden" name="section" value="sales" />
+                                                                    <input type="hidden" name="section" value="sales" />
                                                                     <input type="hidden" name="view" value="edit" />
                                                                     <input type="hidden" name="sale" value="{{ record.pk }}" />
                                                                     <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">Modificar</button>
@@ -506,7 +528,7 @@
                                                                       class="dashboard-inline-form js-confirmable"
                                                                       data-confirm="¿Anular este registro? Esta acción marcará el registro como Cancelado.">
                                                                     {% csrf_token %}
-                                                                     <input type="hidden" name="section" value="sales" />
+                                                                    <input type="hidden" name="section" value="sales" />
                                                                     <input type="hidden" name="action" value="cancel" />
                                                                     <input type="hidden" name="sale_id" value="{{ record.pk }}" />
                                                                     <button type="submit"
@@ -541,7 +563,7 @@
                                         <a class="dashboard-pagination__link"
                                            href="?section=sales&view=list{{ filter_params }}&page={{ sales.previous_page_number }}">Anterior</a>
                                     {% endif %}
-                                     <span class="dashboard-pagination__info">Página {{ sales.number }} de {{ sales.paginator.num_pages }}</span>
+                                    <span class="dashboard-pagination__info">Página {{ sales.number }} de {{ sales.paginator.num_pages }}</span>
                                     {% if sales.has_next %}
                                         <a class="dashboard-pagination__link"
                                            href="?section=sales&view=list{{ filter_params }}&page={{ sales.next_page_number }}">Siguiente</a>
@@ -570,10 +592,9 @@
                             </article>
                         </div>
                         <div class="dashboard-table-shell">
-                            <div class="dashboard-table-shell__header">
+                            <div class="dashboard-table-shell__header mt-3">
                                 <div>
                                     <p class="eyebrow mb-1">Control de inventario</p>
-                                    <h4 class="section-title mb-0">Stock actual</h4>
                                 </div>
                                 <div class="d-flex gap-2">
                                     <a href="?section=inventory&view=form&inventory_action=adjust"
@@ -615,9 +636,7 @@
                                                 <tr>
                                                     <td colspan="5" class="dashboard-empty-state">
                                                         <div class="dashboard-empty-state__title">No hay productos registrados.</div>
-                                                        <div class="dashboard-empty-state__copy">
-                                                            Crea productos en el catálogo para gestionar el inventario.
-                                                        </div>
+                                                        <div class="dashboard-empty-state__copy">Crea productos en el catálogo para gestionar el inventario.</div>
                                                     </td>
                                                 </tr>
                                             {% endfor %}
@@ -644,25 +663,35 @@
                             {% endif %}
                         </div>
                     {% elif active_section == 'compras' and quick_view == 'list' %}
-                        <div class="dashboard-metrics mb-3">
-                            <article class="dashboard-metric-card">
-                                <p class="dashboard-metric-card__label mb-1">Total compras</p>
-                                <strong class="dashboard-metric-card__value">{{ purchase_stats.total }}</strong>
-                                <span class="dashboard-metric-card__hint">Compras registradas</span>
-                            </article>
-                            <article class="dashboard-metric-card">
-                                <p class="dashboard-metric-card__label mb-1">Monto total</p>
-                                <strong class="dashboard-metric-card__value">${{ purchase_stats.total_amount|floatformat:2 }}</strong>
-                                <span class="dashboard-metric-card__hint">Costo acumulado</span>
-                            </article>
-                        </div>
                         <div class="dashboard-table-shell">
                             <div class="dashboard-table-shell__header">
-                                <div>
-                                    <p class="eyebrow mb-1">Compras recientes</p>
-                                    <h4 class="section-title mb-0">Historial de adquisiciones</h4>
-                                </div>
-                                <a href="?section=compras&view=form" class="dashboard-action-btn dashboard-action-btn--secondary">Nueva compra</a>
+                                <form method="get"
+                                      class="dashboard-filters__form dashboard-filters__form--compact">
+                                    <input type="hidden" name="section" value="compras" />
+                                    <input type="hidden" name="view" value="list" />
+                                    <div class="dashboard-filters__group">
+                                        <label class="dashboard-filters__label" for="purchase_filter_date">Fecha</label>
+                                        <input type="date"
+                                               id="purchase_filter_date"
+                                               name="purchase_filter_date"
+                                               value="{{ purchase_filter_date }}"
+                                               class="dashboard-filters__input"
+                                               onchange="this.form.submit()" />
+                                    </div>
+                                    <div class="dashboard-filters__group">
+                                        <label class="dashboard-filters__label" for="purchase_filter_product">Producto</label>
+                                        <input type="search"
+                                               id="purchase_filter_product"
+                                               name="purchase_filter_product"
+                                               value="{{ purchase_filter_product }}"
+                                               class="dashboard-filters__input"
+                                               placeholder="Buscar producto"
+                                               autocomplete="off" />
+                                    </div>
+                                    {% if purchase_filter_date or purchase_filter_product %}
+                                        <a href="?section=compras&view=list" class="dashboard-filters__clear">Limpiar</a>
+                                    {% endif %}
+                                </form>
                             </div>
                             <div class="dashboard-table-wrap">
                                 <div class="table-responsive">
@@ -694,6 +723,21 @@
                                     </table>
                                 </div>
                             </div>
+                            {% if purchase_page.paginator.num_pages > 1 %}
+                                <div class="dashboard-pagination mt-3">
+                                    {% if purchase_page.has_previous %}
+                                        <a class="dashboard-pagination__link"
+                                           href="?section=compras&view=list{{ purchase_filter_params }}&page={{ purchase_page.previous_page_number }}">Anterior</a>
+                                    {% endif %}
+                                    <span class="dashboard-pagination__info">Página {{ purchase_page.number }} de {{ purchase_page.paginator.num_pages }}</span>
+                                    {% if purchase_page.has_next %}
+                                        <a class="dashboard-pagination__link"
+                                           href="?section=compras&view=list{{ purchase_filter_params }}&page={{ purchase_page.next_page_number }}">Siguiente</a>
+                                        <a class="dashboard-pagination__link"
+                                           href="?section=compras&view=list{{ purchase_filter_params }}&page={{ purchase_page.paginator.num_pages }}">Última</a>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
                         </div>
                     {% elif active_section == 'inventory' and quick_view == 'history' %}
                         {% if movement_product %}
@@ -708,26 +752,28 @@
                                 <div class="dashboard-table-wrap">
                                     <div class="table-responsive">
                                         <table class="table dashboard-table align-middle table-hover mb-0">
-                                                            <thead>
-                                                                <tr>
-                                                                    <th>Fecha</th>
-                                                                    <th>Tipo</th>
-                                                                    <th>Cantidad</th>
-                                                                    <th>Costo unit.</th>
-                                                                    <th>Observaciones</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                {% for mov in inventory_movements_page %}
-                                                                    <tr>
-                                                                        <td>{{ mov.created_at|date:'d/m/Y H:i' }}</td>
-                                                                        <td><span class="dashboard-table__chip">{{ mov.get_movement_type_display }}</span></td>
-                                                                        <td class="{% if mov.quantity > 0 %}text-success{% elif mov.quantity < 0 %}text-danger{% endif %} fw-bold">
-                                                                            {{ mov.quantity }}
-                                                                        </td>
-                                                                        <td>${{ mov.unit_cost|default_if_none:'—'|floatformat:2 }}</td>
-                                                                        <td>{{ mov.notes|default:'—' }}</td>
-                                                                    </tr>
+                                            <thead>
+                                                <tr>
+                                                    <th>Fecha</th>
+                                                    <th>Tipo</th>
+                                                    <th>Cantidad</th>
+                                                    <th>Costo unit.</th>
+                                                    <th>Observaciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for mov in inventory_movements_page %}
+                                                    <tr>
+                                                        <td>{{ mov.created_at|date:'d/m/Y H:i' }}</td>
+                                                        <td>
+                                                            <span class="dashboard-table__chip">{{ mov.get_movement_type_display }}</span>
+                                                        </td>
+                                                        <td class="{% if mov.quantity > 0 %}text-success{% elif mov.quantity < 0 %}text-danger{% endif %} fw-bold">
+                                                            {{ mov.quantity }}
+                                                        </td>
+                                                        <td>${{ mov.unit_cost|default_if_none:'—'|floatformat:2 }}</td>
+                                                        <td>{{ mov.notes|default:'—' }}</td>
+                                                    </tr>
                                                 {% empty %}
                                                     <tr>
                                                         <td colspan="6" class="dashboard-empty-state">
@@ -742,12 +788,15 @@
                                 {% if inventory_movements_page.paginator.num_pages > 1 %}
                                     <div class="dashboard-pagination mt-3">
                                         {% if inventory_movements_page.has_previous %}
-                                            <a class="dashboard-pagination__link" href="?section=inventory&view=history&product={{ movement_product.pk }}&movements_page={{ inventory_movements_page.previous_page_number }}">Anterior</a>
+                                            <a class="dashboard-pagination__link"
+                                               href="?section=inventory&view=history&product={{ movement_product.pk }}&movements_page={{ inventory_movements_page.previous_page_number }}">Anterior</a>
                                         {% endif %}
                                         <span class="dashboard-pagination__info">Página {{ inventory_movements_page.number }} de {{ inventory_movements_page.paginator.num_pages }}</span>
                                         {% if inventory_movements_page.has_next %}
-                                            <a class="dashboard-pagination__link" href="?section=inventory&view=history&product={{ movement_product.pk }}&movements_page={{ inventory_movements_page.next_page_number }}">Siguiente</a>
-                                            <a class="dashboard-pagination__link" href="?section=inventory&view=history&product={{ movement_product.pk }}&movements_page={{ inventory_movements_page.paginator.num_pages }}">Última</a>
+                                            <a class="dashboard-pagination__link"
+                                               href="?section=inventory&view=history&product={{ movement_product.pk }}&movements_page={{ inventory_movements_page.next_page_number }}">Siguiente</a>
+                                            <a class="dashboard-pagination__link"
+                                               href="?section=inventory&view=history&product={{ movement_product.pk }}&movements_page={{ inventory_movements_page.paginator.num_pages }}">Última</a>
                                         {% endif %}
                                     </div>
                                 {% endif %}
@@ -820,9 +869,9 @@
                                     <table class="table dashboard-table align-middle table-hover mb-0">
                                         <thead>
                                             <tr>
-                                                 <th>Colaborador</th>
-                                                 <th>Cortes</th>
-                                                 <th>Comisión</th>
+                                                <th>Colaborador</th>
+                                                <th>Cortes</th>
+                                                <th>Comisión</th>
                                                 <th>Propina</th>
                                                 <th>Total a pagar</th>
                                             </tr>
@@ -931,72 +980,75 @@
                                 </p>
                             </div>
                         {% endif %}
-                        <form method="post" class="dashboard-form">
-                            {% csrf_token %}
-                            <input type="hidden" name="section" value="{{ active_section }}" />
-                            {% if active_section == 'barbers' and quick_view == 'edit' and barber_to_edit %}
-                                <input type="hidden" name="action" value="update" />
-                                <input type="hidden" name="barber_id" value="{{ barber_to_edit.pk }}" />
-                                <input type="hidden" name="type" value="colaborador" />
-                            {% elif active_section == 'barbers' and quick_view == 'edit' and client_to_edit %}
-                                <input type="hidden" name="action" value="update" />
-                                <input type="hidden" name="client_id" value="{{ client_to_edit.pk }}" />
-                                <input type="hidden" name="type" value="cliente" />
-                            {% elif active_section == 'barbers' and quick_view == 'form' %}
-                                <input type="hidden" name="type" value="{{ record_type }}" />
-                            {% elif active_section == 'sales' and quick_view == 'form' %}
-                                <input type="hidden" name="type" value="{{ sale_type }}" />
-                            {% elif active_section == 'catalog' and quick_view == 'edit' and catalog_item_to_edit %}
-                                <input type="hidden" name="action" value="update" />
-                                <input type="hidden"
-                                       name="catalog_item_id"
-                                       value="{{ catalog_item_to_edit.pk }}" />
-                            {% elif active_section == 'sales' and quick_view == 'edit' and sale_to_edit %}
-                                <input type="hidden" name="action" value="update" />
-                                <input type="hidden"
-                                       name="sale_id"
-                                       value="{{ sale_to_edit.pk }}" />
-                            {% elif active_section == 'compras' and quick_view == 'form' %}
-                                <input type="hidden" name="action" value="save" />
-                            {% elif active_section == 'inventory' and quick_view == 'form' %}
-                                <input type="hidden" name="action" value="adjust" />
-                            {% endif %}
-                            <div class="dashboard-form-grid">
-                                 {% for field in form %}
-                                     {% if field.name == 'is_supply' %}
-                                         <div class="form-check p-0 m-0 d-flex align-items-center gap-2" style="grid-column: span 4;">
-                                             {{ field }}
-                                             <label class="form-check-label fw-semibold" for="{{ field.id_for_label }}" style="color:#0f172a;">{{ field.label }}</label>
-                                         </div>
-                                     {% else %}
-                                     <div class="dashboard-field-card {% if field.name == 'notes' or field.name == 'description' %}dashboard-field-card--wide{% endif %}">
-                                         <div class="dashboard-field-card__head">
-                                             <label class="form-label mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                             {% if field.field.required %}<span class="dashboard-field-card__required">Obligatorio</span>{% endif %}
-                                         </div>
-                                         <div class="dashboard-field-card__body">
-                                             {{ field }}
-                                             {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
-                                             {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>{% endif %}
-                                         </div>
-                                     </div>
-                                     {% endif %}
-                                 {% endfor %}
-                            </div>
-                            <div class="dashboard-form-gap" aria-hidden="true"></div>
-                            <div class="dashboard-form__actions mt-4">
-                                <button type="submit"
-                                        class="btn btn-dashboard-primary btn-lg rounded-pill px-5">
-                                    {% if quick_view == 'edit' %}
-                                        Guardar cambios
-                                    {% else %}
-                                        Guardar registro
-                                    {% endif %}
-                                </button>
-                                <a href="?section={{ active_section }}&view=list"
-                                    class="btn btn-dashboard-logout btn-lg rounded-pill px-5">Cancelar</a>
-                            </div>
-                        </form>
+                        {% if active_section != 'config' %}
+                            <form method="post" class="dashboard-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="section" value="{{ active_section }}" />
+                                {% if active_section == 'barbers' and quick_view == 'edit' and barber_to_edit %}
+                                    <input type="hidden" name="action" value="update" />
+                                    <input type="hidden" name="barber_id" value="{{ barber_to_edit.pk }}" />
+                                    <input type="hidden" name="type" value="colaborador" />
+                                {% elif active_section == 'barbers' and quick_view == 'edit' and client_to_edit %}
+                                    <input type="hidden" name="action" value="update" />
+                                    <input type="hidden" name="client_id" value="{{ client_to_edit.pk }}" />
+                                    <input type="hidden" name="type" value="cliente" />
+                                {% elif active_section == 'barbers' and quick_view == 'form' %}
+                                    <input type="hidden" name="type" value="{{ record_type }}" />
+                                {% elif active_section == 'sales' and quick_view == 'form' %}
+                                    <input type="hidden" name="type" value="{{ sale_type }}" />
+                                {% elif active_section == 'catalog' and quick_view == 'edit' and catalog_item_to_edit %}
+                                    <input type="hidden" name="action" value="update" />
+                                    <input type="hidden"
+                                           name="catalog_item_id"
+                                           value="{{ catalog_item_to_edit.pk }}" />
+                                {% elif active_section == 'sales' and quick_view == 'edit' and sale_to_edit %}
+                                    <input type="hidden" name="action" value="update" />
+                                    <input type="hidden" name="sale_id" value="{{ sale_to_edit.pk }}" />
+                                {% elif active_section == 'compras' and quick_view == 'form' %}
+                                    <input type="hidden" name="action" value="save" />
+                                {% elif active_section == 'inventory' and quick_view == 'form' %}
+                                    <input type="hidden" name="action" value="adjust" />
+                                {% endif %}
+                                <div class="dashboard-form-grid">
+                                    {% for field in form %}
+                                        {% if field.name == 'is_supply' %}
+                                            <div class="form-check p-0 m-0 d-flex align-items-center gap-2"
+                                                 style="grid-column: span 4">
+                                                {{ field }}
+                                                <label class="form-check-label fw-semibold"
+                                                       for="{{ field.id_for_label }}"
+                                                       style="color:#0f172a">{{ field.label }}</label>
+                                            </div>
+                                        {% else %}
+                                            <div class="dashboard-field-card {% if field.name == 'notes' or field.name == 'description' %}dashboard-field-card--wide{% endif %}">
+                                                <div class="dashboard-field-card__head">
+                                                    <label class="form-label mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                                    {% if field.field.required %}<span class="dashboard-field-card__required">Obligatorio</span>{% endif %}
+                                                </div>
+                                                <div class="dashboard-field-card__body">
+                                                    {{ field }}
+                                                    {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+                                                    {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>{% endif %}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <div class="dashboard-form-gap" aria-hidden="true"></div>
+                                <div class="dashboard-form__actions mt-4">
+                                    <button type="submit"
+                                            class="btn btn-dashboard-primary btn-lg rounded-pill px-5">
+                                        {% if quick_view == 'edit' %}
+                                            Guardar cambios
+                                        {% else %}
+                                            Guardar registro
+                                        {% endif %}
+                                    </button>
+                                    <a href="?section={{ active_section }}&view=list"
+                                       class="btn btn-dashboard-logout btn-lg rounded-pill px-5">Cancelar</a>
+                                </div>
+                            </form>
+                        {% endif %}
                     {% endif %}
                 </div>
             </section>
@@ -1035,6 +1087,13 @@
             var okBtn = document.getElementById('confirm-ok');
             var cancelBtn = document.getElementById('confirm-cancel');
             var activeForm = null;
+            var barberSearchInput = document.getElementById('barber_search');
+            var barberSearchTimer = null;
+            var catalogSearchInput = document.getElementById('catalog_search');
+            var catalogSearchTimer = null;
+            var catalogKindInput = document.getElementById('catalog_kind');
+            var purchaseFilterInput = document.getElementById('purchase_filter_product');
+            var purchaseFilterTimer = null;
 
             function showConfirm(message, form){
                 activeForm = form;
@@ -1072,6 +1131,54 @@
                         showConfirm(msg, f);
                     });
                 });
+
+                if (purchaseFilterInput) {
+                    purchaseFilterInput.addEventListener('input', function(){
+                        window.clearTimeout(purchaseFilterTimer);
+                        purchaseFilterTimer = window.setTimeout(function(){
+                            purchaseFilterInput.form.submit();
+                        }, 350);
+                    });
+
+                    purchaseFilterInput.focus();
+                    var value = purchaseFilterInput.value;
+                    purchaseFilterInput.value = value;
+                    purchaseFilterInput.setSelectionRange(value.length, value.length);
+                }
+
+                if (barberSearchInput) {
+                    barberSearchInput.addEventListener('input', function(){
+                        window.clearTimeout(barberSearchTimer);
+                        barberSearchTimer = window.setTimeout(function(){
+                            barberSearchInput.form.submit();
+                        }, 350);
+                    });
+
+                    barberSearchInput.focus();
+                    var barberValue = barberSearchInput.value;
+                    barberSearchInput.value = barberValue;
+                    barberSearchInput.setSelectionRange(barberValue.length, barberValue.length);
+                }
+
+                if (catalogSearchInput) {
+                    catalogSearchInput.addEventListener('input', function(){
+                        window.clearTimeout(catalogSearchTimer);
+                        catalogSearchTimer = window.setTimeout(function(){
+                            catalogSearchInput.form.submit();
+                        }, 350);
+                    });
+
+                    catalogSearchInput.focus();
+                    var catalogValue = catalogSearchInput.value;
+                    catalogSearchInput.value = catalogValue;
+                    catalogSearchInput.setSelectionRange(catalogValue.length, catalogValue.length);
+                }
+
+                if (catalogKindInput) {
+                    catalogKindInput.addEventListener('change', function(){
+                        catalogKindInput.form.submit();
+                    });
+                }
             });
         })();
         </script>

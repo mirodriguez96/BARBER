@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
+from barberia.common.models import Company
 from barberia.inventory.models import InventoryMovement
 from barberia.operations.models import Purchase, Sale
 from barberia.people.models import Client, Employee
@@ -23,6 +24,7 @@ from .forms import (
     CatalogItemForm,
     ClientEditForm,
     ClientForm,
+    CompanyForm,
     InventoryAdjustForm,
     ProductSaleEditForm,
     ProductSaleForm,
@@ -44,8 +46,33 @@ def home(request):
     inventory_action = request.GET.get("inventory_action", "adjust")
     sale_id = request.GET.get("sale")
     product_id = request.GET.get("product")
-    if section not in {"barbers", "catalog", "sales", "payments", "inventory", "compras"}:
+    if section not in {
+        "barbers",
+        "catalog",
+        "sales",
+        "payments",
+        "inventory",
+        "compras",
+        "config",
+    }:
         quick_view = "form"
+
+    company = Company.objects.first()
+    company_form = None
+    if section == "config":
+        if request.method == "POST":
+            company_form = CompanyForm(request.POST, instance=company)
+            if company_form.is_valid():
+                company = company_form.save()
+                message = (
+                    "La información de la empresa se actualizó correctamente."
+                    if company.pk
+                    else "La información de la empresa se guardó correctamente."
+                )
+                messages.success(request, message)
+                return redirect(f"{request.path}?section=config")
+        else:
+            company_form = CompanyForm(instance=company)
 
     barber_to_edit = None
     if section == "barbers" and quick_view == "edit" and barber_id:
@@ -330,11 +357,7 @@ def home(request):
             if section == "barbers":
                 form_class = ClientForm if record_type == "cliente" else BarberForm
             elif section == "sales":
-                form_class = (
-                    ProductSaleForm
-                    if record_type == "producto"
-                    else SaleForm
-                )
+                form_class = ProductSaleForm if record_type == "producto" else SaleForm
             else:
                 form_class = forms_map.get(section, BarberForm)
             form = form_class(request.POST, user=request.user)
@@ -381,11 +404,7 @@ def home(request):
         and catalog_item_to_edit is not None
     ):
         form = CatalogItemEditForm(instance=catalog_item_to_edit)
-    elif (
-        section == "sales"
-        and quick_view == "edit"
-        and sale_to_edit is not None
-    ):
+    elif section == "sales" and quick_view == "edit" and sale_to_edit is not None:
         if (
             request.user.role != User.Role.ADMIN
             and sale_to_edit.employee.user_id != request.user.pk
@@ -426,6 +445,11 @@ def home(request):
     filter_date = request.GET.get("filter_date", "")
     filter_barber = request.GET.get("filter_barber", "")
     filter_kind = request.GET.get("filter_kind", "")
+    barber_search = request.GET.get("barber_search", "").strip()
+    catalog_search = request.GET.get("catalog_search", "").strip()
+    catalog_kind = request.GET.get("catalog_kind", "")
+    purchase_filter_date = request.GET.get("purchase_filter_date", "")
+    purchase_filter_product = request.GET.get("purchase_filter_product", "").strip()
 
     sale_list = Sale.objects.select_related(
         "client",
@@ -471,10 +495,25 @@ def home(request):
     if filter_kind:
         filter_parts.append(f"filter_kind={filter_kind}")
     filter_params = "&" + "&".join(filter_parts) if filter_parts else ""
+    barber_filter_params = f"&barber_search={barber_search}" if barber_search else ""
+    catalog_filter_params = (
+        f"&catalog_search={catalog_search}" if catalog_search else ""
+    )
+    if catalog_kind:
+        catalog_filter_params += f"&catalog_kind={catalog_kind}"
 
     # --- Combined people list (barbers + clients) ---
     barber_qs = Employee.objects.all()
     client_qs = Client.objects.all()
+    if barber_search:
+        barber_qs = barber_qs.filter(
+            Q(full_name__icontains=barber_search)
+            | Q(document_id__icontains=barber_search)
+        )
+        client_qs = client_qs.filter(
+            Q(full_name__icontains=barber_search)
+            | Q(document_id__icontains=barber_search)
+        )
 
     barber_data = [
         {
@@ -514,6 +553,12 @@ def home(request):
     people_page = people_paginator.get_page(people_page_number)
 
     catalog_list = CatalogItem.objects.order_by("-id")
+    if catalog_search:
+        catalog_list = catalog_list.filter(name__icontains=catalog_search)
+    if catalog_kind == "product":
+        catalog_list = catalog_list.filter(kind=CatalogItem.Kind.PRODUCT)
+    elif catalog_kind == "service":
+        catalog_list = catalog_list.filter(kind=CatalogItem.Kind.SERVICE)
     catalog_paginator = Paginator(catalog_list, 10)
     catalog_page_number = request.GET.get("page")
     catalog_items = catalog_paginator.get_page(catalog_page_number)
@@ -667,13 +712,40 @@ def home(request):
 
     purchase_page = None
     purchase_stats = None
+    purchase_filter_params = ""
     if section == "compras" and quick_view == "list":
-        purchase_qs = Purchase.objects.select_related("product", "created_by").annotate(
-            total_cost=ExpressionWrapper(
-                F("quantity") * F("unit_cost"),
-                output_field=DecimalField(max_digits=12, decimal_places=2),
+        purchase_qs = (
+            Purchase.objects.select_related("product", "created_by")
+            .annotate(
+                total_cost=ExpressionWrapper(
+                    F("quantity") * F("unit_cost"),
+                    output_field=DecimalField(max_digits=12, decimal_places=2),
+                )
             )
-        ).order_by("-created_at")
+            .order_by("-created_at")
+        )
+        if purchase_filter_date == "today":
+            purchase_qs = purchase_qs.filter(created_at__date=date.today())
+        elif purchase_filter_date:
+            try:
+                parsed = datetime.strptime(purchase_filter_date, "%Y-%m-%d").date()
+                purchase_qs = purchase_qs.filter(created_at__date=parsed)
+            except ValueError:
+                pass
+        if purchase_filter_product:
+            purchase_qs = purchase_qs.filter(
+                product__name__icontains=purchase_filter_product
+            )
+        purchase_filter_parts = []
+        if purchase_filter_date:
+            purchase_filter_parts.append(f"purchase_filter_date={purchase_filter_date}")
+        if purchase_filter_product:
+            purchase_filter_parts.append(
+                f"purchase_filter_product={purchase_filter_product}"
+            )
+        purchase_filter_params = (
+            "&" + "&".join(purchase_filter_parts) if purchase_filter_parts else ""
+        )
         purchase_page = Paginator(purchase_qs, 10).get_page(request.GET.get("page"))
         purchase_stats = {
             "total": purchase_qs.count(),
@@ -707,11 +779,12 @@ def home(request):
 
     section_titles = {
         "barbers": "Administrar colaboradores y clientes",
-        "catalog": "Administrar productos y servicios",
+        "catalog": "Administrar catálogo de productos y servicios",
         "sales": "Administrar ventas y servicios realizados",
-        "payments": "Pagos — comisiones y propinas",
-        "inventory": "Inventario — control de stock",
-        "compras": "Compras — registro de adquisiciones",
+        "payments": "Administrar pagos y comisiones",
+        "inventory": "Administrar inventario",
+        "compras": "Administrar compras",
+        "config": "Configuración de la empresa",
     }
 
     context = {
@@ -737,6 +810,11 @@ def home(request):
         "filter_date": filter_date,
         "filter_barber": filter_barber,
         "filter_kind": filter_kind,
+        "barber_search": barber_search,
+        "barber_filter_params": barber_filter_params,
+        "catalog_search": catalog_search,
+        "catalog_kind": catalog_kind,
+        "catalog_filter_params": catalog_filter_params,
         "active_barbers": Employee.objects.filter(is_active=True),
         "barber_stats": barber_stats,
         "catalog_stats": catalog_stats,
@@ -745,11 +823,16 @@ def home(request):
         "inventory_stats": inventory_stats,
         "purchase_page": purchase_page,
         "purchase_stats": purchase_stats,
+        "purchase_filter_date": purchase_filter_date,
+        "purchase_filter_product": purchase_filter_product,
+        "purchase_filter_params": purchase_filter_params,
         "purchase_form": purchase_form,
         "inventory_adjust_form": inventory_adjust_form,
         "inventory_action": inventory_action,
         "movement_product": movement_product,
         "inventory_movements_page": inventory_movements_page,
+        "company": company,
+        "company_form": company_form,
         "menu_items": [
             {"key": "barbers", "label": "COLABORADORES / CLIENTES", "hint": ""},
             {"key": "catalog", "label": "PRODUCTOS Y SERVICIOS", "hint": ""},
@@ -757,6 +840,7 @@ def home(request):
             {"key": "compras", "label": "COMPRAS", "hint": ""},
             {"key": "payments", "label": "PAGOS", "hint": ""},
             {"key": "inventory", "label": "INVENTARIO", "hint": ""},
+            {"key": "config", "label": "CONFIGURACIÓN", "hint": "Empresa"},
         ],
         "is_admin": request.user.role == User.Role.ADMIN,
     }

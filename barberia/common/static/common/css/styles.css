@@ -406,6 +406,10 @@ body.auth-page {
   color: rgba(226, 232, 240, 0.84);
 }
 
+.dashboard-sidebar .dashboard-page-title {
+  color: #fff;
+}
+
 .dashboard-menu {
   display: grid;
   gap: 0.85rem;
@@ -1569,6 +1573,10 @@ a.btn,
   margin: 0;
   color: #0f172a;
   font-weight: 800;
+}
+
+.dashboard-page-title--inverse {
+  color: #fff;
 }
 
 .dashboard-page-copy {

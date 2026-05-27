@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from barberia.catalog.models import CatalogItem
+from barberia.common.models import Company
 from barberia.inventory.models import InventoryMovement
 from barberia.operations.models import Purchase, Sale
 from barberia.people.models import Client, Employee
@@ -41,6 +42,24 @@ class DashboardModelForm(forms.ModelForm):
         self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
         self._bootstrapify_fields()
+
+
+class CompanyForm(DashboardModelForm):
+    class Meta:
+        model = Company
+        fields = ["nit", "name"]
+        labels = {
+            "nit": "NIT",
+            "name": "Nombre de la empresa",
+        }
+        widgets = {
+            "nit": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Ej. 900123456-7"}
+            ),
+            "name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Ej. Barbería Central"}
+            ),
+        }
 
 
 class ServiceCatalogSelect(forms.Select):
@@ -500,11 +519,7 @@ class SaleForm(DashboardModelForm):
         if self.is_bound:
             product_id = self.data.get(self.add_prefix("product"))
             if product_id:
-                product = (
-                    self.fields["product"]
-                    .queryset.filter(pk=product_id)
-                    .first()
-                )
+                product = self.fields["product"].queryset.filter(pk=product_id).first()
         elif self.instance and self.instance.pk and self.instance.product_id:
             product = self.instance.product
         return product
@@ -587,11 +602,7 @@ class SaleEditForm(DashboardModelForm):
         if self.is_bound:
             product_id = self.data.get(self.add_prefix("product"))
             if product_id:
-                product = (
-                    self.fields["product"]
-                    .queryset.filter(pk=product_id)
-                    .first()
-                )
+                product = self.fields["product"].queryset.filter(pk=product_id).first()
         elif self.instance and self.instance.pk and self.instance.product_id:
             product = self.instance.product
         return product
@@ -661,11 +672,7 @@ class ProductSaleForm(DashboardModelForm):
         if self.is_bound:
             product_id = self.data.get(self.add_prefix("product"))
             if product_id:
-                product = (
-                    self.fields["product"]
-                    .queryset.filter(pk=product_id)
-                    .first()
-                )
+                product = self.fields["product"].queryset.filter(pk=product_id).first()
         elif self.instance and self.instance.pk and self.instance.product_id:
             product = self.instance.product
         return product
@@ -721,11 +728,7 @@ class ProductSaleEditForm(DashboardModelForm):
         if self.is_bound:
             product_id = self.data.get(self.add_prefix("product"))
             if product_id:
-                product = (
-                    self.fields["product"]
-                    .queryset.filter(pk=product_id)
-                    .first()
-                )
+                product = self.fields["product"].queryset.filter(pk=product_id).first()
         elif self.instance and self.instance.pk and self.instance.product_id:
             product = self.instance.product
         return product

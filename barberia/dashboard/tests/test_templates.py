@@ -113,24 +113,6 @@ class DashboardTemplateRenderingTest(TestCase):
             "no hay" in body.lower() or "sin" in body.lower() or "servicios" in body,
         )
 
-    # --- Metric cards ---
-
-    def test_barbers_section_renders_stats_cards(self):
-        soup = self._soup("barbers")
-        cards = soup.select(".dashboard-metric-card")
-        self.assertGreaterEqual(len(cards), 3)
-
-    def test_catalog_section_renders_stats_cards(self):
-        CatalogItem.objects.create(
-            kind=CatalogItem.Kind.SERVICE,
-            name="Test",
-            price=Decimal("10.00"),
-            sku="SRV010",
-        )
-        soup = self._soup("catalog")
-        cards = soup.select(".dashboard-metric-card")
-        self.assertGreaterEqual(len(cards), 3)
-
     # --- Bootstrap form classes ---
 
     def test_barber_form_has_bootstrap_classes(self):
