@@ -34,6 +34,7 @@ class DashboardTemplateRenderingTest(TestCase):
             kind=CatalogItem.Kind.SERVICE,
             name="Corte",
             price=Decimal("50.00"),
+            sku="SRV050",
         )
         self.http_client = self.client
         self.http_client.login(username="admin", password="pass1234")
@@ -124,6 +125,7 @@ class DashboardTemplateRenderingTest(TestCase):
             kind=CatalogItem.Kind.SERVICE,
             name="Test",
             price=Decimal("10.00"),
+            sku="SRV010",
         )
         soup = self._soup("catalog")
         cards = soup.select(".dashboard-metric-card")

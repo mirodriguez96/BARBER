@@ -57,3 +57,41 @@ class CatalogItemModelTest(TestCase):
         )
         self.assertEqual(item.description, "")
         self.assertEqual(item.sku, "")
+
+    def test_current_stock_default_zero(self):
+        item = CatalogItem.objects.create(
+            kind=CatalogItem.Kind.PRODUCT,
+            name="Gel",
+            price=Decimal("80.00"),
+        )
+        self.assertEqual(item.current_stock, 0)
+
+    def test_current_stock_can_be_set(self):
+        item = CatalogItem.objects.create(
+            kind=CatalogItem.Kind.PRODUCT,
+            name="Shampoo",
+            price=Decimal("120.00"),
+            current_stock=50,
+        )
+        self.assertEqual(item.current_stock, 50)
+
+    def test_current_stock_can_be_negative(self):
+        item = CatalogItem.objects.create(
+            kind=CatalogItem.Kind.PRODUCT,
+            name="Aceite",
+            price=Decimal("90.00"),
+            current_stock=-5,
+        )
+        self.assertEqual(item.current_stock, -5)
+
+    def test_current_stock_updates_correctly(self):
+        item = CatalogItem.objects.create(
+            kind=CatalogItem.Kind.PRODUCT,
+            name="Test",
+            price=Decimal("10.00"),
+            current_stock=10,
+        )
+        item.current_stock += 5
+        item.save(update_fields=["current_stock"])
+        item.refresh_from_db()
+        self.assertEqual(item.current_stock, 15)

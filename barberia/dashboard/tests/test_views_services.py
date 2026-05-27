@@ -34,12 +34,14 @@ class ServiceDashboardViewsTest(TestCase):
             price=Decimal("50.00"),
             barber_commission_percent=Decimal("20.00"),
             is_active=True,
+            sku="SRV001",
         )
         self.product = CatalogItem.objects.create(
             kind=CatalogItem.Kind.PRODUCT,
             name="Gel fijador",
             price=Decimal("30.00"),
             is_active=True,
+            sku="PRD001",
         )
         self.client_login = self.client
         self.client_login.login(username="barber_admin", password="pass1234")
@@ -337,6 +339,7 @@ class ServiceBarberoAccessTest(TestCase):
             kind=CatalogItem.Kind.SERVICE,
             name="Corte",
             price=Decimal("50.00"),
+            sku="SRV010",
         )
         self.own_record = ServiceRecord.objects.create(
             barber=self.barbero_emp,
@@ -488,6 +491,7 @@ class ProductRecordDashboardViewsTest(TestCase):
             price=Decimal("100.00"),
             barber_commission_percent=Decimal("0.00"),
             is_active=True,
+            sku="PRD100",
         )
         self.service_item = CatalogItem.objects.create(
             kind=CatalogItem.Kind.SERVICE,
@@ -495,6 +499,7 @@ class ProductRecordDashboardViewsTest(TestCase):
             price=Decimal("60.00"),
             barber_commission_percent=Decimal("20.00"),
             is_active=True,
+            sku="SRV200",
         )
         self.client.login(username="admin_prod", password="pass1234")
         self.list_url = reverse("dashboard:home")

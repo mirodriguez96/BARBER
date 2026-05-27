@@ -48,7 +48,7 @@
                         </div>
                         <span class="dashboard-user-badge">{{ request.user.get_full_name|default:request.user.username }}</span>
                     </div>
-                    {% if active_section == 'barbers' or active_section == 'catalog' or active_section == 'services' %}
+                    {% if active_section == 'barbers' or active_section == 'catalog' or active_section == 'services' or active_section == 'inventory' %}
                         <div class="dashboard-quick-switch mb-4">
                             <a class="dashboard-quick-switch__item {% if quick_view == 'list' %}is-active{% endif %}"
                                href="?section={{ active_section }}&view=list">Lista de registros</a>
@@ -70,6 +70,14 @@
                                href="?section=services&view=form&service_type=servicio">Servicio</a>
                             <a class="dashboard-quick-switch__item {% if service_type == 'producto' %}is-active{% endif %}"
                                href="?section=services&view=form&service_type=producto">Producto</a>
+                        </div>
+                    {% endif %}
+                    {% if active_section == 'inventory' and quick_view == 'form' %}
+                        <div class="dashboard-quick-switch mb-3">
+                            <a class="dashboard-quick-switch__item {% if inventory_action == 'adjust' %}is-active{% endif %}"
+                               href="?section=inventory&view=form&inventory_action=adjust">Ajuste</a>
+                            <a class="dashboard-quick-switch__item {% if inventory_action == 'purchase' %}is-active{% endif %}"
+                               href="?section=inventory&view=form&inventory_action=purchase">Compra</a>
                         </div>
                     {% endif %}
                     {% if active_section == 'barbers' and quick_view == 'list' %}
@@ -540,6 +548,161 @@
                                 </div>
                             {% endif %}
                         </div>
+                    {% elif active_section == 'inventory' and quick_view == 'list' %}
+                        <div class="dashboard-metrics mb-3">
+                            <article class="dashboard-metric-card">
+                                <p class="dashboard-metric-card__label mb-1">Total productos</p>
+                                <strong class="dashboard-metric-card__value">{{ inventory_stats.total }}</strong>
+                                <span class="dashboard-metric-card__hint">Productos registrados</span>
+                            </article>
+                            <article class="dashboard-metric-card">
+                                <p class="dashboard-metric-card__label mb-1">Con stock</p>
+                                <strong class="dashboard-metric-card__value">{{ inventory_stats.with_stock }}</strong>
+                                <span class="dashboard-metric-card__hint">Productos con stock &gt; 0</span>
+                            </article>
+                            <article class="dashboard-metric-card">
+                                <p class="dashboard-metric-card__label mb-1">Sin stock</p>
+                                <strong class="dashboard-metric-card__value">{{ inventory_stats.out_of_stock }}</strong>
+                                <span class="dashboard-metric-card__hint">Productos agotados</span>
+                            </article>
+                        </div>
+                        <div class="dashboard-table-shell">
+                            <div class="dashboard-table-shell__header">
+                                <div>
+                                    <p class="eyebrow mb-1">Control de inventario</p>
+                                    <h4 class="section-title mb-0">Stock actual</h4>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <a href="?section=inventory&view=form&inventory_action=adjust"
+                                       class="dashboard-action-btn">Ajustar stock</a>
+                                    <a href="?section=inventory&view=form&inventory_action=purchase"
+                                       class="dashboard-action-btn dashboard-action-btn--secondary">Registrar compra</a>
+                                </div>
+                            </div>
+                            <div class="dashboard-table-wrap">
+                                <div class="table-responsive">
+                                    <table class="table dashboard-table align-middle table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Producto</th>
+                                                <th>Código</th>
+                                                <th>Stock actual</th>
+                                                <th>Precio unitario</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for product in inventory_page %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="dashboard-table__primary">{{ product.name }}</div>
+                                                        <div class="dashboard-table__meta">{{ product.description|truncatechars:60 }}</div>
+                                                    </td>
+                                                    <td>{{ product.sku|default:"—" }}</td>
+                                                    <td>
+                                                        <span class="{% if product.current_stock <= 0 %}text-danger fw-bold{% elif product.current_stock <= 5 %}text-warning fw-bold{% endif %}">
+                                                            {{ product.current_stock }}
+                                                        </span>
+                                                    </td>
+                                                    <td>${{ product.price }}</td>
+                                                    <td>
+                                                        <a href="?section=inventory&view=history&product={{ product.pk }}"
+                                                           class="dashboard-action-btn">Movimientos</a>
+                                                    </td>
+                                                </tr>
+                                            {% empty %}
+                                                <tr>
+                                                    <td colspan="5" class="dashboard-empty-state">
+                                                        <div class="dashboard-empty-state__title">No hay productos registrados.</div>
+                                                        <div class="dashboard-empty-state__copy">
+                                                            Crea productos en el catálogo para gestionar el inventario.
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            {% if inventory_page.paginator.num_pages > 1 %}
+                                <div class="dashboard-pagination">
+                                    {% if inventory_page.has_previous %}
+                                        <a class="dashboard-pagination__link"
+                                           href="?section=inventory&view=list{{ filter_params }}&page=1">Primera</a>
+                                        <a class="dashboard-pagination__link"
+                                           href="?section=inventory&view=list{{ filter_params }}&page={{ inventory_page.previous_page_number }}">Anterior</a>
+                                    {% endif %}
+                                    <span class="dashboard-pagination__info">Página {{ inventory_page.number }} de {{ inventory_page.paginator.num_pages }}</span>
+                                    {% if inventory_page.has_next %}
+                                        <a class="dashboard-pagination__link"
+                                           href="?section=inventory&view=list{{ filter_params }}&page={{ inventory_page.next_page_number }}">Siguiente</a>
+                                        <a class="dashboard-pagination__link"
+                                           href="?section=inventory&view=list{{ filter_params }}&page={{ inventory_page.paginator.num_pages }}">Última</a>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% elif active_section == 'inventory' and quick_view == 'history' %}
+                        {% if movement_product %}
+                            <div class="dashboard-table-shell">
+                                <div class="dashboard-table-shell__header">
+                                    <div>
+                                        <p class="eyebrow mb-1">Movimientos</p>
+                                        <h4 class="section-title mb-0">{{ movement_product.name }}</h4>
+                                    </div>
+                                    <span class="dashboard-pill">Stock: {{ movement_product.current_stock }}</span>
+                                </div>
+                                <div class="dashboard-table-wrap">
+                                    <div class="table-responsive">
+                                        <table class="table dashboard-table align-middle table-hover mb-0">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Fecha</th>
+                                                                    <th>Tipo</th>
+                                                                    <th>Cantidad</th>
+                                                                    <th>Costo unit.</th>
+                                                                    <th>Observaciones</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {% for mov in inventory_movements_page %}
+                                                                    <tr>
+                                                                        <td>{{ mov.created_at|date:'d/m/Y H:i' }}</td>
+                                                                        <td><span class="dashboard-table__chip">{{ mov.get_movement_type_display }}</span></td>
+                                                                        <td class="{% if mov.quantity > 0 %}text-success{% elif mov.quantity < 0 %}text-danger{% endif %} fw-bold">
+                                                                            {{ mov.quantity }}
+                                                                        </td>
+                                                                        <td>${{ mov.unit_cost|default_if_none:'—'|floatformat:2 }}</td>
+                                                                        <td>{{ mov.notes|default:'—' }}</td>
+                                                                    </tr>
+                                                {% empty %}
+                                                    <tr>
+                                                        <td colspan="6" class="dashboard-empty-state">
+                                                            <div class="dashboard-empty-state__title">Sin movimientos.</div>
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                {% if inventory_movements_page.paginator.num_pages > 1 %}
+                                    <div class="dashboard-pagination mt-3">
+                                        {% if inventory_movements_page.has_previous %}
+                                            <a class="dashboard-pagination__link" href="?section=inventory&view=history&product={{ movement_product.pk }}&movements_page={{ inventory_movements_page.previous_page_number }}">Anterior</a>
+                                        {% endif %}
+                                        <span class="dashboard-pagination__info">Página {{ inventory_movements_page.number }} de {{ inventory_movements_page.paginator.num_pages }}</span>
+                                        {% if inventory_movements_page.has_next %}
+                                            <a class="dashboard-pagination__link" href="?section=inventory&view=history&product={{ movement_product.pk }}&movements_page={{ inventory_movements_page.next_page_number }}">Siguiente</a>
+                                            <a class="dashboard-pagination__link" href="?section=inventory&view=history&product={{ movement_product.pk }}&movements_page={{ inventory_movements_page.paginator.num_pages }}">Última</a>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                                <div class="mt-3">
+                                    <a href="?section=inventory&view=list" class="dashboard-action-btn">Volver al inventario</a>
+                                </div>
+                            </div>
+                        {% endif %}
                     {% elif active_section == 'payments' and quick_view == 'list' %}
                         <div class="dashboard-metrics mb-3">
                             <article class="dashboard-metric-card">
@@ -681,6 +844,12 @@
                                             {% else %}
                                                 Modificar corte o servicio
                                             {% endif %}
+                                        {% elif active_section == 'inventory' %}
+                                            {% if inventory_action == 'purchase' %}
+                                                Registrar compra
+                                            {% else %}
+                                                Ajustar stock
+                                            {% endif %}
                                         {% else %}
                                             Modificar producto o servicio
                                         {% endif %}
@@ -700,6 +869,12 @@
                                         {% else %}
                                             Cambia el colaborador, el servicio y la propina. El valor y la
                                             comisión se autocompletan según el servicio.
+                                        {% endif %}
+                                    {% elif active_section == 'inventory' %}
+                                        {% if inventory_action == 'purchase' %}
+                                            Registra una compra para incrementar el stock del producto.
+                                        {% else %}
+                                            Ajusta manualmente el stock. Usa valores negativos para reducir.
                                         {% endif %}
                                     {% else %}
                                         Actualiza nombre, tipo, precio, comisión y descripción.
@@ -732,21 +907,30 @@
                                 <input type="hidden"
                                        name="service_record_id"
                                        value="{{ service_record_to_edit.pk }}" />
+                            {% elif active_section == 'inventory' and quick_view == 'form' %}
+                                <input type="hidden" name="action" value="{{ inventory_action }}" />
                             {% endif %}
                             <div class="dashboard-form-grid">
-                                {% for field in form %}
-                                    <div class="dashboard-field-card {% if field.name == 'notes' or field.name == 'description' %}dashboard-field-card--wide{% endif %}">
-                                        <div class="dashboard-field-card__head">
-                                            <label class="form-label mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                            {% if field.field.required %}<span class="dashboard-field-card__required">Obligatorio</span>{% endif %}
-                                        </div>
-                                        <div class="dashboard-field-card__body">
-                                            {{ field }}
-                                            {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
-                                            {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>{% endif %}
-                                        </div>
-                                    </div>
-                                {% endfor %}
+                                 {% for field in form %}
+                                     {% if field.name == 'is_supply' %}
+                                         <div class="form-check p-0 m-0 d-flex align-items-center gap-2" style="grid-column: span 4;">
+                                             {{ field }}
+                                             <label class="form-check-label fw-semibold" for="{{ field.id_for_label }}" style="color:#0f172a;">{{ field.label }}</label>
+                                         </div>
+                                     {% else %}
+                                     <div class="dashboard-field-card {% if field.name == 'notes' or field.name == 'description' %}dashboard-field-card--wide{% endif %}">
+                                         <div class="dashboard-field-card__head">
+                                             <label class="form-label mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                             {% if field.field.required %}<span class="dashboard-field-card__required">Obligatorio</span>{% endif %}
+                                         </div>
+                                         <div class="dashboard-field-card__body">
+                                             {{ field }}
+                                             {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+                                             {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>{% endif %}
+                                         </div>
+                                     </div>
+                                     {% endif %}
+                                 {% endfor %}
                             </div>
                             <div class="dashboard-form-gap" aria-hidden="true"></div>
                             <div class="dashboard-form__actions mt-4">

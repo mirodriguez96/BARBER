@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from barberia.catalog.models import CatalogItem
+from barberia.inventory.models import InventoryMovement
 from barberia.operations.models import ServiceRecord
 from barberia.people.models import Client, Employee
 
@@ -318,7 +319,7 @@ class CatalogItemForm(CatalogCommissionMixin, DashboardModelForm):
         labels = {
             "kind": "Tipo",
             "name": "Nombre",
-            "sku": "Código / SKU",
+            "sku": "Código",
             "price": "Precio",
             "barber_commission_percent": "Comisión del colaborador (%)",
             "is_active": "Activo",
@@ -351,8 +352,16 @@ class CatalogItemForm(CatalogCommissionMixin, DashboardModelForm):
 class CatalogItemEditForm(CatalogCommissionMixin, DashboardModelForm):
     class Meta:
         model = CatalogItem
-        fields = ["name", "kind", "price", "barber_commission_percent", "description"]
+        fields = [
+            "sku",
+            "name",
+            "kind",
+            "price",
+            "barber_commission_percent",
+            "description",
+        ]
         labels = {
+            "sku": "Código",
             "kind": "Tipo",
             "name": "Nombre",
             "description": "Descripción",
@@ -360,6 +369,9 @@ class CatalogItemEditForm(CatalogCommissionMixin, DashboardModelForm):
             "barber_commission_percent": "Comisión del colaborador (%)",
         }
         widgets = {
+            "sku": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Ej. PROD-001"},
+            ),
             "kind": forms.Select(attrs={"class": "form-select"}),
             "name": forms.TextInput(
                 attrs={"class": "form-control", "placeholder": "Ej. Corte degradado"},
@@ -632,7 +644,6 @@ class ProductRecordForm(DashboardModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["service"].queryset = CatalogItem.objects.filter(
-            is_active=True,
             kind=CatalogItem.Kind.PRODUCT,
         )
         self.fields["service"].widget.queryset = self.fields["service"].queryset
@@ -691,7 +702,6 @@ class ProductRecordEditForm(DashboardModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["service"].queryset = CatalogItem.objects.filter(
-            is_active=True,
             kind=CatalogItem.Kind.PRODUCT,
         )
         self.fields["service"].widget.queryset = self.fields["service"].queryset
@@ -711,3 +721,86 @@ class ProductRecordEditForm(DashboardModelForm):
     def _service_price_initial(self):
         service = self._selected_service()
         return service.price if service else None
+
+
+class InventoryPurchaseForm(DashboardModelForm):
+    class Meta:
+        model = InventoryMovement
+        fields = [
+            "product",
+            "quantity",
+            "unit_cost",
+            "notes",
+        ]
+        labels = {
+            "product": "Producto",
+            "quantity": "Cantidad",
+            "unit_cost": "Costo unitario",
+            "notes": "Observaciones",
+        }
+        widgets = {
+            "product": forms.Select(attrs={"class": "form-select"}),
+            "quantity": forms.NumberInput(
+                attrs={"class": "form-control", "min": "1", "step": "1"},
+            ),
+            "unit_cost": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01", "min": "0"},
+            ),
+            "notes": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 4,
+                    "placeholder": "Observaciones de la compra",
+                },
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["product"].queryset = CatalogItem.objects.filter(
+            kind=CatalogItem.Kind.PRODUCT,
+        )
+
+
+class InventoryAdjustForm(DashboardModelForm):
+    class Meta:
+        model = InventoryMovement
+        fields = [
+            "product",
+            "quantity",
+            "is_supply",
+            "notes",
+        ]
+        labels = {
+            "product": "Producto",
+            "quantity": "Cantidad",
+            "is_supply": "Insumo",
+            "notes": "Motivo / observaciones",
+        }
+        widgets = {
+            "product": forms.Select(attrs={"class": "form-select"}),
+            "quantity": forms.NumberInput(
+                attrs={"class": "form-control", "step": "1"},
+            ),
+            "is_supply": forms.CheckboxInput(
+                attrs={"class": "form-check-input"},
+            ),
+            "notes": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 4,
+                    "placeholder": "Motivo del ajuste",
+                },
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["product"].queryset = CatalogItem.objects.filter(
+            kind=CatalogItem.Kind.PRODUCT,
+        )
+        self.fields["quantity"].help_text = (
+            "Usa valores positivos para aumentar stock, "
+            "negativos para disminuir. Si marcas 'Insumo' "
+            "se guardará automáticamente como negativo."
+        )

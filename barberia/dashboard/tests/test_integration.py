@@ -37,6 +37,7 @@ class PaginationIntegrationTest(TestCase):
             name="Corte",
             price=Decimal("50.00"),
             barber_commission_percent=Decimal("20.00"),
+            sku="SRV999",
         )
         self.http_client = self.client
         self.http_client.login(username="admin", password="pass1234")
@@ -72,6 +73,7 @@ class PaginationIntegrationTest(TestCase):
                 ),
                 name=f"Item {i}",
                 price=Decimal(f"{i + 10}.00"),
+                sku=f"ITM{i:04d}",
             )
 
     def _services(self, count: int):

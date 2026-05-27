@@ -11,7 +11,7 @@
               rel="stylesheet"
               integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5v5Y5d2mI5hJkz4Qqf7fM6t5K8Qm"
               crossorigin="anonymous" />
-        <link href="{% static 'common/css/styles.css' %}" rel="stylesheet" />
+        <link href="{% static 'common/css/styles.css' %}?v=2" rel="stylesheet" />
     </head>
     <body class="{% if user.is_authenticated %}app-shell{% else %}auth-page{% endif %}">
         <main class="{% if user.is_authenticated %}pb-5{% else %}auth-shell{% endif %}">
@@ -20,6 +20,6 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
                 integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA5ND0dfyY4xXh1i1N3L6xWk4Cq0qX9"
                 crossorigin="anonymous"></script>
-        <script src="{% static 'common/js/scripts.js' %}"></script>
+        <script src="{% static 'common/js/scripts.js' %}?v=2"></script>
     </body>
 </html>

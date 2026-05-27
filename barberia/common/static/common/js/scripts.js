@@ -86,4 +86,16 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
   }
+
+  const supplyCheck = document.getElementById("id_is_supply");
+  const notesField = document.getElementById("id_notes");
+  if (supplyCheck && notesField) {
+    supplyCheck.addEventListener("change", function () {
+      if (supplyCheck.checked) {
+        notesField.value = "Insumo de la empresa";
+      } else {
+        notesField.value = "";
+      }
+    });
+  }
 });

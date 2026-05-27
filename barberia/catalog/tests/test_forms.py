@@ -104,9 +104,9 @@ class CatalogItemEditFormTest(TestCase):
         self.assertIn("name", form.errors)
         self.assertIn("kind", form.errors)
 
-    def test_sku_and_is_active_not_in_fields(self):
+    def test_sku_present_and_is_active_not_in_fields(self):
         form = CatalogItemEditForm(instance=self.item)
-        self.assertNotIn("sku", form.fields)
+        self.assertIn("sku", form.fields)
         self.assertNotIn("is_active", form.fields)
 
     def test_bootstrap_css_classes(self):

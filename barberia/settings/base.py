@@ -19,6 +19,7 @@ INSTALLED_APPS = [
     "barberia.catalog",
     "barberia.operations",
     "barberia.dashboard",
+    "barberia.inventory",
 ]
 
 AUTH_USER_MODEL = "accounts.User"

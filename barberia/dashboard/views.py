@@ -1,6 +1,6 @@
-from itertools import chain
 from datetime import date, datetime
 from decimal import Decimal
+from itertools import chain
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
+from barberia.inventory.models import InventoryMovement
 from barberia.operations.models import ServiceRecord
 from barberia.people.models import Client, Employee
 
@@ -22,6 +23,8 @@ from .forms import (
     CatalogItemForm,
     ClientEditForm,
     ClientForm,
+    InventoryAdjustForm,
+    InventoryPurchaseForm,
     ProductRecordEditForm,
     ProductRecordForm,
     ServiceRecordEditForm,
@@ -38,8 +41,10 @@ def home(request):
     barber_id = request.GET.get("barber")
     client_id = request.GET.get("client")
     catalog_id = request.GET.get("catalog_item")
+    inventory_action = request.GET.get("inventory_action", "adjust")
     service_id = request.GET.get("service_record")
-    if section not in {"barbers", "catalog", "services", "payments"}:
+    product_id = request.GET.get("product")
+    if section not in {"barbers", "catalog", "services", "payments", "inventory"}:
         quick_view = "form"
 
     barber_to_edit = None
@@ -62,6 +67,9 @@ def home(request):
         "barbers": BarberForm,
         "catalog": CatalogItemForm,
     }
+
+    inventory_purchase_form = None
+    inventory_adjust_form = None
 
     if request.method == "POST":
         section = request.POST.get("section", section)
@@ -198,8 +206,10 @@ def home(request):
                 return redirect(f"{request.path}?section=services&view=list")
             if service_record.service.kind == CatalogItem.Kind.PRODUCT:
                 form_class = ProductRecordEditForm
+                old_quantity = service_record.quantity
             else:
                 form_class = ServiceRecordEditForm
+                old_quantity = 0
             form = form_class(
                 request.POST,
                 instance=service_record,
@@ -216,12 +226,57 @@ def home(request):
                         record.barber = request.user.employee
                     except Exception:
                         record.barber = None
+                    quantity_diff = record.quantity - old_quantity
+                    if quantity_diff != 0:
+                        product = record.service
+                        product.current_stock -= quantity_diff
+                        product.save(update_fields=["current_stock"])
+                        InventoryMovement.objects.create(
+                            product=product,
+                            quantity=-quantity_diff,
+                            movement_type=InventoryMovement.MovementType.ADJUSTMENT,
+                            created_by=request.user,
+                            reference_sale=record,
+                            notes="Ajuste por modificación de venta",
+                        )
                 record.save()
                 messages.success(request, "Servicio actualizado correctamente.")
                 return redirect(f"{request.path}?section=services&view=list")
             quick_view = "edit"
             service_record_to_edit = service_record
             messages.error(request, "Revisa los campos marcados en rojo.")
+        elif section == "inventory" and action == "purchase":
+            form = InventoryPurchaseForm(request.POST, user=request.user)
+            if form.is_valid():
+                movement = form.save(commit=False)
+                movement.movement_type = InventoryMovement.MovementType.PURCHASE
+                movement.created_by = request.user
+                movement.save()
+                product = movement.product
+                product.current_stock += movement.quantity
+                product.save(update_fields=["current_stock"])
+                messages.success(request, "Compra registrada correctamente.")
+                return redirect(f"{request.path}?section=inventory&view=list")
+            inventory_purchase_form = form
+            messages.error(request, "Revisa los campos marcados en rojo.")
+
+        elif section == "inventory" and action == "adjust":
+            form = InventoryAdjustForm(request.POST, user=request.user)
+            if form.is_valid():
+                movement = form.save(commit=False)
+                movement.movement_type = InventoryMovement.MovementType.ADJUSTMENT
+                if movement.is_supply:
+                    movement.quantity = -abs(movement.quantity)
+                movement.created_by = request.user
+                movement.save()
+                product = movement.product
+                product.current_stock += movement.quantity
+                product.save(update_fields=["current_stock"])
+                messages.success(request, "Ajuste de stock registrado correctamente.")
+                return redirect(f"{request.path}?section=inventory&view=list")
+            inventory_adjust_form = form
+            messages.error(request, "Revisa los campos marcados en rojo.")
+
         elif section == "services" and action == "cancel":
             service_id = request.POST.get("service_record_id")
             _filter_date = request.POST.get(
@@ -288,6 +343,17 @@ def home(request):
                         except Exception:
                             record.barber = None
                 record.save()
+                if section == "services" and record_type == "producto":
+                    product = record.service
+                    product.current_stock -= record.quantity
+                    product.save(update_fields=["current_stock"])
+                    InventoryMovement.objects.create(
+                        product=product,
+                        quantity=-record.quantity,
+                        movement_type=InventoryMovement.MovementType.SALE,
+                        created_by=request.user,
+                        reference_sale=record,
+                    )
                 messages.success(request, "Registro guardado correctamente.")
                 return redirect(f"{request.path}?section={section}")
             messages.error(request, "Revisa los campos marcados en rojo.")
@@ -331,13 +397,22 @@ def home(request):
     else:
         if section == "barbers":
             form_class = ClientForm if record_type == "cliente" else BarberForm
+            form = form_class(user=request.user)
         elif section == "services":
             form_class = (
                 ProductRecordForm if service_type == "producto" else ServiceRecordForm
             )
+            form = form_class(user=request.user)
+        elif section == "inventory":
+            if inventory_action == "purchase":
+                form = InventoryPurchaseForm(user=request.user)
+            elif inventory_action == "adjust":
+                form = InventoryAdjustForm(user=request.user)
+            else:
+                form = None
         else:
             form_class = forms_map.get(section, BarberForm)
-        form = form_class(user=request.user)
+            form = form_class(user=request.user)
 
     filter_date = request.GET.get("filter_date", "")
     filter_barber = request.GET.get("filter_barber", "")
@@ -558,11 +633,39 @@ def home(request):
         "company_net": company_net,
     }
 
+    inventory_products = CatalogItem.objects.filter(
+        kind=CatalogItem.Kind.PRODUCT,
+    ).order_by("name")
+    inventory_stats = {
+        "total": inventory_products.count(),
+        "with_stock": inventory_products.filter(current_stock__gt=0).count(),
+        "out_of_stock": inventory_products.filter(current_stock__lte=0).count(),
+    }
+    inventory_paginator = Paginator(inventory_products, 10)
+    inventory_page_number = request.GET.get("page")
+    inventory_page = inventory_paginator.get_page(inventory_page_number)
+
+    movement_product = None
+    inventory_movements_page = None
+    if quick_view == "history" and product_id:
+        movement_product = get_object_or_404(CatalogItem, pk=product_id)
+        movements_qs = (
+            InventoryMovement.objects.filter(
+                product=movement_product,
+            )
+            .select_related("created_by")
+            .order_by("-created_at")
+        )
+        movements_paginator = Paginator(movements_qs, 10)
+        movements_page_number = request.GET.get("movements_page")
+        inventory_movements_page = movements_paginator.get_page(movements_page_number)
+
     section_titles = {
         "barbers": "Administrar colaboradores y clientes",
         "catalog": "Administrar productos y servicios",
         "services": "Administrar ventas y servicios realizados",
         "payments": "Pagos — comisiones y propinas",
+        "inventory": "Inventario — control de stock",
     }
 
     context = {
@@ -574,7 +677,9 @@ def home(request):
         "client_to_edit": client_to_edit,
         "catalog_item_to_edit": catalog_item_to_edit,
         "service_record_to_edit": service_record_to_edit,
-        "section_title": section_titles.get(section, "Registro de colaboradores y clientes"),
+        "section_title": section_titles.get(
+            section, "Registro de colaboradores y clientes"
+        ),
         "form": form,
         "people_page": people_page,
         "barbers": people_page,
@@ -590,11 +695,19 @@ def home(request):
         "barber_stats": barber_stats,
         "catalog_stats": catalog_stats,
         "service_stats": service_stats,
+        "inventory_page": inventory_page,
+        "inventory_stats": inventory_stats,
+        "inventory_purchase_form": inventory_purchase_form,
+        "inventory_adjust_form": inventory_adjust_form,
+        "inventory_action": inventory_action,
+        "movement_product": movement_product,
+        "inventory_movements_page": inventory_movements_page,
         "menu_items": [
             {"key": "barbers", "label": "COLABORADORES / CLIENTES", "hint": ""},
             {"key": "catalog", "label": "PRODUCTOS Y SERVICIOS", "hint": ""},
             {"key": "services", "label": "VENTAS", "hint": ""},
             {"key": "payments", "label": "PAGOS", "hint": ""},
+            {"key": "inventory", "label": "INVENTARIO", "hint": ""},
         ],
         "is_admin": request.user.role == User.Role.ADMIN,
     }

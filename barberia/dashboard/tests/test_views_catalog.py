@@ -35,11 +35,13 @@ class CatalogDashboardViewsTest(TestCase):
             kind=CatalogItem.Kind.SERVICE,
             name="Corte",
             price=Decimal("50.00"),
+            sku="SRV050",
         )
         CatalogItem.objects.create(
             kind=CatalogItem.Kind.PRODUCT,
             name="Gel",
             price=Decimal("80.00"),
+            sku="PRD080",
         )
         response = self.client.get(self._catalog_url(section="catalog", view="list"))
         self.assertEqual(response.status_code, 200)

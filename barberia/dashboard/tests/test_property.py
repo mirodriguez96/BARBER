@@ -11,18 +11,21 @@ from barberia.dashboard.forms import CatalogItemEditForm, CatalogItemForm
 class CatalogCommissionPropertyTest(TestCase):
     """Property-based tests for the commission-zeroing invariant."""
 
-    def setUp(self):
-        self.service = CatalogItem.objects.create(
+    @classmethod
+    def setUpTestData(cls):
+        cls.service = CatalogItem.objects.create(
             kind=CatalogItem.Kind.SERVICE,
             name="Base Service",
             price=Decimal("100.00"),
             barber_commission_percent=Decimal("20.00"),
+            sku="SRV100",
         )
-        self.product = CatalogItem.objects.create(
+        cls.product = CatalogItem.objects.create(
             kind=CatalogItem.Kind.PRODUCT,
             name="Base Product",
             price=Decimal("50.00"),
             barber_commission_percent=Decimal("0.00"),
+            sku="PRD050",
         )
 
     @given(

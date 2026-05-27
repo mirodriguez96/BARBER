@@ -34,12 +34,14 @@ class ServiceRecordFormTest(TestCase):
             price=Decimal("50.00"),
             barber_commission_percent=Decimal("20.00"),
             is_active=True,
+            sku="SRV050",
         )
         self.inactive_service = CatalogItem.objects.create(
             kind=CatalogItem.Kind.SERVICE,
             name="Corte inactivo",
             price=Decimal("30.00"),
             is_active=False,
+            sku="SRV030",
         )
 
     def test_barber_queryset_scoped_to_user_employee(self):
@@ -114,6 +116,7 @@ class ServiceRecordEditFormTest(TestCase):
             price=Decimal("60.00"),
             barber_commission_percent=Decimal("25.00"),
             is_active=True,
+            sku="SRV060",
         )
         self.record = ServiceRecord.objects.create(
             barber=self.employee,
