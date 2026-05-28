@@ -111,10 +111,191 @@
                                         </button>
                                     </div>
                                 </form>
+                    </div>
+                    </div>
+                    {% endif %}
+                    {% if active_section == 'overview' %}
+                    <div id="overview-stats">
+                        <div class="dashboard-quick-switch mb-4">
+                            <a class="dashboard-quick-switch__item {% if overview_period == 'today' %}is-active{% endif %}"
+                               href="?section=overview&overview_period=today">Hoy</a>
+                            <a class="dashboard-quick-switch__item {% if overview_period == 'week' %}is-active{% endif %}"
+                               href="?section=overview&overview_period=week">Semana</a>
+                            <a class="dashboard-quick-switch__item {% if overview_period == 'month' %}is-active{% endif %}"
+                               href="?section=overview&overview_period=month">Mes</a>
+                            <a class="dashboard-quick-switch__item {% if overview_period == 'year' %}is-active{% endif %}"
+                               href="?section=overview&overview_period=year">Año</a>
+                            <a class="dashboard-quick-switch__item {% if overview_period == 'date' %}is-active{% endif %}"
+                               href="?section=overview&overview_period=date">Fecha</a>
+                        </div>
+                        {% if overview_period == 'date' %}
+                            <form method="get" class="mb-3">
+                                <input type="hidden" name="section" value="overview" />
+                                <input type="hidden" name="overview_period" value="date" />
+                                <input type="date" name="overview_date" value="{{ overview_date }}"
+                                       class="dashboard-filters__input" />
+                            </form>
+                        {% endif %}
+                         <div class="dashboard-metrics mb-3">
+                             <a href="?section=sales" class="dashboard-metric-card">
+                                 <p class="dashboard-metric-card__label mb-1">Ventas {{ period_label }}</p>
+                                 <strong class="dashboard-metric-card__value">${{ overview_data.sales_period_total_fmt }}</strong>
+                             </a>
+                             <a href="?section=compras" class="dashboard-metric-card">
+                                 <p class="dashboard-metric-card__label mb-1">Compras {{ period_label }}</p>
+                                 <strong class="dashboard-metric-card__value">${{ overview_data.purchases_period_total_fmt }}</strong>
+                             </a>
+                             <a href="?section=inventory" class="dashboard-metric-card{% if overview_data.low_stock_count > 0 %} dashboard-metric-card--danger{% endif %}">
+                                 <p class="dashboard-metric-card__label mb-1">Productos stock bajo</p>
+                                 <strong class="dashboard-metric-card__value">{{ overview_data.low_stock_count }}</strong>
+                                 <span class="dashboard-metric-card__hint">Productos con stock ≤ 5</span>
+                             </a>
+                         </div>
+                    </div>
+                        <div class="dashboard-charts-row mt-5 mb-4">
+                            <div class="dashboard-chart-col">
+                                <div class="dashboard-metric-card p-3">
+<p class="dashboard-metric-card__label mb-3" style="font-size:1rem;color:#0f172a">Servicios por d&iacute;a (7 d&iacute;as)</p>
+<canvas id="dailyCutsChart" style="max-width:560px;margin:0 auto;display:block"></canvas>
+                                </div>
+                            </div>
+                            <div class="dashboard-chart-col">
+                                <div class="dashboard-metric-card p-3">
+<p class="dashboard-metric-card__label mb-3" style="font-size:1rem;color:#0f172a">Servicios m&aacute;s vendidos (7 d&iacute;as)</p>
+<canvas id="topServicesChart" style="max-width:560px;margin:0 auto;display:block"></canvas>
+                                </div>
+                            </div>
+                            <div class="dashboard-chart-col">
+                                <div class="dashboard-metric-card p-3">
+<p class="dashboard-metric-card__label mb-3" style="font-size:1rem;color:#0f172a">Insumos m&aacute;s usados</p>
+<canvas id="topSuppliesChart" style="max-width:560px;margin:0 auto;display:block"></canvas>
+                                </div>
                             </div>
                         </div>
-                    {% endif %}
-                    {% if active_section == 'barbers' and quick_view == 'list' %}
+                        <script>
+                        document.addEventListener('DOMContentLoaded', function(){
+                            var ctx = document.getElementById('dailyCutsChart');
+                            if (!ctx) return;
+                            new Chart(ctx, {
+                                type: 'doughnut',
+                                data: {
+                                    labels: {{ daily_cuts_labels_json|safe }},
+                                    datasets: [{
+                                        data: {{ daily_cuts_data_json|safe }},
+                                        backgroundColor: [
+                                            '#4F46E5','#06B6D4','#10B981','#F59E0B',
+                                            '#F97316','#EF4444','#8B5CF6'
+                                        ],
+                                        borderColor: '#ffffff',
+                                        borderWidth: 2
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: true,
+                                    plugins: {
+                                        legend: {
+                                            position: 'bottom',
+                                            labels: {
+                                                padding: 16,
+                                                usePointStyle: true,
+                                                pointStyle: 'circle'
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+
+                            var ctx2 = document.getElementById('topServicesChart');
+                            if (ctx2) {
+                                new Chart(ctx2, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: {{ top_services_labels_json|safe }},
+                                        datasets: [{
+                                            label: 'Servicios realizados',
+                                            data: {{ top_services_data_json|safe }},
+                                            backgroundColor: '#4F46E5',
+                                            borderRadius: 6
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: true,
+                                        aspectRatio: 1,
+                                        plugins: {
+                                            legend: { display: false }
+                                        },
+                                        scales: {
+                                            y: {
+                                                ticks: {
+                                                    stepSize: 1
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+
+                            var ctx3 = document.getElementById('topSuppliesChart');
+                            if (ctx3) {
+                                new Chart(ctx3, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: {{ top_supplies_labels_json|safe }},
+                                        datasets: [{
+                                            label: 'Unidades usadas',
+                                            data: {{ top_supplies_data_json|safe }},
+                                            backgroundColor: '#10B981',
+                                            borderRadius: 6
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: true,
+                                        aspectRatio: 1,
+                                        indexAxis: 'y',
+                                        plugins: {
+                                            legend: { display: false }
+                                        },
+                                        scales: {
+                                            x: {
+                                                ticks: {
+                                                    stepSize: 1
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                        });
+
+                        function fetchAndSwap(url) {
+                            fetch(url).then(function(r) { return r.text(); }).then(function(html) {
+                                var parser = new DOMParser();
+                                var doc = parser.parseFromString(html, 'text/html');
+                                var newStats = doc.getElementById('overview-stats');
+                                if (newStats) {
+                                    document.getElementById('overview-stats').innerHTML = newStats.innerHTML;
+                                }
+                                history.pushState({}, '', url);
+                            });
+                        }
+
+                        document.getElementById('overview-stats').addEventListener('click', function(e) {
+                            var link = e.target.closest('.dashboard-quick-switch__item');
+                            if (!link) return;
+                            e.preventDefault();
+                            fetchAndSwap(link.getAttribute('href'));
+                        });
+
+                        document.getElementById('overview-stats').addEventListener('change', function(e) {
+                            if (e.target && e.target.type === 'date') {
+                                fetchAndSwap('?section=overview&overview_period=date&overview_date=' + e.target.value);
+                            }
+                        });
+                        </script>
+                    {% elif active_section == 'barbers' and quick_view == 'list' %}
                         <div class="dashboard-section-spacer" aria-hidden="true"></div>
                         <div class="dashboard-table-shell mt-4">
                             <div class="dashboard-table-shell__header mt-3">
@@ -123,7 +304,7 @@
                                     <input type="hidden" name="section" value="barbers" />
                                     <input type="hidden" name="view" value="list" />
                                     <div class="dashboard-filters__group">
-                                        <label class="dashboard-filters__label" for="barber_search">Nombre</label>
+                                        <label class="dashboard-filters__label" for="barber_search">Nombre-Cedula</label>
                                         <input type="search"
                                                id="barber_search"
                                                name="barber_search"
@@ -132,7 +313,17 @@
                                                placeholder="Buscar colaborador o cliente"
                                                autocomplete="off" />
                                     </div>
-                                    {% if barber_search %}<a href="?section=barbers&view=list" class="dashboard-filters__clear">Limpiar</a>{% endif %}
+                                    <div class="dashboard-filters__group">
+                                        <span class="dashboard-filters__label">Tipo</span>
+                                        <select name="barber_type"
+                                                class="dashboard-filters__select"
+                                                onchange="this.form.submit()">
+                                            <option value="" {% if not barber_type %}selected{% endif %}>Todos</option>
+                                            <option value="colaborador" {% if barber_type == 'colaborador' %}selected{% endif %}>Colaborador</option>
+                                            <option value="cliente" {% if barber_type == 'cliente' %}selected{% endif %}>Cliente</option>
+                                        </select>
+                                    </div>
+                                    {% if barber_search or barber_type %}<a href="?section=barbers&view=list" class="dashboard-filters__clear">Limpiar</a>{% endif %}
                                 </form>
                             </div>
                             <div class="dashboard-table-wrap">
@@ -427,17 +618,24 @@
                                 <div class="dashboard-filters__group">
                                     <span class="dashboard-filters__label">Fecha</span>
                                     <div class="dashboard-filters__row">
-                                        <a href="?section=sales&view=list&filter_date=today{% if filter_barber %}&filter_barber={{ filter_barber }}{% endif %}{% if filter_kind %}&filter_kind={{ filter_kind }}{% endif %}"
-                                           class="dashboard-filters__btn {% if filter_date == 'today' %}is-active{% endif %}">Hoy</a>
+                                        {% if filter_date == 'today' %}
+                                            <span class="dashboard-filters__btn is-active">Hoy</span>
+                                            <input type="hidden" name="filter_date" value="today" />
+                                        {% else %}
+                                            <a href="?section=sales&view=list&filter_date=today{% if filter_barber %}&filter_barber={{ filter_barber }}{% endif %}{% if filter_kind %}&filter_kind={{ filter_kind }}{% endif %}"
+                                               class="dashboard-filters__btn">Hoy</a>
+                                        {% endif %}
                                         <input type="date"
                                                name="filter_date"
-                                               value="{% if filter_date != 'today' %}{{ filter_date }}{% endif %}"
-                                               class="dashboard-filters__input" />
+                                               value="{% if filter_date and filter_date != 'today' %}{{ filter_date }}{% endif %}"
+                                               class="dashboard-filters__input"
+                                               onchange="this.form.submit()"
+                                               {% if filter_date == 'today' %}disabled{% endif %} />
                                     </div>
                                 </div>
                                 <div class="dashboard-filters__group">
                                     <span class="dashboard-filters__label">Colaborador</span>
-                                    <select name="filter_barber" class="dashboard-filters__select">
+                                    <select name="filter_barber" class="dashboard-filters__select" onchange="this.form.submit()">
                                         <option value="">Todos</option>
                                         {% for barber in active_barbers %}
                                             <option value="{{ barber.pk }}"
@@ -450,7 +648,7 @@
                                 <div class="dashboard-filters__group">
                                     <span class="dashboard-filters__label">Tipo</span>
                                     <div class="dashboard-filters__row">
-                                        <select name="filter_kind" class="dashboard-filters__select">
+                                        <select name="filter_kind" class="dashboard-filters__select" onchange="this.form.submit()">
                                             <option value="">Todos</option>
                                             <option value="service" {% if filter_kind == 'service' %}selected{% endif %}>Servicios</option>
                                             <option value="product" {% if filter_kind == 'product' %}selected{% endif %}>Productos</option>

@@ -538,9 +538,7 @@ class ProductRecordDashboardViewsTest(TestCase):
         }
         response = self.client.post(self.list_url, data)
         self.assertRedirects(response, f"{self.list_url}?section=sales")
-        self.assertTrue(
-            Sale.objects.filter(notes="Producto de prueba").exists()
-        )
+        self.assertTrue(Sale.objects.filter(notes="Producto de prueba").exists())
         record = Sale.objects.get(notes="Producto de prueba")
         self.assertEqual(record.quantity, 3)
         self.assertEqual(record.product_price, Decimal("300.00"))

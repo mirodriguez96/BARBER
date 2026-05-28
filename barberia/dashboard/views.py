@@ -1,4 +1,6 @@
-from datetime import date, datetime
+import json
+
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from itertools import chain
 
@@ -6,7 +8,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum, Value
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Coalesce, TruncDate
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -36,7 +38,7 @@ from .forms import (
 
 @login_required
 def home(request):
-    section = request.GET.get("section", "barbers")
+    section = request.GET.get("section", "overview")
     quick_view = request.GET.get("view", "list")
     record_type = request.GET.get("type", "colaborador")
     sale_type = request.GET.get("sale_type", "servicio")
@@ -47,6 +49,7 @@ def home(request):
     sale_id = request.GET.get("sale")
     product_id = request.GET.get("product")
     if section not in {
+        "overview",
         "barbers",
         "catalog",
         "sales",
@@ -446,6 +449,7 @@ def home(request):
     filter_barber = request.GET.get("filter_barber", "")
     filter_kind = request.GET.get("filter_kind", "")
     barber_search = request.GET.get("barber_search", "").strip()
+    barber_type = request.GET.get("barber_type", "")
     catalog_search = request.GET.get("catalog_search", "").strip()
     catalog_kind = request.GET.get("catalog_kind", "")
     purchase_filter_date = request.GET.get("purchase_filter_date", "")
@@ -496,6 +500,8 @@ def home(request):
         filter_parts.append(f"filter_kind={filter_kind}")
     filter_params = "&" + "&".join(filter_parts) if filter_parts else ""
     barber_filter_params = f"&barber_search={barber_search}" if barber_search else ""
+    if barber_type:
+        barber_filter_params += f"&barber_type={barber_type}"
     catalog_filter_params = (
         f"&catalog_search={catalog_search}" if catalog_search else ""
     )
@@ -543,11 +549,16 @@ def home(request):
         }
         for c in client_qs
     ]
-    combined = sorted(
-        chain(barber_data, client_data),
-        key=lambda x: x["created_at"],
-        reverse=True,
-    )
+    if barber_type == "colaborador":
+        combined = sorted(barber_data, key=lambda x: x["created_at"], reverse=True)
+    elif barber_type == "cliente":
+        combined = sorted(client_data, key=lambda x: x["created_at"], reverse=True)
+    else:
+        combined = sorted(
+            chain(barber_data, client_data),
+            key=lambda x: x["created_at"],
+            reverse=True,
+        )
     people_paginator = Paginator(combined, 10)
     people_page_number = request.GET.get("page")
     people_page = people_paginator.get_page(people_page_number)
@@ -777,7 +788,165 @@ def home(request):
         movements_page_number = request.GET.get("movements_page")
         inventory_movements_page = movements_paginator.get_page(movements_page_number)
 
+    today = date.today()
+    overview_period = request.GET.get("overview_period", "today")
+    overview_date_raw = request.GET.get("overview_date", "")
+
+    if overview_period == "date" and overview_date_raw:
+        try:
+            parsed_date = datetime.strptime(overview_date_raw, "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            parsed_date = today
+            overview_date_raw = today.isoformat()
+    elif overview_period == "date":
+        parsed_date = today
+        overview_date_raw = today.isoformat()
+    else:
+        parsed_date = today
+
+    monday = today - timedelta(days=today.weekday())
+    month_start = today.replace(day=1)
+    year_start = today.replace(month=1, day=1)
+
+    if overview_period == "today":
+        date_filter = Q(scheduled_for__date=today)
+        period_label = "hoy"
+    elif overview_period == "week":
+        monday = today - timedelta(days=today.weekday())
+        date_filter = Q(scheduled_for__date__gte=monday, scheduled_for__date__lte=today)
+        period_label = "esta semana"
+    elif overview_period == "month":
+        month_start = today.replace(day=1)
+        date_filter = Q(
+            scheduled_for__date__gte=month_start, scheduled_for__date__lte=today
+        )
+        period_label = "este mes"
+    elif overview_period == "year":
+        year_start = today.replace(month=1, day=1)
+        date_filter = Q(
+            scheduled_for__date__gte=year_start, scheduled_for__date__lte=today
+        )
+        period_label = "este a\u00f1o"
+    elif overview_period == "date":
+        date_filter = Q(scheduled_for__date=parsed_date)
+        period_label = f"del {parsed_date.strftime('%d/%m/%Y')}"
+    else:
+        date_filter = Q(scheduled_for__date=today)
+        period_label = "hoy"
+
+    sales_period = Sale.objects.filter(date_filter, status=Sale.Status.DONE).aggregate(
+        total=Coalesce(
+            Sum(F("product_price") * F("quantity"), output_field=DecimalField()),
+            Value(Decimal("0.00")),
+        ),
+        count=Coalesce(Count("id"), Value(0)),
+    )
+
+    if overview_period == "today":
+        purchase_date_filter = Q(created_at__date=today)
+    elif overview_period == "week":
+        purchase_date_filter = Q(
+            created_at__date__gte=monday, created_at__date__lte=today
+        )
+    elif overview_period == "month":
+        purchase_date_filter = Q(
+            created_at__date__gte=month_start, created_at__date__lte=today
+        )
+    elif overview_period == "year":
+        purchase_date_filter = Q(
+            created_at__date__gte=year_start, created_at__date__lte=today
+        )
+    elif overview_period == "date":
+        purchase_date_filter = Q(created_at__date=parsed_date)
+    else:
+        purchase_date_filter = Q(created_at__date=today)
+
+    purchases_period = Purchase.objects.filter(purchase_date_filter).aggregate(
+        total=Coalesce(
+            Sum(
+                ExpressionWrapper(
+                    F("quantity") * F("unit_cost"),
+                    output_field=DecimalField(max_digits=12, decimal_places=2),
+                )
+            ),
+            Value(Decimal("0.00")),
+        ),
+        count=Coalesce(Count("id"), Value(0)),
+    )
+
+    low_stock_count = CatalogItem.objects.filter(
+        kind=CatalogItem.Kind.PRODUCT,
+        current_stock__lte=5,
+        is_active=True,
+    ).count()
+
+    seven_days_ago = today - timedelta(days=6)
+    daily_cuts_qs = (
+        Sale.objects.filter(
+            scheduled_for__date__gte=seven_days_ago,
+            scheduled_for__date__lte=today,
+            status=Sale.Status.DONE,
+            product__kind=CatalogItem.Kind.SERVICE,
+        )
+        .annotate(day=TruncDate("scheduled_for"))
+        .values("day")
+        .annotate(count=Count("id"))
+        .order_by("day")
+    )
+    daily_cuts_map = {d["day"]: d["count"] for d in daily_cuts_qs}
+    dias_es = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+    daily_cuts_labels = []
+    daily_cuts_data = []
+    for i in range(7):
+        day = seven_days_ago + timedelta(days=i)
+        daily_cuts_labels.append(f"{dias_es[day.weekday()]} {day.day}")
+        daily_cuts_data.append(daily_cuts_map.get(day, 0))
+
+    def _fmt_amount(v):
+        return f"{int(round(float(v))):,}".replace(",", ".")
+
+    overview_data = {
+        "sales_period_total": sales_period["total"],
+        "sales_period_count": sales_period["count"],
+        "sales_period_total_fmt": _fmt_amount(sales_period["total"]),
+        "purchases_period_total": purchases_period["total"],
+        "purchases_period_count": purchases_period["count"],
+        "purchases_period_total_fmt": _fmt_amount(purchases_period["total"]),
+        "low_stock_count": low_stock_count,
+    }
+
+    top_services_qs = (
+        Sale.objects.filter(
+            scheduled_for__date__gte=seven_days_ago,
+            scheduled_for__date__lte=today,
+            status=Sale.Status.DONE,
+            product__kind=CatalogItem.Kind.SERVICE,
+        )
+        .values("product__name")
+        .annotate(count=Count("id"))
+        .order_by("-count")[:3]
+    )
+    top_services_labels = [s["product__name"] for s in top_services_qs]
+    top_services_data = [s["count"] for s in top_services_qs]
+    top_services_labels_json = json.dumps(top_services_labels)
+    top_services_data_json = json.dumps(top_services_data)
+
+    daily_cuts_labels_json = json.dumps(daily_cuts_labels)
+    daily_cuts_data_json = json.dumps(daily_cuts_data)
+
+    top_supplies_qs = (
+        InventoryMovement.objects.filter(is_supply=True)
+        .values("product__name")
+        .annotate(total_used=Coalesce(Sum("quantity") * Value(-1), Value(0)))
+        .order_by("-total_used")[:7]
+    )
+    top_supplies_labels = [s["product__name"] for s in top_supplies_qs]
+    top_supplies_data = [int(s["total_used"]) for s in top_supplies_qs]
+    top_supplies_labels_json = json.dumps(top_supplies_labels)
+    top_supplies_data_json = json.dumps(top_supplies_data)
+
     section_titles = {
+        "overview": "Resumen General",
         "barbers": "Administrar colaboradores y clientes",
         "catalog": "Administrar catálogo de productos y servicios",
         "sales": "Administrar ventas y servicios realizados",
@@ -799,6 +968,16 @@ def home(request):
         "section_title": section_titles.get(
             section, "Registro de colaboradores y clientes"
         ),
+        "overview_period": overview_period,
+        "overview_date": overview_date_raw,
+        "period_label": period_label,
+        "overview_data": overview_data,
+        "daily_cuts_labels_json": daily_cuts_labels_json,
+        "daily_cuts_data_json": daily_cuts_data_json,
+        "top_services_labels_json": top_services_labels_json,
+        "top_services_data_json": top_services_data_json,
+        "top_supplies_labels_json": top_supplies_labels_json,
+        "top_supplies_data_json": top_supplies_data_json,
         "form": form,
         "people_page": people_page,
         "barbers": people_page,
@@ -811,6 +990,7 @@ def home(request):
         "filter_barber": filter_barber,
         "filter_kind": filter_kind,
         "barber_search": barber_search,
+        "barber_type": barber_type,
         "barber_filter_params": barber_filter_params,
         "catalog_search": catalog_search,
         "catalog_kind": catalog_kind,
@@ -834,6 +1014,7 @@ def home(request):
         "company": company,
         "company_form": company_form,
         "menu_items": [
+            {"key": "overview", "label": "INICIO", "hint": ""},
             {"key": "barbers", "label": "COLABORADORES / CLIENTES", "hint": ""},
             {"key": "catalog", "label": "PRODUCTOS Y SERVICIOS", "hint": ""},
             {"key": "sales", "label": "VENTAS", "hint": ""},

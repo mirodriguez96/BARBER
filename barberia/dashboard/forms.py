@@ -661,6 +661,7 @@ class ProductSaleForm(DashboardModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["product"].queryset = CatalogItem.objects.filter(
+            is_active=True,
             kind=CatalogItem.Kind.PRODUCT,
         )
         self.fields["product"].widget.queryset = self.fields["product"].queryset
@@ -717,6 +718,7 @@ class ProductSaleEditForm(DashboardModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["product"].queryset = CatalogItem.objects.filter(
+            is_active=True,
             kind=CatalogItem.Kind.PRODUCT,
         )
         self.fields["product"].widget.queryset = self.fields["product"].queryset
@@ -773,6 +775,7 @@ class InventoryPurchaseForm(DashboardModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["product"].queryset = CatalogItem.objects.filter(
+            is_active=True,
             kind=CatalogItem.Kind.PRODUCT,
         )
 
@@ -816,6 +819,7 @@ class InventoryAdjustForm(DashboardModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["product"].queryset = CatalogItem.objects.filter(
+            is_active=True,
             kind=CatalogItem.Kind.PRODUCT,
         )
         self.fields["quantity"].help_text = (

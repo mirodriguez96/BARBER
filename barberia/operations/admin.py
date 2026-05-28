@@ -17,7 +17,12 @@ class SaleAdmin(admin.ModelAdmin):
         "tip_amount",
     )
     list_filter = ("status", "scheduled_for", "employee")
-    search_fields = ("client__full_name", "employee__full_name", "product__name", "notes")
+    search_fields = (
+        "client__full_name",
+        "employee__full_name",
+        "product__name",
+        "notes",
+    )
     autocomplete_fields = ("client", "employee", "product", "performed_by")
 
 
