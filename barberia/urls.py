@@ -11,4 +11,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("dashboard/", include("barberia.dashboard.urls")),
     path("accounts/", include("barberia.accounts.urls")),
+    path("tenants/", include("barberia.tenants.urls")),
 ]

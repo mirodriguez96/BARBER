@@ -1,0 +1,273 @@
+ARQUITECTURA MULTI-TENANT - BARBERÍA SAAS
+============================================
+
+1. ¿CÓMO FUNCIONA?
+------------------
+
+Cada barbería (cliente) tiene su propia base de datos PostgreSQL separada.
+Los datos de cada barbería están completamente aislados: usuarios, empleados,
+clientes, catálogo, ventas, inventario, etc.
+
+Hay una base de datos central llamada "barber_tenants_registry" que solo
+almacena dos cosas:
+  - Tenant: registro de cada barbería (schema_name, nombre, NIT, activo/inactivo)
+  - Domain: subdominio asociado a cada barbería (ej: luxor.barberia.com)
+
+2. IDENTIFICACIÓN POR SUBDOMINIO
+---------------------------------
+
+Cada barbería tiene un subdominio único:
+  - luxor.barberia.com  → Barbería Luxor
+  - cortes.barberia.com → Barbería Cortes
+  - admin.barberia.com  → Panel de super-admin (NO va a ninguna barbería)
+
+El middleware (barberia/middleware.py) intercepta cada request:
+
+  1. Toma el Host del request (ej: "luxor.barberia.localhost")
+  2. Extrae el subdominio (la primera parte: "luxor")
+  3. Busca "luxor.barberia.com" en la tabla Domain de la base central
+  4. Si encuentra el Domain, obtiene el Tenant y su db_name (ej: "barber_luxor")
+  5. Conecta Django a la base de datos "barber_luxor"
+  6. TODAS las consultas de la request van a esa base de datos
+  7. Al terminar la request, se desconecta
+
+Hosts públicos (admin.barberia.com, www.barberia.com, localhost) NO activan
+el multi-tenant. Se usa la base "default" (barber_tenants_registry).
+
+3. ESTRUCTURA DE ARCHIVOS
+--------------------------
+
+barberia/
+  tenants/              → App que gestiona tenants
+    models.py           → Tenant y Domain
+    admin.py            → Registro en admin de Django
+    views.py            → Vista de super-admin (lista de tenants)
+    urls.py             → /tenants/
+    management/
+      commands/
+        register_tenant.py  → Comando para crear nuevo tenant
+  routers.py            → Dirige queries a la BD correcta según app_label
+  middleware.py         → Extrae subdominio y conecta la BD del tenant
+  settings/
+    base.py             → Configuración: DB central, DATABASE_ROUTERS, middleware
+    dev.py              → ALLOWED_HOSTS con .barberia.localhost
+
+4. DIAGRAMA DE FLUJO
+---------------------
+
+  Browser
+    │
+    ▼
+  Request a luxor.barberia.com
+    │
+    ▼
+  TenantMiddleware (middleware.py)
+    │  Extrae "luxor" del subdominio
+    │  Busca Domain.objects.get(domain="luxor.barberia.com")
+    │  Obtiene Tenant → db_name = "barber_luxor"
+    │  Conecta a la BD "barber_luxor"
+    │  Guarda db_name en thread-local
+    │
+    ▼
+  View (dashboard, etc)
+    │  TenantRouter (routers.py)
+    │  Lee thread-local → "barber_luxor"
+    │  Todas las queries van a "barber_luxor"
+    │
+    ▼
+  Response
+    │  Middleware limpia thread-local
+    │
+    ▼
+  Browser
+
+
+5. CÓMO PROBARLO MANUALMENTE PASO A PASO
+------------------------------------------
+
+REQUISITO: PostgreSQL funcionando con usuario "miguel" (peer auth).
+
+A. Iniciar el servidor:
+
+  python manage.py runserver
+
+B. Registrar dos barberías de prueba:
+
+  python manage.py register_tenant luxor --name "Luxor Barbería" --nit "1234567890"
+
+  python manage.py register_tenant cortes --name "Cortes Elegantes" --nit "9876543210"
+
+Esto crea:
+  - Bases de datos: barber_luxor, barber_cortes (con todas las tablas)
+  - Tenants: Luxor Barbería, Cortes Elegantes
+  - Domains: luxor.barberia.com, cortes.barberia.com
+
+C. Probar con curl o navegador:
+
+  # Super-admin panel (accede a la BD central: barber_tenants_registry)
+  curl -H "Host: admin.barberia.localhost" http://127.0.0.1:8000/tenants/
+
+  # Barbería Luxor (accede a barber_luxor)
+  curl -H "Host: luxor.barberia.localhost" http://127.0.0.1:8000/login/
+
+  # Barbería Cortes (accede a barber_cortes)
+  curl -H "Host: cortes.barberia.localhost" http://127.0.0.1:8000/login/
+
+  # Subdominio inexistente → 404
+  curl -H "Host: inexistente.barberia.localhost" http://127.0.0.1:8000/login/
+
+D. Registrar usuarios en cada barbería:
+
+  Como las barberías tienen BD separadas, necesitas registrar usuarios
+  en cada una. La forma más simple:
+
+  1. Abrir http://luxor.barberia.localhost:8000/accounts/register/ en el navegador
+     (necesitas agregar "127.0.0.1 luxor.barberia.localhost" en /etc/hosts si no
+     resuelve, O usar el navegador con el puerto localhost).
+
+  NOTA: Para probar con navegador real sin DNS, la opción más práctica en
+  desarrollo es usar /etc/hosts:
+
+    sudo nano /etc/hosts
+
+  Agregar:
+
+    127.0.0.1  admin.barberia.localhost
+    127.0.0.1  luxor.barberia.localhost
+    127.0.0.1  cortes.barberia.localhost
+
+  Luego abrir en el navegador:
+    http://luxor.barberia.localhost:8000/  → Login de Luxor
+    http://cortes.barberia.localhost:8000/  → Login de Cortes
+    http://admin.barberia.localhost:8000/tenants/ → Lista de tenants
+
+E. Verificar que los datos están aislados:
+
+  - Registrar un usuario en luxor.barberia.localhost
+  - Ese usuario NO existe en cortes.barberia.localhost
+  - Entrar al dashboard de luxor y crear datos (empleados, servicios, etc.)
+  - Esos datos NO aparecen en cortes
+
+  Puedes verificar directamente en PostgreSQL:
+
+    psql barber_luxor
+    SELECT username, role FROM accounts_user;  → solo usuarios de Luxor
+
+    psql barber_cortes
+    SELECT username, role FROM accounts_user;  → solo usuarios de Cortes
+
+
+6. CÓMO AGREGAR UN NUEVO CLIENTE (NUEVA BARBERÍA)
+---------------------------------------------------
+
+Cada vez que llega un nuevo cliente, solo hay que ejecutar UN comando:
+
+  python manage.py register_tenant NOMBREBARBERIA \
+      --name "Nombre Comercial" \
+      --nit "XXXXXXXX"
+
+  Ejemplo real:
+  python manage.py register_tenant estilos \
+      --name "Estilos Barbería" \
+      --nit "1029384756"
+
+Esto hace automáticamente:
+  1. Crea la base de datos barber_estilos
+  2. Corre todas las migraciones (crea todas las tablas)
+  3. Crea el registro Tenant en la BD central
+  4. Crea el Domain estilos.barberia.com
+
+El cliente puede inmediatamente:
+  - Ingresar a estilos.barberia.com
+  - Registrarse (crear usuario admin)
+  - Configurar su empresa, empleados, servicios, etc.
+  - Todo queda aislado en su propia BD
+
+Parámetros del comando:
+
+  register_tenant <schema_name>
+    --name <nombre>       (obligatorio)
+    --nit <nit>           (opcional)
+    --domain <dominio>    (opcional, default: {schema}.barberia.com)
+    --db-name <db_name>   (opcional, default: barber_{schema})
+
+7. SUPER-ADMIN
+--------------
+
+El super-admin (admin.barberia.com) tiene dos herramientas:
+
+  A. Panel de administración Django (/admin/):
+     - CRUD completo de Tenants y Domains
+     - Gestión de usuarios super-admin
+     - Solo accesible con usuario staff
+
+  B. Panel rápido de tenants (/tenants/):
+     - Lista de todas las barberías registradas
+     - Estado (activo/inactivo), NIT, fecha de creación
+     - Para desactivar una barbería: admin.barberia.com/admin/ → seleccionar
+       Tenant → marcar is_active = False → el middleware da 404 al acceder
+
+8. COMANDOS ÚTILES
+-------------------
+
+  # Registrar un nuevo tenant
+  python manage.py register_tenant <schema> --name "<Nombre>"
+
+  # Acceder a la BD de un tenant específico
+  psql barber_<schema>
+
+  # Listar todas las BD de tenants
+  psql -l | grep barber_
+
+  # Ejecutar comando en una BD específica
+  python manage.py shell --database barber_luxor
+
+  # Migrar un solo tenant (si se agrega una nueva app)
+  python manage.py migrate --database barber_luxor
+
+  IMPORTANTE: Cuando agregues una nueva migración (nuevo modelo, campo),
+  debes migrar CADA base de datos de tenant. El comando register_tenant
+  ya migra automáticamente al crear. Pero para tenants existentes:
+
+    python manage.py migrate --database barber_luxor
+    python manage.py migrate --database barber_cortes
+    python manage.py migrate --database barber_estilos
+    # etc.
+
+  Para migrar todos los tenants existentes de una sola vez, puedes usar
+  el shell:
+
+    python manage.py shell
+    >>> from django.core.management import call_command
+    >>> from barberia.tenants.models import Tenant
+    >>> for t in Tenant.objects.all():
+    ...     print(f"Migrando {t.db_name}...")
+    ...     call_command("migrate", database=t.db_name, verbosity=0)
+    ...     print("  OK")
+
+  (Guarda este script en un management command si lo usas seguido.)
+
+9. SEGURIDAD Y AISLAMIENTO
+---------------------------
+
+  - Cada barbería tiene su propia base de datos PostgreSQL
+  - No hay riesgo de que un cliente vea datos de otro
+  - El middleware solo conecta la BD si el Domain existe y está activo
+  - Subdominios no registrados → 404
+  - Tenants desactivados → 404
+  - Hosts públicos (admin, www) nunca activan tenant routing
+  - El super-admin requiere login staff (no accesible desde subdominios de tenant)
+
+10. PRÓXIMOS PASOS RECOMENDADOS
+---------------------------------
+
+  1. Docker: Crear Dockerfile + docker-compose para PostgreSQL + Django
+  2. AWS:
+     a. RDS PostgreSQL (o Aurora) para la BD central
+     b. RDS para cada tenant (o schema en un cluster, si escala)
+     c. Route53 para dominios wildcard (*.barberia.com → balanceador)
+     d. ALB/NGINX para terminar TLS y rutear por Host
+     e. Sesiones/archivos: ElastiCache + S3
+  3. Automatizar creación de tenants con formulario web (en vez de management command)
+  4. Backup automatizado: pg_dump de cada base de datos
+  5. Monitoréo: saber cuántas BD hay, cuánto espacio usan, alertas
