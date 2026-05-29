@@ -1,3 +1,5 @@
+import ipaddress
+
 from django.conf import settings
 from django.db import connections
 from django.http import Http404
@@ -51,7 +53,11 @@ class TenantMiddleware:
             return True
         if host in ("localhost", "127.0.0.1", "testserver"):
             return True
-        return False
+        try:
+            ipaddress.ip_address(host)
+            return True
+        except ValueError:
+            return False
 
     def _extract_schema(self, host):
         parts = host.split(".")
