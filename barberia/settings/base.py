@@ -27,7 +27,7 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = "accounts.User"
 
 AUTHENTICATION_BACKENDS = [
-    "django.contrib.auth.backends.ModelBackend",
+    "barberia.backends.SafeAxesBackend",
 ]
 
 LOGIN_URL = "login"
