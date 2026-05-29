@@ -5,13 +5,13 @@ from .base import *  # noqa: F401,F403
 DEBUG = False
 
 ALLOWED_HOSTS = [
-    ".barbertech.com",
-    "barbertech.com",
+    ".colstyle.com",
+    "colstyle.com",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://*.barbertech.com",
-    "https://barbertech.com",
+    "https://*.colstyle.com",
+    "https://colstyle.com",
 ]
 
 SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
