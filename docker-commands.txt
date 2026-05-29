@@ -1,0 +1,24 @@
+
+Bajar y subir el servicio, aplicando cambios que se modificaron en docker-compose.yml
+    docker compose down && docker compose up -d
+
+Ver logs del servicio web
+    docker compose logs -f web
+
+Ejecutar un comando dentro del contenedor web
+    docker compose exec web python manage.py <comando>
+
+Ejecutar register_tenant (registrar nueva barbería)
+    docker compose exec web python manage.py register_tenant <schema_name> --name "<Nombre>" --nit "<NIT>" --domain "<schema>.barbertech.com"
+
+Crear superusuario en DB pública (admin.barbertech.com)
+    docker compose exec web python manage.py createsuperuser
+
+Crear superusuario en DB de un tenant específico
+    docker compose exec web python manage.py register_tenant <schema_name> --domain "<schema>.barbertech.com" --superuser-only
+
+Migrar todas las DBs de tenants
+    docker compose exec web python manage.py migrate_all_tenants
+
+Reconstruir imágenes sin caché
+    docker compose build --no-cache

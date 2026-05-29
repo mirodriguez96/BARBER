@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: barber_tenants_registry
+      POSTGRES_USER: barber_app
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Debe definir DB_PASSWORD en .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  web:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      DJANGO_SETTINGS_MODULE: barberia.settings.docker
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Debe definir DJANGO_SECRET_KEY en .env}
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: barber_app
+      DB_PASSWORD: ${DB_PASSWORD:?Debe definir DB_PASSWORD en .env}
+      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-*}"
+      DJANGO_CSRF_TRUSTED_ORIGINS: "${DJANGO_CSRF_TRUSTED_ORIGINS:-http://localhost:8000,http://127.0.0.1:8000,http://*.localhost:8000}"
+      DJANGO_DEBUG: "${DJANGO_DEBUG:-False}"
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - static_files:/app/staticfiles
+      - media_files:/app/media
+
+volumes:
+  postgres_data:
+  static_files:
+  media_files:
