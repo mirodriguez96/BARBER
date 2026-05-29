@@ -1,7 +1,5 @@
 from pathlib import Path
 
-from django.contrib.messages import constants as message_constants
-
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 SECRET_KEY = "django-insecure-change-me"
@@ -48,8 +46,6 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
-
-MESSAGE_TAGS = {message_constants.ERROR: "danger"}
 
 ROOT_URLCONF = "barberia.urls"
 

@@ -63,3 +63,19 @@ Reconstruir imágenes sin caché
                 service: http://web:8000
             - service: http_status:404
             EOF
+
+
+
+--------------------------------------------- HABILITAR BD CUANDO HA SIDO BLOQUEADA POR INTENTOS FALLIDOS
+docker compose exec web python manage.py shell -c "
+from django.conf import settings
+from django.db import connections
+from axes.models import AccessAttempt
+cfg = settings.DATABASES['default']
+connections.databases['barber_prueba'] = {**cfg, 'NAME': 'barber_prueba'}
+AccessAttempt.objects.using('barber_prueba').all().delete()
+print('OK')
+"
+
+------------------------------------------------ LIMPIAR BD default
+docker compose exec web python manage.py shell -c "from axes.models import AccessAttempt; AccessAttempt.objects.all().delete(); print('OK')"
