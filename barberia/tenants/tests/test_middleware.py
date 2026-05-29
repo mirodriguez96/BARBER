@@ -22,16 +22,16 @@ class _isPublicHostTest(TestCase):
         self.assertTrue(self.mw._is_public_host("testserver"))
 
     def test_admin_prefix(self):
-        self.assertTrue(self.mw._is_public_host("admin.barberia.com"))
+        self.assertTrue(self.mw._is_public_host("admin.colstyle.com"))
 
     def test_www_prefix(self):
-        self.assertTrue(self.mw._is_public_host("www.barberia.com"))
+        self.assertTrue(self.mw._is_public_host("www.colstyle.com"))
 
     def test_tenant_subdomain(self):
-        self.assertFalse(self.mw._is_public_host("luxor.barberia.com"))
+        self.assertFalse(self.mw._is_public_host("luxor.colstyle.com"))
 
     def test_deep_subdomain(self):
-        self.assertFalse(self.mw._is_public_host("a.b.c.barberia.com"))
+        self.assertFalse(self.mw._is_public_host("a.b.c.colstyle.com"))
 
 
 class _extractSchemaTest(TestCase):
@@ -39,7 +39,7 @@ class _extractSchemaTest(TestCase):
         self.mw = TenantMiddleware(get_response=lambda r: HttpResponse())
 
     def test_three_parts(self):
-        self.assertEqual(self.mw._extract_schema("luxor.barberia.com"), "luxor")
+        self.assertEqual(self.mw._extract_schema("luxor.colstyle.com"), "luxor")
 
     def test_three_parts_other_tld(self):
         self.assertEqual(self.mw._extract_schema("stilo.mibarberia.net"), "stilo")
@@ -63,7 +63,7 @@ class TenantMiddlewareCallTest(TestCase):
 
     def test_public_host_skips_lookup(self):
         request = HttpRequest()
-        request.META["HTTP_HOST"] = "admin.barberia.com"
+        request.META["HTTP_HOST"] = "admin.colstyle.com"
         response = self.mw(request)
         self.assertIs(response, self.response)
         self.assertIsNone(get_current_db_name())
@@ -82,7 +82,7 @@ class TenantMiddlewareCallTest(TestCase):
         mock_select.get.side_effect = Domain.DoesNotExist
 
         request = HttpRequest()
-        request.META["HTTP_HOST"] = "ghost.barberia.com"
+        request.META["HTTP_HOST"] = "ghost.colstyle.com"
         with self.assertRaises(Http404):
             self.mw(request)
 
@@ -100,7 +100,7 @@ class TenantMiddlewareCallTest(TestCase):
         mock_select.get.return_value = mock_domain
 
         request = HttpRequest()
-        request.META["HTTP_HOST"] = "luxor.barberia.com"
+        request.META["HTTP_HOST"] = "luxor.colstyle.com"
         response = self.mw(request)
 
         mock_ensure.assert_called_once_with("barber_luxor")
@@ -120,7 +120,7 @@ class TenantMiddlewareCallTest(TestCase):
         mock_select.get.return_value = mock_domain
 
         request = HttpRequest()
-        request.META["HTTP_HOST"] = "deactivated.barberia.com"
+        request.META["HTTP_HOST"] = "deactivated.colstyle.com"
         with self.assertRaises(Http404):
             self.mw(request)
 
@@ -129,6 +129,6 @@ class TenantMiddlewareCallTest(TestCase):
 class PublicHostPrefixesOverrideTest(TestCase):
     def test_custom_prefixes(self):
         mw = TenantMiddleware(get_response=lambda r: HttpResponse())
-        self.assertTrue(mw._is_public_host("panel.barberia.com"))
-        self.assertTrue(mw._is_public_host("api.barberia.com"))
-        self.assertFalse(mw._is_public_host("admin.barberia.com"))
+        self.assertTrue(mw._is_public_host("panel.colstyle.com"))
+        self.assertTrue(mw._is_public_host("api.colstyle.com"))
+        self.assertFalse(mw._is_public_host("admin.colstyle.com"))

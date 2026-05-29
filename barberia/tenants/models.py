@@ -22,7 +22,7 @@ class Tenant(models.Model):
 
 
 class Domain(models.Model):
-    domain = models.CharField(max_length=253, unique=True, help_text="Subdominio completo. Ej: luxor.barberia.com")
+    domain = models.CharField(max_length=253, unique=True, help_text="Subdominio completo. Ej: luxor.colstyle.com")
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="domains")
     is_primary = models.BooleanField(default=True)
 

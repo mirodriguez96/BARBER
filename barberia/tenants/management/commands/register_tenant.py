@@ -14,21 +14,21 @@ class Command(BaseCommand):
         parser.add_argument("schema_name", help="Identificador del subdominio. Ej: luxor")
         parser.add_argument("--name", required=True, help="Nombre comercial de la empresa")
         parser.add_argument("--nit", default="", help="NIT de la empresa")
-        parser.add_argument("--domain", help="Dominio completo. Default: {schema_name}.barberia.com")
+        parser.add_argument("--domain", help="Dominio completo. Default: {schema_name}.colstyle.com")
         parser.add_argument("--db-name", help="Nombre de la BD. Default: barber_{schema_name}")
         parser.add_argument("--admin-username", default="admin", help="Username del superadmin del tenant (default: admin)")
         parser.add_argument("--admin-password", required=True, help="Password del superadmin del tenant")
-        parser.add_argument("--admin-email", default="", help="Email del superadmin (default: admin@{schema_name}.barberia.com)")
+        parser.add_argument("--admin-email", default="", help="Email del superadmin (default: admin@{schema_name}.colstyle.com)")
 
     def handle(self, *args, **options):
         schema_name = options["schema_name"]
         db_name = options.get("db_name") or f"barber_{schema_name}"
-        domain = options.get("domain") or f"{schema_name}.barberia.com"
+        domain = options.get("domain") or f"{schema_name}.colstyle.com"
         name = options["name"]
         nit = options.get("nit", "")
         admin_username = options["admin_username"]
         admin_password = options["admin_password"]
-        admin_email = options.get("admin_email") or f"admin@{schema_name}.barberia.com"
+        admin_email = options.get("admin_email") or f"admin@{schema_name}.colstyle.com"
 
         if Tenant.objects.filter(schema_name=schema_name).exists():
             raise CommandError(f"Ya existe un tenant con schema_name '{schema_name}'")

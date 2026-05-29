@@ -19,6 +19,7 @@ while True:
 fi
 
 python manage.py migrate --database=default
+python manage.py migrate_all_tenants
 python manage.py collectstatic --noinput
 
 exec "$@"

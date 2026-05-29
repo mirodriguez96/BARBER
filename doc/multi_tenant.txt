@@ -11,27 +11,27 @@ clientes, catálogo, ventas, inventario, etc.
 Hay una base de datos central llamada "barber_tenants_registry" que solo
 almacena dos cosas:
   - Tenant: registro de cada barbería (schema_name, nombre, NIT, activo/inactivo)
-  - Domain: subdominio asociado a cada barbería (ej: luxor.barberia.com)
+  - Domain: subdominio asociado a cada barbería (ej: luxor.colstyle.com)
 
 2. IDENTIFICACIÓN POR SUBDOMINIO
 ---------------------------------
 
 Cada barbería tiene un subdominio único:
-  - luxor.barberia.com  → Barbería Luxor
-  - cortes.barberia.com → Barbería Cortes
-  - admin.barberia.com  → Panel de super-admin (NO va a ninguna barbería)
+  - luxor.colstyle.com  → Barbería Luxor
+  - cortes.colstyle.com → Barbería Cortes
+  - admin.colstyle.com  → Panel de super-admin (NO va a ninguna barbería)
 
 El middleware (barberia/middleware.py) intercepta cada request:
 
   1. Toma el Host del request (ej: "luxor.barberia.localhost")
   2. Extrae el subdominio (la primera parte: "luxor")
-  3. Busca "luxor.barberia.com" en la tabla Domain de la base central
+  3. Busca "luxor.colstyle.com" en la tabla Domain de la base central
   4. Si encuentra el Domain, obtiene el Tenant y su db_name (ej: "barber_luxor")
   5. Conecta Django a la base de datos "barber_luxor"
   6. TODAS las consultas de la request van a esa base de datos
   7. Al terminar la request, se desconecta
 
-Hosts públicos (admin.barberia.com, www.barberia.com, localhost) NO activan
+Hosts públicos (admin.colstyle.com, www.colstyle.com, localhost) NO activan
 el multi-tenant. Se usa la base "default" (barber_tenants_registry).
 
 3. ESTRUCTURA DE ARCHIVOS
@@ -58,12 +58,12 @@ barberia/
   Browser
     │
     ▼
-  Request a luxor.barberia.com
+  Request a luxor.colstyle.com
     │
     ▼
   TenantMiddleware (middleware.py)
     │  Extrae "luxor" del subdominio
-    │  Busca Domain.objects.get(domain="luxor.barberia.com")
+    │  Busca Domain.objects.get(domain="luxor.colstyle.com")
     │  Obtiene Tenant → db_name = "barber_luxor"
     │  Conecta a la BD "barber_luxor"
     │  Guarda db_name en thread-local
@@ -100,7 +100,7 @@ B. Registrar dos barberías de prueba:
 Esto crea:
   - Bases de datos: barber_luxor, barber_cortes (con todas las tablas)
   - Tenants: Luxor Barbería, Cortes Elegantes
-  - Domains: luxor.barberia.com, cortes.barberia.com
+  - Domains: luxor.colstyle.com, cortes.colstyle.com
 
 C. Probar con curl o navegador:
 
@@ -175,10 +175,10 @@ Esto hace automáticamente:
   1. Crea la base de datos barber_estilos
   2. Corre todas las migraciones (crea todas las tablas)
   3. Crea el registro Tenant en la BD central
-  4. Crea el Domain estilos.barberia.com
+  4. Crea el Domain estilos.colstyle.com
 
 El cliente puede inmediatamente:
-  - Ingresar a estilos.barberia.com
+  - Ingresar a estilos.colstyle.com
   - Registrarse (crear usuario admin)
   - Configurar su empresa, empleados, servicios, etc.
   - Todo queda aislado en su propia BD
@@ -188,13 +188,13 @@ Parámetros del comando:
   register_tenant <schema_name>
     --name <nombre>       (obligatorio)
     --nit <nit>           (opcional)
-    --domain <dominio>    (opcional, default: {schema}.barberia.com)
+    --domain <dominio>    (opcional, default: {schema}.colstyle.com)
     --db-name <db_name>   (opcional, default: barber_{schema})
 
 7. SUPER-ADMIN
 --------------
 
-El super-admin (admin.barberia.com) tiene dos herramientas:
+El super-admin (admin.colstyle.com) tiene dos herramientas:
 
   A. Panel de administración Django (/admin/):
      - CRUD completo de Tenants y Domains
@@ -204,7 +204,7 @@ El super-admin (admin.barberia.com) tiene dos herramientas:
   B. Panel rápido de tenants (/tenants/):
      - Lista de todas las barberías registradas
      - Estado (activo/inactivo), NIT, fecha de creación
-     - Para desactivar una barbería: admin.barberia.com/admin/ → seleccionar
+     - Para desactivar una barbería: admin.colstyle.com/admin/ → seleccionar
        Tenant → marcar is_active = False → el middleware da 404 al acceder
 
 8. COMANDOS ÚTILES
@@ -265,7 +265,7 @@ El super-admin (admin.barberia.com) tiene dos herramientas:
   2. AWS:
      a. RDS PostgreSQL (o Aurora) para la BD central
      b. RDS para cada tenant (o schema en un cluster, si escala)
-     c. Route53 para dominios wildcard (*.barberia.com → balanceador)
+     c. Route53 para dominios wildcard (*.colstyle.com → balanceador)
      d. ALB/NGINX para terminar TLS y rutear por Host
      e. Sesiones/archivos: ElastiCache + S3
   3. Automatizar creación de tenants con formulario web (en vez de management command)
