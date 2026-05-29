@@ -148,6 +148,11 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
+        "axes": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 }
 
