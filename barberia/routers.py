@@ -14,7 +14,7 @@ def set_current_db_name(db_name):
 
 
 class TenantRouter:
-    route_app_labels = {"tenants", "axes"}
+    route_app_labels = {"tenants"}
 
     def db_for_read(self, model, **hints):
         if model._meta.app_label in self.route_app_labels:
