@@ -2,6 +2,9 @@
 Bajar y subir el servicio, aplicando cambios que se modificaron en docker-compose.yml
     docker compose down && docker compose up -d
 
+Reconstruir sin cache
+    docker compose build --no-cache web && docker compose up -d
+
 Ver logs del servicio web
     docker compose logs -f web
 
