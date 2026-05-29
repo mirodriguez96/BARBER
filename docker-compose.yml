@@ -45,9 +45,9 @@ services:
     restart: unless-stopped
     depends_on:
       - web
-    command: tunnel --config /etc/cloudflared/config.yml run
+    command: tunnel run
     volumes:
-      - ./cloudflared:/etc/cloudflared
+      - ./cloudflared:/home/nonroot/.cloudflared
 
 volumes:
   postgres_data:
