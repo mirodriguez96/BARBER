@@ -40,6 +40,15 @@ services:
       - static_files:/app/staticfiles
       - media_files:/app/media
 
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    depends_on:
+      - web
+    command: tunnel --config /etc/cloudflared/config.yml run
+    volumes:
+      - ./cloudflared:/etc/cloudflared
+
 volumes:
   postgres_data:
   static_files:

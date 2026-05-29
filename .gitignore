@@ -204,6 +204,11 @@ cython_debug/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
+# Cloudflare Tunnel (credentials, config)
+cloudflared/
+!cloudflared/*.example
+!cloudflared/.gitkeep
+
 # Ruff stuff:
 .ruff_cache/
 
