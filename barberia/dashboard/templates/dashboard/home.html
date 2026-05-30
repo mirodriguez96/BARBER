@@ -4,10 +4,20 @@
 {% endblock title %}
 {% block content %}
     <section class="dashboard-workspace">
+        <button class="dashboard-nav-toggle" id="navToggle" type="button" aria-label="Abrir menú">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M3 12h18M3 6h18M3 18h18"/>
+            </svg>
+        </button>
         <div class="dashboard-shell">
-            <aside class="dashboard-sidebar">
-                <div>
+            <aside class="dashboard-sidebar" id="dashboardSidebar">
+                <div class="dashboard-sidebar-header">
                     <h1 class="dashboard-page-title dashboard-page-title--inverse mb-3">{{ company.name|default:"Barbería Admin" }}</h1>
+                    <button class="dashboard-nav-close" id="navClose" type="button" aria-label="Cerrar menú">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                            <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                    </button>
                 </div>
                 <nav class="dashboard-menu" aria-label="Secciones del dashboard">
                     {% for item in menu_items %}
@@ -44,18 +54,7 @@
                             <h1 class="section-title mb-0">{{ section_title }}</h1>
                             <hr />
                         </div>
-                        <span class="dashboard-user-badge dashboard-user-badge-mobile">{{ request.user.get_full_name|default:request.user.username }}</span>
                     </div>
-                    <style>
-                        @media (max-width: 767.98px) {
-                            .dashboard-user-badge-mobile {
-                                display: none !important;
-                            }
-                            .dashboard-panel__header {
-                                justify-content: flex-start;
-                            }
-                        }
-                    </style>
                     {% if active_section == 'barbers' or active_section == 'catalog' or active_section == 'sales' or active_section == 'inventory' or active_section == 'compras' %}
                         <div class="dashboard-quick-switch mb-4">
                             <a class="dashboard-quick-switch__item {% if quick_view == 'list' %}is-active{% endif %}"
