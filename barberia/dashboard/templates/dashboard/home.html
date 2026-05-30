@@ -7,7 +7,14 @@
         <div class="dashboard-shell">
             <aside class="dashboard-sidebar">
                 <div>
-                    <h1 class="dashboard-page-title dashboard-page-title--inverse mb-3">{{ company.name|default:"Barbería Admin" }}</h1>
+                    <style>
+                        @media (max-width: 767.98px) {
+                            .dashboard-page-title--inverse.dashboard-sidebar-title {
+                                display: none !important;
+                            }
+                        }
+                    </style>
+                    <h1 class="dashboard-page-title dashboard-page-title--inverse dashboard-sidebar-title mb-3">{{ company.name|default:"Barbería Admin" }}</h1>
                 </div>
                 <nav class="dashboard-menu" aria-label="Secciones del dashboard">
                     {% for item in menu_items %}
@@ -1338,10 +1345,6 @@
                         }, 350);
                     });
 
-                    purchaseFilterInput.focus();
-                    var value = purchaseFilterInput.value;
-                    purchaseFilterInput.value = value;
-                    purchaseFilterInput.setSelectionRange(value.length, value.length);
                 }
 
                 if (barberSearchInput) {
@@ -1352,10 +1355,6 @@
                         }, 350);
                     });
 
-                    barberSearchInput.focus();
-                    var barberValue = barberSearchInput.value;
-                    barberSearchInput.value = barberValue;
-                    barberSearchInput.setSelectionRange(barberValue.length, barberValue.length);
                 }
 
                 if (catalogSearchInput) {
@@ -1366,10 +1365,6 @@
                         }, 350);
                     });
 
-                    catalogSearchInput.focus();
-                    var catalogValue = catalogSearchInput.value;
-                    catalogSearchInput.value = catalogValue;
-                    catalogSearchInput.setSelectionRange(catalogValue.length, catalogValue.length);
                 }
 
                 if (catalogKindInput) {
