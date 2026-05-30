@@ -1,0 +1,81 @@
+
+Bajar y subir el servicio, aplicando cambios que se modificaron en docker-compose.yml
+    docker compose down && docker compose up -d
+
+Reconstruir sin cache
+    docker compose build --no-cache web && docker compose up -d
+
+Ver logs del servicio web
+    docker compose logs -f web
+
+Ejecutar un comando dentro del contenedor web
+    docker compose exec web python manage.py <comando>
+
+Ejecutar register_tenant (registrar nueva barbería)
+    docker compose exec web python manage.py register_tenant prueba --name "Barbería de Prueba" --nit "0000000000" --domain "prueba.colstyle.com" --admin-password admin123
+
+Crear superusuario en DB pública (admin.colstyle.com)
+    docker compose exec web python manage.py createsuperuser
+
+Crear superusuario en DB de un tenant específico
+    docker compose exec web python manage.py register_tenant <schema_name> --domain "<schema>.colstyle.com" --superuser-only
+
+Migrar todas las DBs de tenants - Actualizar las BD cuando se hagan cambios en vistas
+    docker compose exec web python manage.py migrate_all_tenants
+
+Reconstruir imágenes sin caché
+    docker compose build --no-cache
+
+
+
+
+
+# GENERAR SECRET KEY SIN CARACTERES ESPECIALES
+    python3 -c "import secrets; print(secrets.token_urlsafe(50))"
+
+# COPIAR CERTIFICADO AL BIND AMOUNT
+    docker compose run --rm --user root tunnel bash -c "mkdir -p /home/nonroot/.cloudflared && cp /root/.cloudflared/cert.pem /home/nonroot/.cloudflared/ && chown -R 65534:65534 /home/nonroot/.cloudflared/"
+
+---------------------------------------------CREAR EL TUNEL CON CLOUDFARE PARA CERTIFICADOS
+
+    1. LOGUEARSE
+        docker compose run --rm tunnel tunnel login
+
+    2. CREAR EL TUNEL
+        # Esto genera un id y debe usarse en el siguiente paso
+        docker compose run --rm tunnel tunnel create colstyle
+
+
+    3. CON EL ID GENERADO CONFIGURAR EL DNS
+        docker compose run --rm tunnel tunnel route dns id_generada colstyle.com
+        docker compose run --rm tunnel tunnel route dns id_generada *.colstyle.com
+
+    4. CREAR CLOUDFARE
+        Aqui se debe utilizar la ip generada
+        cat > /opt/barber/cloudflared/config.yml << 'EOF'
+            tunnel: id_generada
+            credentials-file: /home/nonroot/.cloudflared/id_generada.json
+
+            ingress:
+            - hostname: colstyle.com
+                service: http://web:8000
+            - hostname: "*.colstyle.com"
+                service: http://web:8000
+            - service: http_status:404
+            EOF
+
+
+
+--------------------------------------------- HABILITAR BD CUANDO HA SIDO BLOQUEADA POR INTENTOS FALLIDOS
+docker compose exec web python manage.py shell -c "
+from django.conf import settings
+from django.db import connections
+from axes.models import AccessAttempt
+cfg = settings.DATABASES['default']
+connections.databases['barber_prueba'] = {**cfg, 'NAME': 'barber_prueba'}
+AccessAttempt.objects.using('barber_prueba').all().delete()
+print('OK')
+"
+
+------------------------------------------------ LIMPIAR BD default
+docker compose exec web python manage.py shell -c "from axes.models import AccessAttempt; AccessAttempt.objects.all().delete(); print('OK')"
