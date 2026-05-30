@@ -10,7 +10,9 @@ class Command(BaseCommand):
     help = "Elimina un tenant: corta conexiones, elimina BD, Domain y registro Tenant"
 
     def add_arguments(self, parser):
-        parser.add_argument("schema_name", help="Identificador del subdominio. Ej: luxor")
+        parser.add_argument(
+            "schema_name", help="Identificador del subdominio. Ej: luxor"
+        )
         parser.add_argument(
             "--confirm",
             action="store_true",
@@ -34,9 +36,7 @@ class Command(BaseCommand):
 
         tenant = Tenant.objects.filter(schema_name=schema_name).first()
         if not tenant:
-            raise CommandError(
-                f"No existe un tenant con schema_name '{schema_name}'"
-            )
+            raise CommandError(f"No existe un tenant con schema_name '{schema_name}'")
 
         db_name = tenant.db_name
 
@@ -65,7 +65,9 @@ class Command(BaseCommand):
         )
         self.stdout.write()
         self.stdout.write("Próximos pasos:")
-        self.stdout.write(f"  python manage.py register_tenant {schema_name} --name=... --admin-password=...")
+        self.stdout.write(
+            f"  python manage.py register_tenant {schema_name} --name=... --admin-password=..."
+        )
         self.stdout.write(f"  python manage.py seed_data --tenant={schema_name}")
 
     def _terminate_connections(self, db_name, force):
@@ -93,7 +95,9 @@ class Command(BaseCommand):
 
             if not exists:
                 if force:
-                    self.stdout.write(f"  La BD '{db_name}' no existe, continuando (--force)...")
+                    self.stdout.write(
+                        f"  La BD '{db_name}' no existe, continuando (--force)..."
+                    )
                     return
                 raise CommandError(
                     f"La BD '{db_name}' no existe. Usa --force para ignorar este error"

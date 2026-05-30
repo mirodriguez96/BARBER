@@ -87,6 +87,54 @@
                     {% endif %}
                     {% if active_section == 'config' %}
                         <div class="dashboard-config-shell">
+                            {% if is_admin %}
+                            <div class="dashboard-quick-switch mb-4">
+                                <a class="dashboard-quick-switch__item {% if config_tab == 'company' %}is-active{% endif %}"
+                                   href="?section=config&config_tab=company">Empresa</a>
+                                <a class="dashboard-quick-switch__item {% if config_tab == 'permissions' %}is-active{% endif %}"
+                                   href="?section=config&config_tab=permissions">Permisos</a>
+                            </div>
+                            {% endif %}
+
+                            {% if config_tab == 'permissions' %}
+                            <div class="dashboard-config-card">
+                                <p class="mb-4 text-muted">Configura qué secciones del menú están disponibles para cada rol.</p>
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <div class="table-responsive">
+                                        <table class="dashboard-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Rol</th>
+                                                    {% for item in permission_menu_items %}
+                                                    <th class="text-center">{{ item.label }}</th>
+                                                    {% endfor %}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for role_key, role_data in permission_matrix.items %}
+                                                <tr>
+                                                    <td><strong>{{ role_data.label }}</strong></td>
+                                                    {% for item in permission_menu_items %}
+                                                    <td class="text-center">
+                                                        <input type="checkbox" name="perms_{{ role_key }}" value="{{ item.key }}"
+                                                               class="form-check-input"
+                                                               {% if item.key in role_data.allowed %}checked{% endif %}>
+                                                    </td>
+                                                    {% endfor %}
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="dashboard-form__actions mt-4">
+                                        <button type="submit" class="btn btn-dashboard-primary btn-lg rounded-pill px-5">
+                                            Guardar permisos
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            {% else %}
                             <div class="dashboard-config-card">
                                 <p class="mb-4 text-muted">
                                     Estos datos se usan como información principal del negocio. Solo se permite registrar una empresa.
@@ -120,8 +168,9 @@
                                         </button>
                                     </div>
                                 </form>
-                    </div>
-                    </div>
+                            </div>
+                            {% endif %}
+                        </div>
                     {% endif %}
                     {% if active_section == 'overview' %}
                     <div id="overview-stats">

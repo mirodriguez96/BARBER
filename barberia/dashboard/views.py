@@ -33,6 +33,7 @@ from .forms import (
     SaleEditForm,
     SaleForm,
 )
+from .models import RoleMenuPermission
 
 
 @login_required
@@ -47,6 +48,7 @@ def home(request):
     inventory_action = request.GET.get("inventory_action", "adjust")
     sale_id = request.GET.get("sale")
     product_id = request.GET.get("product")
+    config_tab = request.GET.get("config_tab", "company")
     if section not in {
         "overview",
         "barbers",
@@ -59,22 +61,70 @@ def home(request):
     }:
         quick_view = "form"
 
+    ALL_MENU_KEYS = [
+        "overview",
+        "barbers",
+        "catalog",
+        "sales",
+        "compras",
+        "payments",
+        "inventory",
+        "config",
+    ]
+    PERMISSION_MENU_ITEMS = [
+        {"key": "overview", "label": "Panel inicial"},
+        {"key": "barbers", "label": "Personal"},
+        {"key": "catalog", "label": "Productos"},
+        {"key": "sales", "label": "Ventas"},
+        {"key": "compras", "label": "Compras"},
+        {"key": "payments", "label": "Pagos"},
+        {"key": "inventory", "label": "Inventario"},
+        {"key": "config", "label": "Configuración"},
+    ]
+    is_admin = request.user.role == User.Role.ADMIN
+
+    if not is_admin:
+        allowed_keys = set(
+            RoleMenuPermission.objects.filter(role=request.user.role).values_list(
+                "menu_key", flat=True
+            )
+        )
+        if section not in allowed_keys:
+            return redirect(f"{request.path}?section=overview")
+    else:
+        allowed_keys = set(ALL_MENU_KEYS)
+
     company = Company.objects.first()
     company_form = None
     if section == "config":
-        if request.method == "POST":
-            company_form = CompanyForm(request.POST, instance=company)
-            if company_form.is_valid():
-                company = company_form.save()
-                message = (
-                    "La información de la empresa se actualizó correctamente."
-                    if company.pk
-                    else "La información de la empresa se guardó correctamente."
-                )
-                messages.success(request, message)
-                return redirect(f"{request.path}?section=config")
+        if config_tab == "permissions":
+            if not is_admin:
+                return redirect(f"{request.path}?section=overview")
+            if request.method == "POST":
+                for role_key, _ in User.Role.choices:
+                    if role_key == User.Role.ADMIN:
+                        continue
+                    RoleMenuPermission.objects.filter(role=role_key).delete()
+                    for menu_key in request.POST.getlist(f"perms_{role_key}"):
+                        RoleMenuPermission.objects.create(
+                            role=role_key, menu_key=menu_key
+                        )
+                messages.success(request, "Permisos actualizados correctamente.")
+                return redirect(f"{request.path}?section=config&config_tab=permissions")
         else:
-            company_form = CompanyForm(instance=company)
+            if request.method == "POST":
+                company_form = CompanyForm(request.POST, instance=company)
+                if company_form.is_valid():
+                    company = company_form.save()
+                    message = (
+                        "La información de la empresa se actualizó correctamente."
+                        if company.pk
+                        else "La información de la empresa se guardó correctamente."
+                    )
+                    messages.success(request, message)
+                    return redirect(f"{request.path}?section=config")
+            else:
+                company_form = CompanyForm(instance=company)
 
     barber_to_edit = None
     if section == "barbers" and quick_view == "edit" and barber_id:
@@ -102,6 +152,9 @@ def home(request):
 
     if request.method == "POST":
         section = request.POST.get("section", section)
+        if not is_admin and section not in allowed_keys:
+            messages.error(request, "No tienes permiso para realizar esta acción.")
+            return redirect(f"{request.path}?section=overview")
         action = request.POST.get("action", "save")
         record_type = request.POST.get("type", "colaborador")
 
@@ -955,6 +1008,21 @@ def home(request):
         "config": "Configuración de la empresa",
     }
 
+    permission_matrix = {}
+    if section == "config" and config_tab == "permissions":
+        for role_key, role_label in User.Role.choices:
+            if role_key == User.Role.ADMIN:
+                continue
+            allowed = set(
+                RoleMenuPermission.objects.filter(role=role_key).values_list(
+                    "menu_key", flat=True
+                )
+            )
+            permission_matrix[role_key] = {
+                "label": role_label,
+                "allowed": allowed,
+            }
+
     context = {
         "active_section": section,
         "quick_view": quick_view,
@@ -1012,16 +1080,37 @@ def home(request):
         "inventory_movements_page": inventory_movements_page,
         "company": company,
         "company_form": company_form,
-        "menu_items": [
-            {"key": "overview", "label": "INICIO", "hint": ""},
-            {"key": "barbers", "label": "COLABORADORES / CLIENTES", "hint": ""},
-            {"key": "catalog", "label": "PRODUCTOS Y SERVICIOS", "hint": ""},
-            {"key": "sales", "label": "VENTAS", "hint": ""},
-            {"key": "compras", "label": "COMPRAS", "hint": ""},
-            {"key": "payments", "label": "PAGOS", "hint": ""},
-            {"key": "inventory", "label": "INVENTARIO", "hint": ""},
-            {"key": "config", "label": "CONFIGURACIÓN", "hint": "Empresa"},
-        ],
-        "is_admin": request.user.role == User.Role.ADMIN,
+        "menu_items": (
+            [
+                {"key": "overview", "label": "INICIO", "hint": ""},
+                {"key": "barbers", "label": "COLABORADORES / CLIENTES", "hint": ""},
+                {"key": "catalog", "label": "PRODUCTOS Y SERVICIOS", "hint": ""},
+                {"key": "sales", "label": "VENTAS", "hint": ""},
+                {"key": "compras", "label": "COMPRAS", "hint": ""},
+                {"key": "payments", "label": "PAGOS", "hint": ""},
+                {"key": "inventory", "label": "INVENTARIO", "hint": ""},
+                {"key": "config", "label": "CONFIGURACIÓN", "hint": "Empresa"},
+            ]
+            if is_admin
+            else [
+                item
+                for item in [
+                    {"key": "overview", "label": "INICIO", "hint": ""},
+                    {"key": "barbers", "label": "COLABORADORES / CLIENTES", "hint": ""},
+                    {"key": "catalog", "label": "PRODUCTOS Y SERVICIOS", "hint": ""},
+                    {"key": "sales", "label": "VENTAS", "hint": ""},
+                    {"key": "compras", "label": "COMPRAS", "hint": ""},
+                    {"key": "payments", "label": "PAGOS", "hint": ""},
+                    {"key": "inventory", "label": "INVENTARIO", "hint": ""},
+                    {"key": "config", "label": "CONFIGURACIÓN", "hint": "Empresa"},
+                ]
+                if item["key"] in allowed_keys
+            ]
+        ),
+        "is_admin": is_admin,
+        "config_tab": config_tab,
+        "permission_matrix": permission_matrix,
+        "permission_menu_items": PERMISSION_MENU_ITEMS,
+        "all_menu_keys": ALL_MENU_KEYS,
     }
     return render(request, "dashboard/home.html", context)
