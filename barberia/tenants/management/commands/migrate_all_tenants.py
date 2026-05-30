@@ -23,4 +23,6 @@ class Command(BaseCommand):
             self.stdout.write(f"Migrando {tenant.name} ({db_name})...")
             call_command("migrate", database=db_name, verbosity=1)
 
-        self.stdout.write(self.style.SUCCESS(f"Migración completada para {tenants.count()} tenants"))
+        self.stdout.write(
+            self.style.SUCCESS(f"Migración completada para {tenants.count()} tenants")
+        )

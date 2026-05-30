@@ -11,14 +11,32 @@ class Command(BaseCommand):
     help = "Registra un nuevo tenant: crea BD, corre migrations, crea Domain y superusuario"
 
     def add_arguments(self, parser):
-        parser.add_argument("schema_name", help="Identificador del subdominio. Ej: luxor")
-        parser.add_argument("--name", required=True, help="Nombre comercial de la empresa")
+        parser.add_argument(
+            "schema_name", help="Identificador del subdominio. Ej: luxor"
+        )
+        parser.add_argument(
+            "--name", required=True, help="Nombre comercial de la empresa"
+        )
         parser.add_argument("--nit", default="", help="NIT de la empresa")
-        parser.add_argument("--domain", help="Dominio completo. Default: {schema_name}.colstyle.com")
-        parser.add_argument("--db-name", help="Nombre de la BD. Default: barber_{schema_name}")
-        parser.add_argument("--admin-username", default="admin", help="Username del superadmin del tenant (default: admin)")
-        parser.add_argument("--admin-password", required=True, help="Password del superadmin del tenant")
-        parser.add_argument("--admin-email", default="", help="Email del superadmin (default: admin@{schema_name}.colstyle.com)")
+        parser.add_argument(
+            "--domain", help="Dominio completo. Default: {schema_name}.colstyle.com"
+        )
+        parser.add_argument(
+            "--db-name", help="Nombre de la BD. Default: barber_{schema_name}"
+        )
+        parser.add_argument(
+            "--admin-username",
+            default="admin",
+            help="Username del superadmin del tenant (default: admin)",
+        )
+        parser.add_argument(
+            "--admin-password", required=True, help="Password del superadmin del tenant"
+        )
+        parser.add_argument(
+            "--admin-email",
+            default="",
+            help="Email del superadmin (default: admin@{schema_name}.colstyle.com)",
+        )
 
     def handle(self, *args, **options):
         schema_name = options["schema_name"]
@@ -63,7 +81,9 @@ class Command(BaseCommand):
             role=User.Role.ADMIN,
         )
 
-        self.stdout.write(self.style.SUCCESS(f"Tenant '{name}' registrado exitosamente"))
+        self.stdout.write(
+            self.style.SUCCESS(f"Tenant '{name}' registrado exitosamente")
+        )
         self.stdout.write(f"  URL:      {domain}")
         self.stdout.write(f"  BD:       {db_name}")
         self.stdout.write(f"  Admin:    {admin_username} / {admin_password}")

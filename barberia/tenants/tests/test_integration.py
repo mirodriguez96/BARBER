@@ -127,9 +127,7 @@ class TenantMiddlewareIntegrationTest(TestCase):
             name="Cortes",
             nit="9999999999",
         )
-        Domain.objects.create(
-            domain="cortes.colstyle.com", tenant=t2, is_primary=True
-        )
+        Domain.objects.create(domain="cortes.colstyle.com", tenant=t2, is_primary=True)
 
         mw = TenantMiddleware(get_response=lambda r: self.response)
 

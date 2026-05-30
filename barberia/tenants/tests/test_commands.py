@@ -109,9 +109,7 @@ class RegisterTenantCommandTest(TestCase):
         with (
             patch.object(RegisterTenantCommand, "_create_database"),
             patch.object(RegisterTenantCommand, "_configure_database"),
-            patch(
-                "barberia.tenants.management.commands.register_tenant.call_command"
-            ),
+            patch("barberia.tenants.management.commands.register_tenant.call_command"),
             patch(
                 "barberia.tenants.management.commands.register_tenant.get_user_model"
             ),

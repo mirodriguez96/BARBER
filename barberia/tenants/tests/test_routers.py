@@ -2,7 +2,7 @@ from django.test import TestCase
 
 from barberia.accounts.models import User
 from barberia.common.models import Company
-from barberia.routers import TenantRouter, get_current_db_name, set_current_db_name
+from barberia.routers import TenantRouter, set_current_db_name
 from barberia.tenants.models import Tenant
 
 
