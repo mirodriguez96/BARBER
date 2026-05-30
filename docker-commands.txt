@@ -27,9 +27,12 @@ Reconstruir imágenes sin caché
     docker compose build --no-cache
 
 
+# ELIMINAR UN TENET
+    docker compose exec web python manage.py drop_tenant luxor --confirm
+
 # POBLAR UNA BD EN VENV Y docker
     pipenv run python manage.py seed_data --tenant=luxor
-    docker-compose exec web python manage.py seed_data --tenant=luxor
+    docker compose exec web python manage.py seed_data --tenant=prueba
 
 
 
