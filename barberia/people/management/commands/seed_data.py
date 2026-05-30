@@ -20,9 +20,20 @@ class Command(BaseCommand):
     help = "Pobla la BD de un tenant con datos de ejemplo"
 
     def add_arguments(self, parser):
-        parser.add_argument("--tenant", default="luxor", help="Nombre del tenant (ej: luxor → BD barber_luxor)")
-        parser.add_argument("--days", type=int, default=7, help="Cuantos días hacia atrás poblar ventas")
-        parser.add_argument("--reset-admin", action="store_true", default=True, help="Resetear contraseña admin")
+        parser.add_argument(
+            "--tenant",
+            default="luxor",
+            help="Nombre del tenant (ej: luxor → BD barber_luxor)",
+        )
+        parser.add_argument(
+            "--days", type=int, default=7, help="Cuantos días hacia atrás poblar ventas"
+        )
+        parser.add_argument(
+            "--reset-admin",
+            action="store_true",
+            default=True,
+            help="Resetear contraseña admin",
+        )
 
     def _ensure_database(self, db_name):
         if db_name not in connections.databases:
@@ -88,7 +99,16 @@ class Command(BaseCommand):
                 phone="+591 70000002",
             )
             barber_users.append(u)
-        self.stdout.write("  ✓ 3 barber users (pass: barber123)")
+        # --- Estilista user ---
+        estilista_user = User.objects.create_user(
+            username="estilista",
+            password="estilista123",
+            role=User.Role.ESTILISTA,
+            first_name="Sofia",
+            last_name="Lopez",
+            phone="+591 70000003",
+        )
+        self.stdout.write("  ✓ 1 estilista user (pass: estilista123)")
 
         # --- Employees ---
         employees = []
@@ -96,6 +116,7 @@ class Command(BaseCommand):
             (barber_users[0], "Carlos Mendoza", "12345678"),
             (barber_users[1], "Juan Perez", "23456789"),
             (barber_users[2], "Miguel Torres", "34567890"),
+            (estilista_user, "Sofia Lopez", "90123456"),
         ]
         for user, full_name, doc in emp_data:
             e = Employee.objects.create(
@@ -107,7 +128,7 @@ class Command(BaseCommand):
                 is_active=True,
             )
             employees.append(e)
-        self.stdout.write("  ✓ 3 employees")
+        self.stdout.write("  ✓ 4 employees")
 
         # --- Clients ---
         client_data = [
@@ -195,7 +216,9 @@ class Command(BaseCommand):
 
                 hour = random.randint(8, 19)
                 minute = random.randint(0, 59)
-                scheduled = day.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                scheduled = day.replace(
+                    hour=hour, minute=minute, second=0, microsecond=0
+                )
 
                 if status == Sale.Status.DONE:
                     completed = scheduled + timedelta(minutes=random.randint(15, 60))
@@ -205,7 +228,11 @@ class Command(BaseCommand):
                 commission_amount = None
                 tip_amount = None
                 if status == Sale.Status.DONE and is_service:
-                    commission_amount = (product.price * product.barber_commission_percent / Decimal("100")) * qty
+                    commission_amount = (
+                        product.price
+                        * product.barber_commission_percent
+                        / Decimal("100")
+                    ) * qty
                     tip_amount = Decimal(random.choice([0, 0, 0, 5, 10, 15, 20]))
 
                 sale = Sale.objects.create(
@@ -216,7 +243,11 @@ class Command(BaseCommand):
                     scheduled_for=scheduled,
                     completed_at=completed,
                     status=status,
-                    notes="" if status != Sale.Status.CANCELED else "Cancelado por cliente",
+                    notes=(
+                        ""
+                        if status != Sale.Status.CANCELED
+                        else "Cancelado por cliente"
+                    ),
                     product_price=product.price,
                     quantity=qty,
                     commission_amount=commission_amount,
@@ -279,6 +310,9 @@ class Command(BaseCommand):
             self.stdout.write("  ✓ Admin password reset: admin123")
 
         set_current_db_name(None)
-        self.stdout.write(self.style.SUCCESS(f"\n✅ Seed completado para tenant '{tenant}'"))
+        self.stdout.write(
+            self.style.SUCCESS(f"\n✅ Seed completado para tenant '{tenant}'")
+        )
         self.stdout.write("   admin / admin123")
         self.stdout.write("   carlos, juan, miguel / barber123")
+        self.stdout.write("   estilista / estilista123")
