@@ -1653,12 +1653,6 @@ a.btn,
   color: #fff;
 }
 
-@media (max-width: 767.98px) {
-  .dashboard-page-title--inverse {
-    display: none;
-  }
-}
-
 .dashboard-page-copy {
   color: #64748b;
   max-width: 46rem;

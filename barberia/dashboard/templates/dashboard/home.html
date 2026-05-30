@@ -7,14 +7,7 @@
         <div class="dashboard-shell">
             <aside class="dashboard-sidebar">
                 <div>
-                    <style>
-                        @media (max-width: 767.98px) {
-                            .dashboard-page-title--inverse.dashboard-sidebar-title {
-                                display: none !important;
-                            }
-                        }
-                    </style>
-                    <h1 class="dashboard-page-title dashboard-page-title--inverse dashboard-sidebar-title mb-3">{{ company.name|default:"Barbería Admin" }}</h1>
+                    <h1 class="dashboard-page-title dashboard-page-title--inverse mb-3">{{ company.name|default:"Barbería Admin" }}</h1>
                 </div>
                 <nav class="dashboard-menu" aria-label="Secciones del dashboard">
                     {% for item in menu_items %}
@@ -51,8 +44,18 @@
                             <h1 class="section-title mb-0">{{ section_title }}</h1>
                             <hr />
                         </div>
-                        <span class="dashboard-user-badge">{{ request.user.get_full_name|default:request.user.username }}</span>
+                        <span class="dashboard-user-badge dashboard-user-badge-mobile">{{ request.user.get_full_name|default:request.user.username }}</span>
                     </div>
+                    <style>
+                        @media (max-width: 767.98px) {
+                            .dashboard-user-badge-mobile {
+                                display: none !important;
+                            }
+                            .dashboard-panel__header {
+                                justify-content: flex-start;
+                            }
+                        }
+                    </style>
                     {% if active_section == 'barbers' or active_section == 'catalog' or active_section == 'sales' or active_section == 'inventory' or active_section == 'compras' %}
                         <div class="dashboard-quick-switch mb-4">
                             <a class="dashboard-quick-switch__item {% if quick_view == 'list' %}is-active{% endif %}"
