@@ -530,11 +530,7 @@
                                                             <div class="dashboard-person__body">
                                                                 <div class="dashboard-table__primary">{{ item.name }}</div>
                                                                 <div class="dashboard-table__meta">
-                                                                    {% if item.sku %}
-                                                                        {{ item.sku }}
-                                                                    {% else %}
-                                                                        Sin código
-                                                                    {% endif %}
+                                                                    {{ item.sku }}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -828,7 +824,7 @@
                                                         <div class="dashboard-table__primary">{{ product.name }}</div>
                                                         <div class="dashboard-table__meta">{{ product.description|truncatechars:60 }}</div>
                                                     </td>
-                                                    <td>{{ product.sku|default:"—" }}</td>
+                                                    <td>{{ product.sku }}</td>
                                                     <td>
                                                         <span class="{% if product.current_stock <= 0 %}text-danger fw-bold{% elif product.current_stock <= 5 %}text-warning fw-bold{% endif %}">
                                                             {{ product.current_stock }}

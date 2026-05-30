@@ -327,7 +327,6 @@ class CatalogItemForm(CatalogCommissionMixin, DashboardModelForm):
     class Meta:
         model = CatalogItem
         fields = [
-            "sku",
             "name",
             "kind",
             "price",
@@ -338,7 +337,6 @@ class CatalogItemForm(CatalogCommissionMixin, DashboardModelForm):
         labels = {
             "kind": "Tipo",
             "name": "Nombre",
-            "sku": "Código",
             "price": "Precio",
             "barber_commission_percent": "Comisión del colaborador (%)",
             "is_active": "Activo",
@@ -355,9 +353,6 @@ class CatalogItemForm(CatalogCommissionMixin, DashboardModelForm):
                     "placeholder": "Detalle del producto o servicio",
                 },
             ),
-            "sku": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Ej. PROD-001"},
-            ),
             "price": forms.NumberInput(
                 attrs={"class": "form-control", "step": "0.01", "min": "0"},
             ),
@@ -372,7 +367,6 @@ class CatalogItemEditForm(CatalogCommissionMixin, DashboardModelForm):
     class Meta:
         model = CatalogItem
         fields = [
-            "sku",
             "name",
             "kind",
             "price",
@@ -380,7 +374,6 @@ class CatalogItemEditForm(CatalogCommissionMixin, DashboardModelForm):
             "description",
         ]
         labels = {
-            "sku": "Código",
             "kind": "Tipo",
             "name": "Nombre",
             "description": "Descripción",
@@ -388,9 +381,6 @@ class CatalogItemEditForm(CatalogCommissionMixin, DashboardModelForm):
             "barber_commission_percent": "Comisión del colaborador (%)",
         }
         widgets = {
-            "sku": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Ej. PROD-001"},
-            ),
             "kind": forms.Select(attrs={"class": "form-select"}),
             "name": forms.TextInput(
                 attrs={"class": "form-control", "placeholder": "Ej. Corte degradado"},

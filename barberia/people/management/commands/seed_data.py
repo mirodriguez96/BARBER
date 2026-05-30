@@ -139,19 +139,18 @@ class Command(BaseCommand):
             ("Corte degradado", Decimal("60.00"), Decimal("40")),
         ]
         products = [
-            ("Gel fijador", Decimal("25.00"), 20, "GEL001"),
-            ("Cera modeladora", Decimal("35.00"), 15, "CERA001"),
-            ("Shampoo profesional", Decimal("45.00"), 10, "SHAM001"),
-            ("Aceite para barba", Decimal("55.00"), 12, "ACEI001"),
+            ("Gel fijador", Decimal("25.00"), 20),
+            ("Cera modeladora", Decimal("35.00"), 15),
+            ("Shampoo profesional", Decimal("45.00"), 10),
+            ("Aceite para barba", Decimal("55.00"), 12),
         ]
 
         catalog_items = {}
-        for i, (name, price, comm) in enumerate(services, 1):
+        for name, price, comm in services:
             item = CatalogItem.objects.create(
                 kind=CatalogItem.Kind.SERVICE,
                 name=name,
                 description=name,
-                sku=f"SERV{i:03d}",
                 price=price,
                 barber_commission_percent=comm,
                 current_stock=0,
@@ -159,12 +158,11 @@ class Command(BaseCommand):
             )
             catalog_items[name] = item
 
-        for name, price, stock, sku in products:
+        for name, price, stock in products:
             item = CatalogItem.objects.create(
                 kind=CatalogItem.Kind.PRODUCT,
                 name=name,
                 description=name,
-                sku=sku,
                 price=price,
                 barber_commission_percent=Decimal("0"),
                 current_stock=stock,
@@ -242,7 +240,7 @@ class Command(BaseCommand):
 
         # --- Purchases ---
         purchase_count = 0
-        for prod_name, _, _, _ in products:
+        for prod_name, _, _ in products:
             item = catalog_items[prod_name]
             for _ in range(random.randint(1, 3)):
                 qty = random.randint(5, 20)

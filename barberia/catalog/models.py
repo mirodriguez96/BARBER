@@ -19,5 +19,17 @@ class CatalogItem(models.Model):
     current_stock = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
 
+    def save(self, *args, **kwargs):
+        if not self.sku:
+            import uuid
+
+            self.sku = f"TMP-{uuid.uuid4().hex[:12].upper()}"
+            super().save(*args, **kwargs)
+            prefix = "PROD" if self.kind == self.Kind.PRODUCT else "SERV"
+            self.sku = f"{prefix}-{self.pk}"
+            CatalogItem.objects.filter(pk=self.pk).update(sku=self.sku)
+        else:
+            super().save(*args, **kwargs)
+
     def __str__(self):
         return self.name
