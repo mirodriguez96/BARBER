@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             "UPDATE operations_purchase SET status='canceled' WHERE is_active=False",
-            reverse_sql=migrations.RunSQL.noop,
+            reverse_sql="UPDATE operations_purchase SET is_active=(status != 'canceled')",
         ),
         migrations.RemoveField(
             model_name="purchase",

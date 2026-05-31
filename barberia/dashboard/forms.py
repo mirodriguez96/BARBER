@@ -152,8 +152,8 @@ class BarberForm(DashboardModelForm):
             self.fields["role"].initial = self.instance.user.role
 
     def save(self, commit=True):
-        instance = super().save(commit=True)
-        if instance.user_id:
+        instance = super().save(commit=commit)
+        if commit and instance.user_id:
             user = instance.user
             user.role = self.cleaned_data["role"]
             user.save(update_fields=["role"])
@@ -210,8 +210,8 @@ class BarberEditForm(DashboardModelForm):
             self.fields["role"].initial = self.instance.user.role
 
     def save(self, commit=True):
-        instance = super().save(commit=True)
-        if instance.user_id:
+        instance = super().save(commit=commit)
+        if commit and instance.user_id:
             user = instance.user
             user.role = self.cleaned_data["role"]
             user.save(update_fields=["role"])

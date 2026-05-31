@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
-from barberia.dashboard.models import RoleMenuPermission
+from barberia.dashboard.models import RoleCrudPermission, RoleMenuPermission
 from barberia.operations.models import Sale
 from barberia.people.models import Client, Employee
 
@@ -326,6 +326,12 @@ class ServiceBarberoAccessTest(TestCase):
         )
         for key in ["overview", "barbers", "catalog", "sales", "payments", "config"]:
             RoleMenuPermission.objects.create(role=User.Role.BARBERO, menu_key=key)
+        for action in RoleCrudPermission.Action.values:
+            RoleCrudPermission.objects.create(
+                role=User.Role.BARBERO,
+                app_key=RoleCrudPermission.AppKey.VENTAS,
+                action=action,
+            )
         self.barbero_emp = Employee.objects.create(
             user=self.barbero_user,
             full_name="Colaborador Uno",

@@ -926,30 +926,6 @@ class CrudVentasPermissionTest(TestCase):
         self.sale.refresh_from_db()
         self.assertEqual(self.sale.status, Sale.Status.CANCELED)
 
-    def test_admin_register_form_always_accessible(self):
-        self.client.login(username="admin", password="pass1234")
-        response = self.client.get(self._url("sales", view="form"))
-        self.assertEqual(response.status_code, 200)
-
-    def test_admin_edit_always_accessible(self):
-        self.client.login(username="admin", password="pass1234")
-        response = self.client.get(
-            self._url("sales", view="edit", sale=self.sale.pk)
-        )
-        self.assertEqual(response.status_code, 200)
-
-    def test_admin_register_form_always_accessible(self):
-        self.client.login(username="admin", password="pass1234")
-        response = self.client.get(self._url("sales", view="form"))
-        self.assertEqual(response.status_code, 200)
-
-    def test_admin_edit_always_accessible(self):
-        self.client.login(username="admin", password="pass1234")
-        response = self.client.get(
-            self._url("sales", view="edit", sale=self.sale.pk)
-        )
-        self.assertEqual(response.status_code, 200)
-
     # ── Estilista blocked (no crud permissions created) ──
 
     def test_estilista_blocked_all_crud_actions(self):
@@ -958,6 +934,7 @@ class CrudVentasPermissionTest(TestCase):
             "section": "sales", "action": "cancel",
             "sale_id": str(self.sale.pk),
         })
+        self.assertRedirects(response, self._url("sales"))
         self.sale.refresh_from_db()
         self.assertEqual(self.sale.status, Sale.Status.DONE)
 

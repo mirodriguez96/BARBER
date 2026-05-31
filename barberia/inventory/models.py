@@ -13,7 +13,7 @@ class InventoryMovement(models.Model):
 
     product = models.ForeignKey(
         "catalog.CatalogItem",
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="inventory_movements",
     )
     quantity = models.IntegerField()

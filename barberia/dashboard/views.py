@@ -6,6 +6,7 @@ from itertools import chain
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum, Value
 from django.db.models.functions import Coalesce, TruncDate
 from django.shortcuts import get_object_or_404, redirect, render
@@ -409,18 +410,24 @@ def home(request):
                 Sale,
                 pk=request.POST.get("sale_id"),
             )
+            if not is_admin and sale.employee.user_id != request.user.pk:
+                messages.error(
+                    request,
+                    "No puedes modificar un servicio de otro colaborador.",
+                )
+                return redirect(f"{request.path}?section=sales&view=list")
             if sale.status == Sale.Status.CANCELED:
                 messages.error(
                     request,
                     "No se puede modificar un servicio anulado.",
                 )
                 return redirect(f"{request.path}?section=sales&view=list")
+            original_quantity = sale.quantity
+            original_product_id = sale.product_id
             if sale.product.kind == CatalogItem.Kind.PRODUCT:
                 form_class = ProductSaleEditForm
-                old_quantity = sale.quantity
             else:
                 form_class = SaleEditForm
-                old_quantity = 0
             form = form_class(
                 request.POST,
                 instance=sale,
@@ -431,33 +438,76 @@ def home(request):
                 record.performed_by = request.user
                 if record.status == Sale.Status.SCHEDULED:
                     record.status = Sale.Status.DONE
-                if record.product.kind == CatalogItem.Kind.PRODUCT:
-                    record.product_price = record.product.price * record.quantity
-                    try:
-                        record.employee = request.user.employee
-                    except Exception:
-                        record.employee = None
-                    quantity_diff = record.quantity - old_quantity
-                    if quantity_diff != 0:
-                        product = record.product
-                        product.current_stock -= quantity_diff
-                        product.save(update_fields=["current_stock"])
+                old_is_product = original_product_id and CatalogItem.objects.filter(
+                    pk=original_product_id, kind=CatalogItem.Kind.PRODUCT
+                ).exists()
+                new_is_product = record.product.kind == CatalogItem.Kind.PRODUCT
+                same_product = (
+                    old_is_product
+                    and new_is_product
+                    and original_product_id == record.product_id
+                )
+                with transaction.atomic():
+                    if old_is_product and not same_product:
+                        revert_product = sale.product
+                        revert_product.current_stock += original_quantity
+                        revert_product.save(update_fields=["current_stock"])
                         InventoryMovement.objects.create(
-                            product=product,
-                            quantity=-quantity_diff,
+                            product=revert_product,
+                            quantity=original_quantity,
                             movement_type=InventoryMovement.MovementType.ADJUSTMENT,
-                            unit_cost=product.price,
+                            unit_cost=revert_product.price,
                             created_by=request.user,
                             reference_sale=record,
                             notes="Ajuste por modificación de venta",
                         )
-                record.save()
+                    if new_is_product:
+                        record.product_price = record.product.price * record.quantity
+                        try:
+                            record.employee = request.user.employee
+                        except Exception:
+                            record.employee = None
+                        if same_product:
+                            quantity_diff = record.quantity - original_quantity
+                            if quantity_diff != 0:
+                                product = record.product
+                                product.current_stock -= quantity_diff
+                                product.save(update_fields=["current_stock"])
+                                InventoryMovement.objects.create(
+                                    product=product,
+                                    quantity=-quantity_diff,
+                                    movement_type=InventoryMovement.MovementType.ADJUSTMENT,
+                                    unit_cost=product.price,
+                                    created_by=request.user,
+                                    reference_sale=record,
+                                    notes="Ajuste por modificación de venta",
+                                )
+                        elif not old_is_product:
+                            product = record.product
+                            product.current_stock -= record.quantity
+                            product.save(update_fields=["current_stock"])
+                            InventoryMovement.objects.create(
+                                product=product,
+                                quantity=-record.quantity,
+                                movement_type=InventoryMovement.MovementType.ADJUSTMENT,
+                                unit_cost=product.price,
+                                created_by=request.user,
+                                reference_sale=record,
+                                notes="Ajuste por modificación de venta",
+                            )
+                    record.save()
                 messages.success(request, "Servicio actualizado correctamente.")
                 return redirect(f"{request.path}?section=sales&view=list")
             quick_view = "edit"
             sale_to_edit = sale
             messages.error(request, "Revisa los campos marcados en rojo.")
         elif section == "compras" and action == "save":
+            if not can_register_compras:
+                messages.error(
+                    request,
+                    "No tienes permiso para registrar nuevas compras.",
+                )
+                return redirect(f"{request.path}?section=compras&view=list")
             form = PurchaseForm(request.POST, user=request.user)
             if form.is_valid():
                 purchase = form.save(commit=False)
@@ -521,6 +571,15 @@ def home(request):
 
             if not can_deactivate_ventas:
                 messages.error(request, "No tienes permiso para anular servicios.")
+                return redirect(
+                    f"{request.path}?section=sales&view=list{filter_params_local}"
+                )
+
+            if not is_admin and sale.employee.user_id != request.user.pk:
+                messages.error(
+                    request,
+                    "No puedes anular un servicio de otro colaborador.",
+                )
                 return redirect(
                     f"{request.path}?section=sales&view=list{filter_params_local}"
                 )
@@ -624,6 +683,8 @@ def home(request):
                     if not record.scheduled_for:
                         record.scheduled_for = timezone.now()
                     record.status = Sale.Status.DONE
+                    if record.product and record.product_price is None:
+                        record.product_price = record.product.price
                     if record_type == "producto":
                         record.product_price = record.product.price * record.quantity
                         try:
@@ -677,6 +738,12 @@ def home(request):
             messages.error(
                 request,
                 "No tienes permiso para modificar servicios.",
+            )
+            return redirect(f"{request.path}?section=sales&view=list")
+        if not is_admin and sale_to_edit.employee.user_id != request.user.pk:
+            messages.error(
+                request,
+                "No puedes modificar un servicio de otro colaborador.",
             )
             return redirect(f"{request.path}?section=sales&view=list")
         if sale_to_edit.product.kind == CatalogItem.Kind.PRODUCT:
@@ -1132,7 +1199,7 @@ def home(request):
 
     sales_period = Sale.objects.filter(date_filter, status=Sale.Status.DONE).aggregate(
         total=Coalesce(
-            Sum(F("product_price") * F("quantity"), output_field=DecimalField()),
+            Sum("product_price", output_field=DecimalField(max_digits=12, decimal_places=2)),
             Value(Decimal("0.00")),
         ),
         count=Coalesce(Count("id"), Value(0)),
