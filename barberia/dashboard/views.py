@@ -107,6 +107,19 @@ def home(request):
     can_modify_personal = is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_personal
     can_deactivate_personal = is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_personal
 
+    # CRUD permissions for 'productos' app (catalog)
+    crud_allowed_productos = set()
+    if not is_admin:
+        crud_allowed_productos = set(
+            RoleCrudPermission.objects.filter(
+                role=request.user.role,
+                app_key=RoleCrudPermission.AppKey.PRODUCTOS,
+            ).values_list("action", flat=True)
+        )
+    can_register_productos = is_admin or RoleCrudPermission.Action.REGISTRAR in crud_allowed_productos
+    can_modify_productos = is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_productos
+    can_deactivate_productos = is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_productos
+
     if not is_admin:
         allowed_keys = set(
             RoleMenuPermission.objects.filter(role=request.user.role).values_list(
@@ -302,6 +315,12 @@ def home(request):
             client_to_edit = client
             messages.error(request, "Revisa los campos marcados en rojo.")
         elif section == "catalog" and action == "deactivate":
+            if not can_deactivate_productos:
+                messages.error(
+                    request,
+                    "No tienes permiso para desactivar productos o servicios.",
+                )
+                return redirect(f"{request.path}?section=catalog&view=list")
             catalog_item = get_object_or_404(
                 CatalogItem,
                 pk=request.POST.get("catalog_item_id"),
@@ -311,6 +330,12 @@ def home(request):
             messages.success(request, f"{catalog_item.name} fue desactivado.")
             return redirect(f"{request.path}?section=catalog&view=list")
         elif section == "catalog" and action == "activate":
+            if not can_deactivate_productos:
+                messages.error(
+                    request,
+                    "No tienes permiso para activar productos o servicios.",
+                )
+                return redirect(f"{request.path}?section=catalog&view=list")
             catalog_item = get_object_or_404(
                 CatalogItem,
                 pk=request.POST.get("catalog_item_id"),
@@ -320,6 +345,12 @@ def home(request):
             messages.success(request, f"{catalog_item.name} fue activado.")
             return redirect(f"{request.path}?section=catalog&view=list")
         elif section == "catalog" and action == "update":
+            if not can_modify_productos:
+                messages.error(
+                    request,
+                    "No tienes permiso para modificar productos o servicios.",
+                )
+                return redirect(f"{request.path}?section=catalog&view=list")
             catalog_item = get_object_or_404(
                 CatalogItem,
                 pk=request.POST.get("catalog_item_id"),
@@ -539,6 +570,12 @@ def home(request):
         and quick_view == "edit"
         and catalog_item_to_edit is not None
     ):
+        if not can_modify_productos:
+            messages.error(
+                request,
+                "No tienes permiso para modificar productos o servicios.",
+            )
+            return redirect(f"{request.path}?section=catalog&view=list")
         form = CatalogItemEditForm(instance=catalog_item_to_edit)
     elif section == "sales" and quick_view == "edit" and sale_to_edit is not None:
         if (
@@ -580,6 +617,14 @@ def home(request):
                 form = None
         elif section == "compras":
             form = PurchaseForm(user=request.user)
+        elif section == "catalog":
+            if quick_view == "form" and not can_register_productos:
+                messages.error(
+                    request,
+                    "No tienes permiso para registrar nuevos productos o servicios.",
+                )
+                return redirect(f"{request.path}?section=catalog&view=list")
+            form = CatalogItemForm(user=request.user)
         else:
             form_class = forms_map.get(section, BarberForm)
             form = form_class(user=request.user)
@@ -1232,5 +1277,8 @@ def home(request):
         "can_register_personal": can_register_personal,
         "can_modify_personal": can_modify_personal,
         "can_deactivate_personal": can_deactivate_personal,
+        "can_register_productos": can_register_productos,
+        "can_modify_productos": can_modify_productos,
+        "can_deactivate_productos": can_deactivate_productos,
     }
     return render(request, "dashboard/home.html", context)
