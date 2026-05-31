@@ -134,8 +134,16 @@ class BarberForm(DashboardModelForm):
         super().__init__(*args, **kwargs)
         User = get_user_model()
         self.fields["role"].choices = User.Role.choices
+        if self.user and self.user.role != User.Role.ADMIN:
+            self.fields["role"].choices = [
+                c for c in User.Role.choices if c[0] != User.Role.ADMIN
+            ]
         self.fields["user"].required = True
         self.fields["user"].queryset = User.objects.exclude(employee__isnull=False)
+        if self.user and self.user.role != User.Role.ADMIN:
+            self.fields["user"].queryset = self.fields["user"].queryset.exclude(
+                role=User.Role.ADMIN
+            )
         if self.instance and self.instance.pk and self.instance.user_id:
             self.fields["user"].queryset = (
                 User.objects.filter(pk=self.instance.user_id)

@@ -3,11 +3,10 @@ from django.core.management.base import BaseCommand
 from django.db import connections
 
 from barberia.accounts.models import User
-from barberia.dashboard.models import RoleMenuPermission
+from barberia.dashboard.models import RoleCrudPermission, RoleMenuPermission
 from barberia.routers import set_current_db_name
 
 ALL_MENU_KEYS = [
-    "overview",
     "barbers",
     "catalog",
     "sales",
@@ -43,13 +42,28 @@ class Command(BaseCommand):
         set_current_db_name(db_name)
 
         RoleMenuPermission.objects.all().delete()
+        RoleCrudPermission.objects.all().delete()
 
         for role in [User.Role.BARBERO, User.Role.ESTILISTA]:
             for key in ALL_MENU_KEYS:
                 if key not in RESTRICTED_KEYS:
                     RoleMenuPermission.objects.create(role=role, menu_key=key)
 
-        created = RoleMenuPermission.objects.count()
+        CRUD_APPS = ["personal", "productos", "ventas", "compras"]
+        CRUD_ACTIONS = ["registrar", "modificar", "desactivar"]
+
+        for role in [User.Role.BARBERO, User.Role.ESTILISTA]:
+            for app_key in CRUD_APPS:
+                for action in CRUD_ACTIONS:
+                    RoleCrudPermission.objects.create(
+                        role=role, app_key=app_key, action=action
+                    )
+
+        created_menu = RoleMenuPermission.objects.count()
+        created_crud = RoleCrudPermission.objects.count()
         self.stdout.write(
-            self.style.SUCCESS(f"Permisos creados para tenant '{tenant}': {created}")
+            self.style.SUCCESS(
+                f"Permisos creados para tenant '{tenant}': "
+                f"{created_menu} menú, {created_crud} acciones"
+            )
         )

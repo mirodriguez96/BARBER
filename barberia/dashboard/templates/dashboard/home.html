@@ -92,7 +92,9 @@
                                 <a class="dashboard-quick-switch__item {% if config_tab == 'company' %}is-active{% endif %}"
                                    href="?section=config&config_tab=company">Empresa</a>
                                 <a class="dashboard-quick-switch__item {% if config_tab == 'permissions' %}is-active{% endif %}"
-                                   href="?section=config&config_tab=permissions">Permisos</a>
+                                   href="?section=config&config_tab=permissions">Permisos de Menú</a>
+                                <a class="dashboard-quick-switch__item {% if config_tab == 'crud_permissions' %}is-active{% endif %}"
+                                   href="?section=config&config_tab=crud_permissions">Permisos de Acciones</a>
                             </div>
                             {% endif %}
 
@@ -130,6 +132,55 @@
                                     <div class="dashboard-form__actions mt-4">
                                         <button type="submit" class="btn btn-dashboard-primary btn-lg rounded-pill px-5">
                                             Guardar permisos
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            {% elif config_tab == 'crud_permissions' %}
+                            <div class="dashboard-config-card">
+                                <p class="mb-4 text-muted">Selecciona una sección y configura qué acciones están disponibles para cada rol.</p>
+                                <form method="get" class="dashboard-form mb-5" style="max-width: 400px;">
+                                    <input type="hidden" name="section" value="config">
+                                    <input type="hidden" name="config_tab" value="crud_permissions">
+                                    <select name="crud_section" class="form-select" onchange="this.form.submit()">
+                                        {% for app in crud_apps %}
+                                        <option value="{{ app.key }}" {% if app.key == current_crud_section %}selected{% endif %}>{{ app.label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                 </form>
+                                 <div style="height: 2rem;"></div>
+                                 <form method="post">
+                                     {% csrf_token %}
+                                     <input type="hidden" name="crud_section" value="{{ current_crud_section }}">
+                                     <div class="table-responsive">
+                                        <table class="dashboard-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Rol</th>
+                                                    {% for action in crud_actions %}
+                                                    <th class="text-center">{{ action.label }}</th>
+                                                    {% endfor %}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for row in crud_section_matrix %}
+                                                <tr>
+                                                    <td><strong>{{ row.role_label }}</strong></td>
+                                                    {% for action in row.actions %}
+                                                    <td class="text-center">
+                                                        <input type="checkbox" name="crud_{{ row.role_key }}_{{ current_crud_section }}_{{ action.key }}"
+                                                               class="form-check-input"
+                                                               {% if action.checked %}checked{% endif %}>
+                                                    </td>
+                                                    {% endfor %}
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="dashboard-form__actions mt-4">
+                                        <button type="submit" class="btn btn-dashboard-primary btn-lg rounded-pill px-5">
+                                            Guardar permisos de acciones
                                         </button>
                                     </div>
                                 </form>

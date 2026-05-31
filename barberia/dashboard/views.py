@@ -33,7 +33,7 @@ from .forms import (
     SaleEditForm,
     SaleForm,
 )
-from .models import RoleMenuPermission
+from .models import RoleCrudPermission, RoleMenuPermission
 
 
 @login_required
@@ -49,6 +49,7 @@ def home(request):
     sale_id = request.GET.get("sale")
     product_id = request.GET.get("product")
     config_tab = request.GET.get("config_tab", "company")
+    crud_section = request.GET.get("crud_section", "personal")
     if section not in {
         "overview",
         "barbers",
@@ -72,7 +73,6 @@ def home(request):
         "config",
     ]
     PERMISSION_MENU_ITEMS = [
-        {"key": "overview", "label": "Panel inicial"},
         {"key": "barbers", "label": "Personal"},
         {"key": "catalog", "label": "Productos"},
         {"key": "sales", "label": "Ventas"},
@@ -80,6 +80,17 @@ def home(request):
         {"key": "payments", "label": "Pagos"},
         {"key": "inventory", "label": "Inventario"},
         {"key": "config", "label": "Configuración"},
+    ]
+    CRUD_APPS = [
+        {"key": "personal", "label": "Personal"},
+        {"key": "productos", "label": "Productos"},
+        {"key": "ventas", "label": "Ventas"},
+        {"key": "compras", "label": "Compras"},
+    ]
+    CRUD_ACTIONS = [
+        {"key": "registrar", "label": "Registrar"},
+        {"key": "modificar", "label": "Modificar"},
+        {"key": "desactivar", "label": "Desactivar"},
     ]
     is_admin = request.user.role == User.Role.ADMIN
 
@@ -89,7 +100,7 @@ def home(request):
                 "menu_key", flat=True
             )
         )
-        if section not in allowed_keys:
+        if section not in allowed_keys and section != "overview":
             return redirect(f"{request.path}?section=overview")
     else:
         allowed_keys = set(ALL_MENU_KEYS)
@@ -111,6 +122,33 @@ def home(request):
                         )
                 messages.success(request, "Permisos actualizados correctamente.")
                 return redirect(f"{request.path}?section=config&config_tab=permissions")
+        elif config_tab == "crud_permissions":
+            if not is_admin:
+                return redirect(f"{request.path}?section=overview")
+            crud_section = request.POST.get(
+                "crud_section", request.GET.get("crud_section", CRUD_APPS[0]["key"])
+            )
+            if request.method == "POST":
+                RoleCrudPermission.objects.filter(app_key=crud_section).delete()
+                for role_key, _ in User.Role.choices:
+                    if role_key == User.Role.ADMIN:
+                        continue
+                    for action in CRUD_ACTIONS:
+                        checkbox_name = (
+                            f"crud_{role_key}_{crud_section}_{action['key']}"
+                        )
+                        if checkbox_name in request.POST:
+                            RoleCrudPermission.objects.create(
+                                role=role_key,
+                                app_key=crud_section,
+                                action=action["key"],
+                            )
+                messages.success(
+                    request, "Permisos de acciones actualizados correctamente."
+                )
+                return redirect(
+                    f"{request.path}?section=config&config_tab=crud_permissions&crud_section={crud_section}"
+                )
         else:
             if request.method == "POST":
                 company_form = CompanyForm(request.POST, instance=company)
@@ -1023,6 +1061,32 @@ def home(request):
                 "allowed": allowed,
             }
 
+    crud_section_matrix = []
+    if section == "config" and config_tab == "crud_permissions":
+        for role_key, role_label in User.Role.choices:
+            if role_key == User.Role.ADMIN:
+                continue
+            allowed_actions = set(
+                RoleCrudPermission.objects.filter(
+                    role=role_key, app_key=crud_section
+                ).values_list("action", flat=True)
+            )
+            actions_data = []
+            for action in CRUD_ACTIONS:
+                actions_data.append(
+                    {
+                        "key": action["key"],
+                        "checked": action["key"] in allowed_actions,
+                    }
+                )
+            crud_section_matrix.append(
+                {
+                    "role_key": role_key,
+                    "role_label": role_label,
+                    "actions": actions_data,
+                }
+            )
+
     context = {
         "active_section": section,
         "quick_view": quick_view,
@@ -1112,5 +1176,9 @@ def home(request):
         "permission_matrix": permission_matrix,
         "permission_menu_items": PERMISSION_MENU_ITEMS,
         "all_menu_keys": ALL_MENU_KEYS,
+        "crud_section_matrix": crud_section_matrix,
+        "crud_apps": CRUD_APPS,
+        "crud_actions": CRUD_ACTIONS,
+        "current_crud_section": crud_section,
     }
     return render(request, "dashboard/home.html", context)
