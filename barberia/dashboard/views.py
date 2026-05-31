@@ -1375,7 +1375,7 @@ def home(request):
                     {"key": "inventory", "label": "INVENTARIO", "hint": ""},
                     {"key": "config", "label": "CONFIGURACIÓN", "hint": "Empresa"},
                 ]
-                if item["key"] in allowed_keys
+                if item["key"] in allowed_keys or item["key"] == "overview"
             ]
         ),
         "is_admin": is_admin,
