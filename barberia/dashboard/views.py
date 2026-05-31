@@ -94,6 +94,19 @@ def home(request):
     ]
     is_admin = request.user.role == User.Role.ADMIN
 
+    # CRUD permissions for 'personal' app (colaboradores-clientes)
+    crud_allowed_personal = set()
+    if not is_admin:
+        crud_allowed_personal = set(
+            RoleCrudPermission.objects.filter(
+                role=request.user.role,
+                app_key=RoleCrudPermission.AppKey.PERSONAL,
+            ).values_list("action", flat=True)
+        )
+    can_register_personal = is_admin or RoleCrudPermission.Action.REGISTRAR in crud_allowed_personal
+    can_modify_personal = is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_personal
+    can_deactivate_personal = is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_personal
+
     if not is_admin:
         allowed_keys = set(
             RoleMenuPermission.objects.filter(role=request.user.role).values_list(
@@ -202,6 +215,9 @@ def home(request):
             and action == "deactivate"
             and request.POST.get("barber_id")
         ):
+            if not can_deactivate_personal:
+                messages.error(request, "No tienes permiso para desactivar colaboradores.")
+                return redirect(f"{request.path}?section=barbers&view=list")
             barber = get_object_or_404(Employee, pk=request.POST.get("barber_id"))
             barber.is_active = False
             barber.save(update_fields=["is_active", "updated_at"])
@@ -213,6 +229,9 @@ def home(request):
             and action == "activate"
             and request.POST.get("barber_id")
         ):
+            if not can_deactivate_personal:
+                messages.error(request, "No tienes permiso para activar colaboradores.")
+                return redirect(f"{request.path}?section=barbers&view=list")
             barber = get_object_or_404(Employee, pk=request.POST.get("barber_id"))
             barber.is_active = True
             barber.save(update_fields=["is_active", "updated_at"])
@@ -224,6 +243,9 @@ def home(request):
             and action == "update"
             and request.POST.get("barber_id")
         ):
+            if not can_modify_personal:
+                messages.error(request, "No tienes permiso para modificar colaboradores.")
+                return redirect(f"{request.path}?section=barbers&view=list")
             barber = get_object_or_404(Employee, pk=request.POST.get("barber_id"))
             form = BarberEditForm(request.POST, instance=barber)
             if form.is_valid():
@@ -239,6 +261,9 @@ def home(request):
             and action == "deactivate"
             and request.POST.get("client_id")
         ):
+            if not can_deactivate_personal:
+                messages.error(request, "No tienes permiso para desactivar clientes.")
+                return redirect(f"{request.path}?section=barbers&view=list")
             client = get_object_or_404(Client, pk=request.POST.get("client_id"))
             client.is_active = False
             client.save(update_fields=["is_active", "updated_at"])
@@ -250,6 +275,9 @@ def home(request):
             and action == "activate"
             and request.POST.get("client_id")
         ):
+            if not can_deactivate_personal:
+                messages.error(request, "No tienes permiso para activar clientes.")
+                return redirect(f"{request.path}?section=barbers&view=list")
             client = get_object_or_404(Client, pk=request.POST.get("client_id"))
             client.is_active = True
             client.save(update_fields=["is_active", "updated_at"])
@@ -261,6 +289,9 @@ def home(request):
             and action == "update"
             and request.POST.get("client_id")
         ):
+            if not can_modify_personal:
+                messages.error(request, "No tienes permiso para modificar clientes.")
+                return redirect(f"{request.path}?section=barbers&view=list")
             client = get_object_or_404(Client, pk=request.POST.get("client_id"))
             form = ClientEditForm(request.POST, instance=client)
             if form.is_valid():
@@ -448,6 +479,12 @@ def home(request):
             )
         else:
             if section == "barbers":
+                if not can_register_personal:
+                    messages.error(
+                        request,
+                        "No tienes permiso para registrar nuevos colaboradores o clientes.",
+                    )
+                    return redirect(f"{request.path}?section=barbers&view=list")
                 form_class = ClientForm if record_type == "cliente" else BarberForm
             elif section == "sales":
                 form_class = ProductSaleForm if record_type == "producto" else SaleForm
@@ -486,8 +523,14 @@ def home(request):
             messages.error(request, "Revisa los campos marcados en rojo.")
     elif section == "barbers" and quick_view == "edit":
         if barber_to_edit is not None:
+            if not can_modify_personal:
+                messages.error(request, "No tienes permiso para modificar colaboradores.")
+                return redirect(f"{request.path}?section=barbers&view=list")
             form = BarberEditForm(instance=barber_to_edit)
         elif client_to_edit is not None:
+            if not can_modify_personal:
+                messages.error(request, "No tienes permiso para modificar clientes.")
+                return redirect(f"{request.path}?section=barbers&view=list")
             form = ClientEditForm(instance=client_to_edit)
         else:
             form = BarberForm(user=request.user)
@@ -519,6 +562,12 @@ def home(request):
             )
     else:
         if section == "barbers":
+            if quick_view == "form" and not can_register_personal:
+                messages.error(
+                    request,
+                    "No tienes permiso para registrar nuevos colaboradores o clientes.",
+                )
+                return redirect(f"{request.path}?section=barbers&view=list")
             form_class = ClientForm if record_type == "cliente" else BarberForm
             form = form_class(user=request.user)
         elif section == "sales":
@@ -1180,5 +1229,8 @@ def home(request):
         "crud_apps": CRUD_APPS,
         "crud_actions": CRUD_ACTIONS,
         "current_crud_section": crud_section,
+        "can_register_personal": can_register_personal,
+        "can_modify_personal": can_modify_personal,
+        "can_deactivate_personal": can_deactivate_personal,
     }
     return render(request, "dashboard/home.html", context)
