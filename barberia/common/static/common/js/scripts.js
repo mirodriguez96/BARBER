@@ -98,4 +98,37 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
   }
+
+  // Mobile nav toggle
+  var sidebar = document.getElementById("dashboardSidebar");
+  var navToggle = document.getElementById("navToggle");
+  var navClose = document.getElementById("navClose");
+
+  function closeSidebar() {
+    if (!sidebar) return;
+    sidebar.classList.remove("is-open");
+    if (navToggle) navToggle.setAttribute("aria-label", "Abrir men\u00fa");
+  }
+
+  if (navToggle && sidebar) {
+    navToggle.addEventListener("click", function () {
+      sidebar.classList.toggle("is-open");
+      var isOpen = sidebar.classList.contains("is-open");
+      navToggle.setAttribute(
+        "aria-label",
+        isOpen ? "Cerrar men\u00fa" : "Abrir men\u00fa",
+      );
+    });
+  }
+
+  if (navClose && sidebar) {
+    navClose.addEventListener("click", closeSidebar);
+  }
+
+  // Close sidebar when a menu item is clicked
+  if (sidebar) {
+    sidebar.querySelectorAll(".dashboard-menu__item").forEach(function (item) {
+      item.addEventListener("click", closeSidebar);
+    });
+  }
 });

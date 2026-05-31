@@ -1770,6 +1770,103 @@ a.btn,
   }
 }
 
+/* Nav toggle (hamburger) — hidden on desktop */
+.dashboard-nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  color: #fff;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.dashboard-nav-toggle:hover {
+  background: rgba(37, 99, 235, 0.28);
+  border-color: rgba(96, 165, 250, 0.45);
+}
+
+/* Nav close (X) — hidden on desktop, shown inside sidebar on mobile */
+.dashboard-nav-close {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.65rem;
+  color: #fff;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.dashboard-nav-close:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.dashboard-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+@media (max-width: 767.98px) {
+  .dashboard-nav-toggle {
+    display: inline-flex;
+    margin-bottom: 0.75rem;
+  }
+
+  .dashboard-workspace {
+    padding-top: 0.25rem;
+  }
+
+  .dashboard-nav-close {
+    display: inline-flex;
+  }
+
+  .dashboard-sidebar {
+    display: none;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .dashboard-sidebar.is-open {
+    display: block;
+    animation: dashFadeIn 0.2s ease;
+  }
+
+  @keyframes dashFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .dashboard-sidebar-header .dashboard-page-title {
+    font-size: 1.35rem;
+    margin-bottom: 0 !important;
+  }
+}
+
 @media (max-width: 575.98px) {
   .auth-shell {
     padding: 1rem;

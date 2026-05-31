@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
+from barberia.dashboard.models import RoleMenuPermission
 from barberia.inventory.models import InventoryMovement
 from barberia.operations.models import Sale
 from barberia.people.models import Employee
@@ -621,6 +622,8 @@ class InventoryBarberoAccessTest(TestCase):
             price=Decimal("80.00"),
             sku="PRD080",
         )
+        RoleMenuPermission.objects.create(role=User.Role.BARBERO, menu_key="inventory")
+        RoleMenuPermission.objects.create(role=User.Role.BARBERO, menu_key="compras")
         self.list_url = reverse("dashboard:home")
         self.client.login(username="barbero_inv", password="pass1234")
 
