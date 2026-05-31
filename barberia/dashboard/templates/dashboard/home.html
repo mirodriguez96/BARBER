@@ -59,7 +59,7 @@
                         <div class="dashboard-quick-switch mb-4">
                             <a class="dashboard-quick-switch__item {% if quick_view == 'list' %}is-active{% endif %}"
                                href="?section={{ active_section }}&view=list">Lista de registros</a>
-                            {% if active_section != 'catalog' and active_section != 'barbers' or active_section == 'catalog' and can_register_productos or active_section == 'barbers' and can_register_personal %}
+                            {% if active_section != 'catalog' and active_section != 'barbers' and active_section != 'sales' or active_section == 'catalog' and can_register_productos or active_section == 'barbers' and can_register_personal or active_section == 'sales' and can_register_ventas %}
                             <a class="dashboard-quick-switch__item {% if quick_view == 'form' %}is-active{% endif %}"
                                href="?section={{ active_section }}&view=form">Formulario de registro</a>
                             {% endif %}
@@ -832,15 +832,15 @@
                                                     </td>
                                                     <td>
                                                         <div class="dashboard-row-actions dashboard-row-actions--controls">
-                                                            {% if record.status != 'canceled' %}
-                                                                <form method="get" class="dashboard-inline-form">
-                                                                    <input type="hidden" name="section" value="sales" />
-                                                                    <input type="hidden" name="view" value="edit" />
-                                                                    <input type="hidden" name="sale" value="{{ record.pk }}" />
-                                                                    <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">Modificar</button>
-                                                                </form>
-                                                            {% endif %}
-                                                            {% if is_admin and record.status != 'canceled' %}
+                                                             {% if record.status != 'canceled' and can_modify_ventas %}
+                                                                 <form method="get" class="dashboard-inline-form">
+                                                                     <input type="hidden" name="section" value="sales" />
+                                                                     <input type="hidden" name="view" value="edit" />
+                                                                     <input type="hidden" name="sale" value="{{ record.pk }}" />
+                                                                     <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">Modificar</button>
+                                                                 </form>
+                                                             {% endif %}
+                                                             {% if can_deactivate_ventas and record.status != 'canceled' %}
                                                                 <form method="post"
                                                                       class="dashboard-inline-form js-confirmable"
                                                                       data-confirm="¿Anular este registro? Esta acción marcará el registro como Cancelado.">

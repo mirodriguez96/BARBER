@@ -120,6 +120,19 @@ def home(request):
     can_modify_productos = is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_productos
     can_deactivate_productos = is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_productos
 
+    # CRUD permissions for 'ventas' app (sales)
+    crud_allowed_ventas = set()
+    if not is_admin:
+        crud_allowed_ventas = set(
+            RoleCrudPermission.objects.filter(
+                role=request.user.role,
+                app_key=RoleCrudPermission.AppKey.VENTAS,
+            ).values_list("action", flat=True)
+        )
+    can_register_ventas = is_admin or RoleCrudPermission.Action.REGISTRAR in crud_allowed_ventas
+    can_modify_ventas = is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_ventas
+    can_deactivate_ventas = is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_ventas
+
     if not is_admin:
         allowed_keys = set(
             RoleMenuPermission.objects.filter(role=request.user.role).values_list(
@@ -367,19 +380,16 @@ def home(request):
             catalog_item_to_edit = catalog_item
             messages.error(request, "Revisa los campos marcados en rojo.")
         elif section == "sales" and action == "update":
+            if not can_modify_ventas:
+                messages.error(
+                    request,
+                    "No tienes permiso para modificar servicios.",
+                )
+                return redirect(f"{request.path}?section=sales&view=list")
             sale = get_object_or_404(
                 Sale,
                 pk=request.POST.get("sale_id"),
             )
-            if (
-                request.user.role != User.Role.ADMIN
-                and sale.employee.user_id != request.user.pk
-            ):
-                messages.error(
-                    request,
-                    "No tienes permiso para modificar este servicio.",
-                )
-                return redirect(f"{request.path}?section=sales&view=list")
             if sale.status == Sale.Status.CANCELED:
                 messages.error(
                     request,
@@ -490,8 +500,8 @@ def home(request):
                     f"{request.path}?section=sales&view=list{filter_params_local}"
                 )
 
-            if request.user.role != User.Role.ADMIN:
-                messages.error(request, "No tienes permiso para anular este servicio.")
+            if not can_deactivate_ventas:
+                messages.error(request, "No tienes permiso para anular servicios.")
                 return redirect(
                     f"{request.path}?section=sales&view=list{filter_params_local}"
                 )
@@ -518,6 +528,12 @@ def home(request):
                     return redirect(f"{request.path}?section=barbers&view=list")
                 form_class = ClientForm if record_type == "cliente" else BarberForm
             elif section == "sales":
+                if not can_register_ventas:
+                    messages.error(
+                        request,
+                        "No tienes permiso para registrar servicios.",
+                    )
+                    return redirect(f"{request.path}?section=sales&view=list")
                 form_class = ProductSaleForm if record_type == "producto" else SaleForm
             else:
                 form_class = forms_map.get(section, BarberForm)
@@ -578,13 +594,10 @@ def home(request):
             return redirect(f"{request.path}?section=catalog&view=list")
         form = CatalogItemEditForm(instance=catalog_item_to_edit)
     elif section == "sales" and quick_view == "edit" and sale_to_edit is not None:
-        if (
-            request.user.role != User.Role.ADMIN
-            and sale_to_edit.employee.user_id != request.user.pk
-        ):
+        if not can_modify_ventas:
             messages.error(
                 request,
-                "No tienes permiso para modificar este servicio.",
+                "No tienes permiso para modificar servicios.",
             )
             return redirect(f"{request.path}?section=sales&view=list")
         if sale_to_edit.product.kind == CatalogItem.Kind.PRODUCT:
@@ -608,6 +621,12 @@ def home(request):
             form_class = ClientForm if record_type == "cliente" else BarberForm
             form = form_class(user=request.user)
         elif section == "sales":
+            if quick_view == "form" and not can_register_ventas:
+                messages.error(
+                    request,
+                    "No tienes permiso para registrar servicios.",
+                )
+                return redirect(f"{request.path}?section=sales&view=list")
             form_class = ProductSaleForm if sale_type == "producto" else SaleForm
             form = form_class(user=request.user)
         elif section == "inventory":
@@ -1280,5 +1299,8 @@ def home(request):
         "can_register_productos": can_register_productos,
         "can_modify_productos": can_modify_productos,
         "can_deactivate_productos": can_deactivate_productos,
+        "can_register_ventas": can_register_ventas,
+        "can_modify_ventas": can_modify_ventas,
+        "can_deactivate_ventas": can_deactivate_ventas,
     }
     return render(request, "dashboard/home.html", context)
