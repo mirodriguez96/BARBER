@@ -29,6 +29,7 @@ from .forms import (
     InventoryAdjustForm,
     ProductSaleEditForm,
     ProductSaleForm,
+    PurchaseEditForm,
     PurchaseForm,
     SaleEditForm,
     SaleForm,
@@ -47,6 +48,7 @@ def home(request):
     catalog_id = request.GET.get("catalog_item")
     inventory_action = request.GET.get("inventory_action", "adjust")
     sale_id = request.GET.get("sale")
+    purchase_id = request.GET.get("purchase")
     product_id = request.GET.get("product")
     config_tab = request.GET.get("config_tab", "company")
     crud_section = request.GET.get("crud_section", "personal")
@@ -133,6 +135,19 @@ def home(request):
     can_modify_ventas = is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_ventas
     can_deactivate_ventas = is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_ventas
 
+    # CRUD permissions for 'compras' app (purchases)
+    crud_allowed_compras = set()
+    if not is_admin:
+        crud_allowed_compras = set(
+            RoleCrudPermission.objects.filter(
+                role=request.user.role,
+                app_key=RoleCrudPermission.AppKey.COMPRAS,
+            ).values_list("action", flat=True)
+        )
+    can_register_compras = is_admin or RoleCrudPermission.Action.REGISTRAR in crud_allowed_compras
+    can_modify_compras = is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_compras
+    can_deactivate_compras = is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_compras
+
     if not is_admin:
         allowed_keys = set(
             RoleMenuPermission.objects.filter(role=request.user.role).values_list(
@@ -218,6 +233,10 @@ def home(request):
     sale_to_edit = None
     if section == "sales" and quick_view == "edit" and sale_id:
         sale_to_edit = get_object_or_404(Sale, pk=sale_id)
+
+    purchase_to_edit = None
+    if section == "compras" and quick_view == "edit" and purchase_id:
+        purchase_to_edit = get_object_or_404(Purchase, pk=purchase_id)
 
     forms_map = {
         "barbers": BarberForm,
@@ -518,6 +537,66 @@ def home(request):
             return redirect(
                 f"{request.path}?section=sales&view=list{filter_params_local}"
             )
+
+        elif section == "compras" and action == "update":
+            if not can_modify_compras:
+                messages.error(request, "No tienes permiso para modificar compras.")
+                return redirect(f"{request.path}?section=compras&view=list")
+            purchase = get_object_or_404(
+                Purchase,
+                pk=request.POST.get("purchase_id"),
+            )
+            form = PurchaseEditForm(request.POST, instance=purchase)
+            if form.is_valid():
+                old_quantity = purchase.quantity
+                record = form.save(commit=False)
+                quantity_diff = record.quantity - old_quantity
+                if quantity_diff != 0:
+                    product = record.product
+                    product.current_stock += quantity_diff
+                    product.save(update_fields=["current_stock"])
+                    InventoryMovement.objects.create(
+                        product=product,
+                        quantity=quantity_diff,
+                        movement_type=InventoryMovement.MovementType.ADJUSTMENT,
+                        unit_cost=record.unit_cost,
+                        created_by=request.user,
+                        notes="Ajuste por modificación de compra",
+                    )
+                record.save()
+                messages.success(request, "Compra actualizada correctamente.")
+                return redirect(f"{request.path}?section=compras&view=list")
+            quick_view = "edit"
+            purchase_to_edit = purchase
+            messages.error(request, "Revisa los campos marcados en rojo.")
+
+        elif section == "compras" and action == "deactivate":
+            if not can_deactivate_compras:
+                messages.error(request, "No tienes permiso para anular compras.")
+                return redirect(f"{request.path}?section=compras&view=list")
+            purchase = get_object_or_404(
+                Purchase,
+                pk=request.POST.get("purchase_id"),
+            )
+            if purchase.status == Purchase.Status.CANCELED:
+                messages.info(request, "La compra ya está anulada.")
+                return redirect(f"{request.path}?section=compras&view=list")
+            purchase.status = Purchase.Status.CANCELED
+            purchase.save(update_fields=["status"])
+            product = purchase.product
+            product.current_stock -= purchase.quantity
+            product.save(update_fields=["current_stock"])
+            InventoryMovement.objects.create(
+                product=product,
+                quantity=-purchase.quantity,
+                movement_type=InventoryMovement.MovementType.ADJUSTMENT,
+                unit_cost=purchase.unit_cost,
+                created_by=request.user,
+                notes="Compra anulada",
+            )
+            messages.success(request, "Compra anulada correctamente.")
+            return redirect(f"{request.path}?section=compras&view=list")
+
         else:
             if section == "barbers":
                 if not can_register_personal:
@@ -610,6 +689,14 @@ def home(request):
                 instance=sale_to_edit,
                 user=request.user,
             )
+    elif section == "compras" and quick_view == "edit" and purchase_to_edit is not None:
+        if not can_modify_compras:
+            messages.error(
+                request,
+                "No tienes permiso para modificar compras.",
+            )
+            return redirect(f"{request.path}?section=compras&view=list")
+        form = PurchaseEditForm(instance=purchase_to_edit, user=request.user)
     else:
         if section == "barbers":
             if quick_view == "form" and not can_register_personal:
@@ -635,6 +722,12 @@ def home(request):
             else:
                 form = None
         elif section == "compras":
+            if quick_view == "form" and not can_register_compras:
+                messages.error(
+                    request,
+                    "No tienes permiso para registrar nuevas compras.",
+                )
+                return redirect(f"{request.path}?section=compras&view=list")
             form = PurchaseForm(user=request.user)
         elif section == "catalog":
             if quick_view == "form" and not can_register_productos:
@@ -1209,6 +1302,7 @@ def home(request):
         "client_to_edit": client_to_edit,
         "catalog_item_to_edit": catalog_item_to_edit,
         "sale_to_edit": sale_to_edit,
+        "purchase_to_edit": purchase_to_edit,
         "section_title": section_titles.get(
             section, "Registro de colaboradores y clientes"
         ),
@@ -1302,5 +1396,8 @@ def home(request):
         "can_register_ventas": can_register_ventas,
         "can_modify_ventas": can_modify_ventas,
         "can_deactivate_ventas": can_deactivate_ventas,
+        "can_register_compras": can_register_compras,
+        "can_modify_compras": can_modify_compras,
+        "can_deactivate_compras": can_deactivate_compras,
     }
     return render(request, "dashboard/home.html", context)

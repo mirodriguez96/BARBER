@@ -782,6 +782,36 @@ class PurchaseForm(InventoryPurchaseForm):
     pass
 
 
+class PurchaseEditForm(DashboardModelForm):
+    class Meta:
+        model = Purchase
+        fields = [
+            "quantity",
+            "unit_cost",
+            "notes",
+        ]
+        labels = {
+            "quantity": "Cantidad",
+            "unit_cost": "Costo unitario",
+            "notes": "Observaciones",
+        }
+        widgets = {
+            "quantity": forms.NumberInput(
+                attrs={"class": "form-control", "min": "1", "step": "1"},
+            ),
+            "unit_cost": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01", "min": "0"},
+            ),
+            "notes": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 4,
+                    "placeholder": "Observaciones de la compra",
+                },
+            ),
+        }
+
+
 class InventoryAdjustForm(DashboardModelForm):
     class Meta:
         model = InventoryMovement

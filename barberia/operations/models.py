@@ -66,6 +66,10 @@ class Sale(models.Model):
 
 
 class Purchase(models.Model):
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Activo"
+        CANCELED = "canceled", "Anulado"
+
     product = models.ForeignKey(
         "catalog.CatalogItem",
         on_delete=models.PROTECT,
@@ -80,6 +84,11 @@ class Purchase(models.Model):
         related_name="purchases",
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.ACTIVE,
+    )
 
     class Meta:
         verbose_name = "Compra"

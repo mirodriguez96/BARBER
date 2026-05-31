@@ -59,7 +59,7 @@
                         <div class="dashboard-quick-switch mb-4">
                             <a class="dashboard-quick-switch__item {% if quick_view == 'list' %}is-active{% endif %}"
                                href="?section={{ active_section }}&view=list">Lista de registros</a>
-                            {% if active_section != 'catalog' and active_section != 'barbers' and active_section != 'sales' or active_section == 'catalog' and can_register_productos or active_section == 'barbers' and can_register_personal or active_section == 'sales' and can_register_ventas %}
+                            {% if active_section != 'catalog' and active_section != 'barbers' and active_section != 'sales' and active_section != 'compras' or active_section == 'catalog' and can_register_productos or active_section == 'barbers' and can_register_personal or active_section == 'sales' and can_register_ventas or active_section == 'compras' and can_register_compras %}
                             <a class="dashboard-quick-switch__item {% if quick_view == 'form' %}is-active{% endif %}"
                                href="?section={{ active_section }}&view=form">Formulario de registro</a>
                             {% endif %}
@@ -1020,6 +1020,8 @@
                                                 <th>Costo unitario</th>
                                                 <th>Total</th>
                                                 <th>Fecha</th>
+                                                <th class="col-state">Estado</th>
+                                                <th class="col-actions">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1030,10 +1032,43 @@
                                                     <td>${{ purchase.unit_cost }}</td>
                                                     <td>${{ purchase.total_cost|floatformat:2 }}</td>
                                                     <td>{{ purchase.created_at|date:"Y-m-d H:i" }}</td>
+                                                    <td class="col-state">
+                                                        <span class="dashboard-status {% if purchase.status == 'active' %}is-active{% else %}is-inactive{% endif %}">
+                                                            {% if purchase.status == 'active' %}
+                                                                Activo
+                                                            {% else %}
+                                                                Anulado
+                                                            {% endif %}
+                                                        </span>
+                                                    </td>
+                                                    <td class="col-actions">
+                                                        <div class="dashboard-row-actions dashboard-row-actions--controls">
+                                                            {% if can_modify_compras and purchase.status == 'active' %}
+                                                            <form method="get" class="dashboard-inline-form">
+                                                                <input type="hidden" name="section" value="compras" />
+                                                                <input type="hidden" name="view" value="edit" />
+                                                                <input type="hidden" name="purchase" value="{{ purchase.pk }}" />
+                                                                <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">Modificar</button>
+                                                            </form>
+                                                            {% endif %}
+                                                            {% if can_deactivate_compras and purchase.status == 'active' %}
+                                                                <form method="post" class="dashboard-inline-form">
+                                                                    {% csrf_token %}
+                                                                    <input type="hidden" name="section" value="compras" />
+                                                                    <input type="hidden" name="action" value="deactivate" />
+                                                                    <input type="hidden" name="purchase_id" value="{{ purchase.pk }}" />
+                                                                    <button type="submit"
+                                                                            class="dashboard-action-btn dashboard-action-btn--danger">
+                                                                        Anular
+                                                                    </button>
+                                                                </form>
+                                                            {% endif %}
+                                                        </div>
+                                                    </td>
                                                 </tr>
                                             {% empty %}
                                                 <tr>
-                                                    <td colspan="5" class="dashboard-empty-state">No hay compras registradas.</td>
+                                                    <td colspan="7" class="dashboard-empty-state">No hay compras registradas.</td>
                                                 </tr>
                                             {% endfor %}
                                         </tbody>
@@ -1264,7 +1299,11 @@
                                                 Modificar corte o servicio
                                             {% endif %}
                                         {% elif active_section == 'compras' %}
-                                            Registrar compra
+                                            {% if purchase_to_edit %}
+                                                Modificar compra
+                                            {% else %}
+                                                Registrar compra
+                                            {% endif %}
                                         {% elif active_section == 'inventory' %}
                                             Ajustar stock
                                         {% else %}
@@ -1288,7 +1327,11 @@
                                             comisión se autocompletan según el servicio.
                                         {% endif %}
                                     {% elif active_section == 'compras' %}
-                                        Registra una compra para incrementar el stock del producto.
+                                        {% if purchase_to_edit %}
+                                            Actualiza cantidad, costo unitario y observaciones.
+                                        {% else %}
+                                            Registra una compra para incrementar el stock del producto.
+                                        {% endif %}
                                     {% elif active_section == 'inventory' %}
                                         Ajusta manualmente el stock. Usa valores negativos para reducir.
                                     {% else %}
@@ -1321,6 +1364,9 @@
                                 {% elif active_section == 'sales' and quick_view == 'edit' and sale_to_edit %}
                                     <input type="hidden" name="action" value="update" />
                                     <input type="hidden" name="sale_id" value="{{ sale_to_edit.pk }}" />
+                                {% elif active_section == 'compras' and quick_view == 'edit' and purchase_to_edit %}
+                                    <input type="hidden" name="action" value="update" />
+                                    <input type="hidden" name="purchase_id" value="{{ purchase_to_edit.pk }}" />
                                 {% elif active_section == 'compras' and quick_view == 'form' %}
                                     <input type="hidden" name="action" value="save" />
                                 {% elif active_section == 'inventory' and quick_view == 'form' %}

@@ -6,7 +6,7 @@ from django.urls import reverse
 from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
 from barberia.dashboard.models import RoleCrudPermission, RoleMenuPermission
-from barberia.operations.models import Sale
+from barberia.operations.models import Purchase, Sale
 from barberia.people.models import Client, Employee
 
 
@@ -960,3 +960,224 @@ class CrudVentasPermissionTest(TestCase):
         })
         self.sale.refresh_from_db()
         self.assertEqual(self.sale.status, Sale.Status.DONE)
+
+
+class CrudComprasPermissionTest(TestCase):
+    """CRUD permission enforcement for app_key='compras' (purchases section)."""
+
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username="admin", password="pass1234", role=User.Role.ADMIN,
+        )
+        self.barbero = User.objects.create_user(
+            username="barbero", password="pass1234", role=User.Role.BARBERO,
+        )
+        self.estilista = User.objects.create_user(
+            username="estilista", password="pass1234", role=User.Role.ESTILISTA,
+        )
+        self.list_url = reverse("dashboard:home")
+
+        self.product = CatalogItem.objects.create(
+            name="Test Product",
+            kind=CatalogItem.Kind.PRODUCT,
+            price=10000,
+            current_stock=50,
+        )
+        self.purchase = Purchase.objects.create(
+            product=self.product,
+            quantity=10,
+            unit_cost=5000,
+            created_by=self.barbero,
+            notes="Test purchase",
+        )
+
+        RoleMenuPermission.objects.create(role=User.Role.BARBERO, menu_key="compras")
+        RoleMenuPermission.objects.create(role=User.Role.ESTILISTA, menu_key="compras")
+
+    def _url(self, section, view="list", **kwargs):
+        url = f"{self.list_url}?section={section}&view={view}"
+        for k, v in kwargs.items():
+            url += f"&{k}={v}"
+        return url
+
+    # ── Context ──
+
+    def test_context_without_permissions(self):
+        self.client.login(username="barbero", password="pass1234")
+        response = self.client.get(self._url("compras"))
+        self.assertFalse(response.context["can_register_compras"])
+        self.assertFalse(response.context["can_modify_compras"])
+        self.assertFalse(response.context["can_deactivate_compras"])
+
+    def test_context_with_all_permissions(self):
+        for action in ("registrar", "modificar", "desactivar"):
+            RoleCrudPermission.objects.create(
+                role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.COMPRAS,
+                action=action,
+            )
+        self.client.login(username="barbero", password="pass1234")
+        response = self.client.get(self._url("compras"))
+        self.assertTrue(response.context["can_register_compras"])
+        self.assertTrue(response.context["can_modify_compras"])
+        self.assertTrue(response.context["can_deactivate_compras"])
+
+    def test_context_admin_always_true(self):
+        self.client.login(username="admin", password="pass1234")
+        response = self.client.get(self._url("compras"))
+        self.assertTrue(response.context["can_register_compras"])
+        self.assertTrue(response.context["can_modify_compras"])
+        self.assertTrue(response.context["can_deactivate_compras"])
+
+    # ── POST: create (save) ──
+
+    def test_create_purchase_without_permission(self):
+        self.client.login(username="barbero", password="pass1234")
+        response = self.client.post(self.list_url, {
+            "section": "compras", "action": "save",
+            "product": str(self.product.pk),
+            "quantity": "5",
+            "unit_cost": "6000",
+        })
+        self.assertRedirects(response, f"{self.list_url}?section=compras&view=list")
+
+    def test_create_purchase_with_permission(self):
+        RoleCrudPermission.objects.create(
+            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.COMPRAS,
+            action="registrar",
+        )
+        self.client.login(username="barbero", password="pass1234")
+        response = self.client.post(self.list_url, {
+            "section": "compras", "action": "save",
+            "product": str(self.product.pk),
+            "quantity": "5",
+            "unit_cost": "6000",
+        })
+        self.assertRedirects(response, f"{self.list_url}?section=compras&view=list")
+
+    # ── POST: update ──
+
+    def test_update_purchase_without_permission(self):
+        self.client.login(username="barbero", password="pass1234")
+        response = self.client.post(self.list_url, {
+            "section": "compras", "action": "update",
+            "purchase_id": str(self.purchase.pk),
+            "quantity": "20",
+            "unit_cost": "4000",
+        })
+        self.assertRedirects(response, self._url("compras"))
+        self.purchase.refresh_from_db()
+        self.assertEqual(self.purchase.quantity, 10)
+
+    def test_update_purchase_with_permission(self):
+        RoleCrudPermission.objects.create(
+            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.COMPRAS,
+            action="modificar",
+        )
+        self.client.login(username="barbero", password="pass1234")
+        response = self.client.post(self.list_url, {
+            "section": "compras", "action": "update",
+            "purchase_id": str(self.purchase.pk),
+            "quantity": "20",
+            "unit_cost": "4000",
+        })
+        self.assertRedirects(response, self._url("compras"))
+        self.purchase.refresh_from_db()
+        self.assertEqual(self.purchase.quantity, 20)
+
+    # ── POST: deactivate (anular) ──
+
+    def test_deactivate_purchase_without_permission(self):
+        self.client.login(username="barbero", password="pass1234")
+        response = self.client.post(self.list_url, {
+            "section": "compras", "action": "deactivate",
+            "purchase_id": str(self.purchase.pk),
+        })
+        self.assertRedirects(response, self._url("compras"))
+        self.purchase.refresh_from_db()
+        self.assertEqual(self.purchase.status, Purchase.Status.ACTIVE)
+
+    def test_deactivate_purchase_with_permission(self):
+        RoleCrudPermission.objects.create(
+            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.COMPRAS,
+            action="desactivar",
+        )
+        self.client.login(username="barbero", password="pass1234")
+        response = self.client.post(self.list_url, {
+            "section": "compras", "action": "deactivate",
+            "purchase_id": str(self.purchase.pk),
+        })
+        self.assertRedirects(response, self._url("compras"))
+        self.purchase.refresh_from_db()
+        self.assertEqual(self.purchase.status, Purchase.Status.CANCELED)
+
+    # ── GET form (registrar) ──
+
+    def test_get_form_without_register_permission(self):
+        self.client.login(username="barbero", password="pass1234")
+        response = self.client.get(self._url("compras", view="form"))
+        self.assertRedirects(response, self._url("compras"))
+
+    def test_get_form_with_register_permission(self):
+        RoleCrudPermission.objects.create(
+            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.COMPRAS,
+            action="registrar",
+        )
+        self.client.login(username="barbero", password="pass1234")
+        response = self.client.get(self._url("compras", view="form"))
+        self.assertEqual(response.status_code, 200)
+
+    # ── GET edit (modificar) ──
+
+    def test_get_edit_without_modify_permission(self):
+        self.client.login(username="barbero", password="pass1234")
+        response = self.client.get(
+            self._url("compras", view="edit", purchase=self.purchase.pk)
+        )
+        self.assertRedirects(response, self._url("compras"))
+
+    def test_get_edit_with_modify_permission(self):
+        RoleCrudPermission.objects.create(
+            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.COMPRAS,
+            action="modificar",
+        )
+        self.client.login(username="barbero", password="pass1234")
+        response = self.client.get(
+            self._url("compras", view="edit", purchase=self.purchase.pk)
+        )
+        self.assertEqual(response.status_code, 200)
+
+    # ── Admin bypass ──
+
+    def test_admin_bypasses_crud_checks(self):
+        self.client.login(username="admin", password="pass1234")
+        response = self.client.post(self.list_url, {
+            "section": "compras", "action": "deactivate",
+            "purchase_id": str(self.purchase.pk),
+        })
+        self.assertRedirects(response, self._url("compras"))
+        self.purchase.refresh_from_db()
+        self.assertEqual(self.purchase.status, Purchase.Status.CANCELED)
+
+    def test_admin_register_form_always_accessible(self):
+        self.client.login(username="admin", password="pass1234")
+        response = self.client.get(self._url("compras", view="form"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_admin_edit_always_accessible(self):
+        self.client.login(username="admin", password="pass1234")
+        response = self.client.get(
+            self._url("compras", view="edit", purchase=self.purchase.pk)
+        )
+        self.assertEqual(response.status_code, 200)
+
+    # ── Estilista blocked (no crud permissions created) ──
+
+    def test_estilista_blocked_all_crud_actions(self):
+        self.client.login(username="estilista", password="pass1234")
+        response = self.client.post(self.list_url, {
+            "section": "compras", "action": "deactivate",
+            "purchase_id": str(self.purchase.pk),
+        })
+        self.assertRedirects(response, self._url("compras"))
+        self.purchase.refresh_from_db()
+        self.assertEqual(self.purchase.status, Purchase.Status.ACTIVE)
