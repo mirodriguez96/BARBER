@@ -18,6 +18,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          command_timeout: 10m
           script: |
             set -e
             cd ${{ secrets.DEPLOY_PATH }}
@@ -26,14 +27,11 @@ jobs:
             git pull origin main
             echo "Pulling latest image..."
             docker compose -f docker-compose.prod.yml pull
-            echo "Stopping containers (volumes preserved)..."
-            docker compose -f docker-compose.prod.yml down
-            echo "Starting services..."
-            docker compose -f docker-compose.prod.yml up -d
-            echo "Running migrations..."
-            docker compose -f docker-compose.prod.yml exec -T web python manage.py migrate --database=default
-            docker compose -f docker-compose.prod.yml exec -T web python manage.py migrate_all_tenants
-            echo "Seeding data..."
+            echo "Recreating containers..."
+            docker compose -f docker-compose.prod.yml up -d --force-recreate
+            echo "Waiting for web container to be ready..."
+            sleep 10
+            echo "Running seed_permissions..."
             docker compose -f docker-compose.prod.yml exec -T web python manage.py seed_permissions
             echo "Collecting static files..."
             docker compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput
