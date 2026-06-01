@@ -24,11 +24,15 @@ jobs:
             export GHCR_OWNER=${{ secrets.GHCR_OWNER }}
             echo "Pulling latest image..."
             docker compose -f docker-compose.prod.yml pull
+            echo "Stopping containers (volumes preserved)..."
+            docker compose -f docker-compose.prod.yml down
             echo "Starting services..."
             docker compose -f docker-compose.prod.yml up -d
             echo "Running migrations..."
             docker compose -f docker-compose.prod.yml exec -T web python manage.py migrate --database=default
             docker compose -f docker-compose.prod.yml exec -T web python manage.py migrate_all_tenants
+            echo "Seeding data..."
+            docker compose -f docker-compose.prod.yml exec -T web python manage.py seed_permissions
             echo "Collecting static files..."
             docker compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput
             echo "Deployment complete."
