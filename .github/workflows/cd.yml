@@ -22,6 +22,8 @@ jobs:
             set -e
             cd ${{ secrets.DEPLOY_PATH }}
             export GHCR_OWNER=${{ secrets.GHCR_OWNER }}
+            echo "Pulling latest repo changes..."
+            git pull origin main
             echo "Pulling latest image..."
             docker compose -f docker-compose.prod.yml pull
             echo "Stopping containers (volumes preserved)..."
