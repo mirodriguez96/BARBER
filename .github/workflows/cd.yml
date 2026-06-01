@@ -1,0 +1,44 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -e
+            cd ${{ secrets.DEPLOY_PATH }}
+            echo "Pulling latest image..."
+            docker compose -f docker-compose.prod.yml pull
+            echo "Starting services..."
+            docker compose -f docker-compose.prod.yml up -d --wait
+            echo "Running migrations..."
+            docker compose -f docker-compose.prod.yml exec -T web python manage.py migrate --database=default
+            docker compose -f docker-compose.prod.yml exec -T web python manage.py migrate_all_tenants
+            echo "Collecting static files..."
+            docker compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput
+            echo "Deployment complete."
+      - name: Health check
+        run: |
+          sleep 15
+          status=$(curl -sSf -o /dev/null -w "%{http_code}" \
+            "https://${{ secrets.DEPLOY_DOMAIN }}/health/" 2>/dev/null || echo "failed")
+          if [ "$status" = "200" ]; then
+            echo "Health check passed (HTTP $status)"
+          else
+            echo "Health check failed (HTTP $status)"
+            exit 1
+          fi
