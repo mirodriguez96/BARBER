@@ -51,16 +51,8 @@ jobs:
         with:
           scan-type: fs
           scan-ref: .
-          format: sarif
-          output: trivy-fs-results.sarif
+          format: table
           severity: CRITICAL,HIGH
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4
-        continue-on-error: true
-        if: always() && hashFiles('trivy-fs-results.sarif') != ''
-        with:
-          sarif_file: trivy-fs-results.sarif
-
   test:
     runs-on: ubuntu-latest
     services:
@@ -138,12 +130,7 @@ jobs:
         with:
           scan-type: image
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          format: sarif
-          output: trivy-image-results.sarif
+          format: table
           severity: CRITICAL,HIGH
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4
-        continue-on-error: true
-        if: always() && hashFiles('trivy-image-results.sarif') != ''
-        with:
-          sarif_file: trivy-image-results.sarif
+      - name: Trivy scan completed
+        run: echo "Trivy image scan completed. No SARIF upload (Code Scanning not enabled)."
