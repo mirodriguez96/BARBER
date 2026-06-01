@@ -52,6 +52,7 @@ jobs:
           scan-type: fs
           scan-ref: .
           format: table
+          exit-code: 0
           severity: CRITICAL,HIGH
   test:
     runs-on: ubuntu-latest
@@ -125,12 +126,16 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Get image tag for Trivy
+        id: img
+        run: echo "tag=$(echo '${{ steps.meta.outputs.tags }}' | head -1)" >> $GITHUB_OUTPUT
       - name: Trivy image scan
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: image
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          image-ref: ${{ steps.img.outputs.tag }}
           format: table
+          exit-code: 0
           severity: CRITICAL,HIGH
       - name: Trivy scan completed
-        run: echo "Trivy image scan completed. No SARIF upload (Code Scanning not enabled)."
+        run: echo "Trivy image scan completed (no SARIF upload)."
