@@ -357,7 +357,6 @@ class OverviewDashboardTest(TestCase):
         self.assertEqual(len(data), 7)
 
     def test_overview_period_today(self):
-        today = date.today()
         Sale.objects.create(
             product=self.service,
             employee=self.employee,
@@ -415,7 +414,7 @@ class OverviewDashboardTest(TestCase):
         self.assertIn("del", response.context["period_label"])
 
     def test_purchase_period_today_filters_correctly(self):
-        p1 = Purchase.objects.create(
+        Purchase.objects.create(
             product=self.product,
             quantity=1,
             unit_cost=Decimal("50.00"),

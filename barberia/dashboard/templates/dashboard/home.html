@@ -4,10 +4,38 @@
 {% endblock title %}
 {% block content %}
     <section class="dashboard-workspace">
+        <button class="dashboard-nav-toggle"
+                id="navToggle"
+                type="button"
+                aria-label="Abrir menú">
+            <svg width="22"
+                 height="22"
+                 viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 stroke-linecap="round">
+                <path d="M3 12h18M3 6h18M3 18h18" />
+            </svg>
+        </button>
         <div class="dashboard-shell">
-            <aside class="dashboard-sidebar">
-                <div>
+            <aside class="dashboard-sidebar" id="dashboardSidebar">
+                <div class="dashboard-sidebar-header">
                     <h1 class="dashboard-page-title dashboard-page-title--inverse mb-3">{{ company.name|default:"Barbería Admin" }}</h1>
+                    <button class="dashboard-nav-close"
+                            id="navClose"
+                            type="button"
+                            aria-label="Cerrar menú">
+                        <svg width="20"
+                             height="20"
+                             viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2.5"
+                             stroke-linecap="round">
+                            <path d="M18 6L6 18M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
                 <nav class="dashboard-menu" aria-label="Secciones del dashboard">
                     {% for item in menu_items %}
@@ -44,14 +72,15 @@
                             <h1 class="section-title mb-0">{{ section_title }}</h1>
                             <hr />
                         </div>
-                        <span class="dashboard-user-badge">{{ request.user.get_full_name|default:request.user.username }}</span>
                     </div>
                     {% if active_section == 'barbers' or active_section == 'catalog' or active_section == 'sales' or active_section == 'inventory' or active_section == 'compras' %}
                         <div class="dashboard-quick-switch mb-4">
                             <a class="dashboard-quick-switch__item {% if quick_view == 'list' %}is-active{% endif %}"
                                href="?section={{ active_section }}&view=list">Lista de registros</a>
-                            <a class="dashboard-quick-switch__item {% if quick_view == 'form' %}is-active{% endif %}"
-                               href="?section={{ active_section }}&view=form">Formulario de registro</a>
+                            {% if active_section == 'inventory' and can_adjust_inventory or active_section != 'catalog' and active_section != 'barbers' and active_section != 'sales' and active_section != 'compras' and active_section != 'inventory' or active_section == 'catalog' and can_register_productos or active_section == 'barbers' and can_register_personal or active_section == 'sales' and can_register_ventas or active_section == 'compras' and can_register_compras %}
+                                <a class="dashboard-quick-switch__item {% if quick_view == 'form' %}is-active{% endif %}"
+                                   href="?section={{ active_section }}&view=form">Formulario de registro</a>
+                            {% endif %}
                         </div>
                     {% endif %}
                     {% if active_section == 'barbers' and quick_view == 'form' and not barber_to_edit and not client_to_edit %}
@@ -70,7 +99,7 @@
                                href="?section=sales&view=form&sale_type=producto">Producto</a>
                         </div>
                     {% endif %}
-                    {% if active_section == 'inventory' and quick_view == 'form' %}
+                    {% if active_section == 'inventory' and quick_view == 'form' and can_adjust_inventory %}
                         <div class="dashboard-quick-switch mb-3">
                             <a class="dashboard-quick-switch__item {% if inventory_action == 'adjust' %}is-active{% endif %}"
                                href="?section=inventory&view=form&inventory_action=adjust">Ajuste</a>
@@ -78,97 +107,222 @@
                     {% endif %}
                     {% if active_section == 'config' %}
                         <div class="dashboard-config-shell">
-                            <div class="dashboard-config-card">
-                                <p class="mb-4 text-muted">
-                                    Estos datos se usan como información principal del negocio. Solo se permite registrar una empresa.
-                                </p>
-                                <form method="post" class="dashboard-form dashboard-config-form">
-                                    {% csrf_token %}
-                                    <div class="dashboard-form-grid">
-                                        {% for field in company_form %}
-                                            <div class="dashboard-field-card">
-                                                <div class="dashboard-field-card__head">
-                                                    <label class="form-label mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                                    {% if field.field.required %}<span class="dashboard-field-card__required">Obligatorio</span>{% endif %}
+                            {% if is_admin %}
+                                <div class="dashboard-quick-switch mb-4">
+                                    <a class="dashboard-quick-switch__item {% if config_tab == 'company' %}is-active{% endif %}"
+                                       href="?section=config&config_tab=company">Empresa</a>
+                                    <a class="dashboard-quick-switch__item {% if config_tab == 'permissions' %}is-active{% endif %}"
+                                       href="?section=config&config_tab=permissions">Permisos de Menú</a>
+                                    <a class="dashboard-quick-switch__item {% if config_tab == 'crud_permissions' %}is-active{% endif %}"
+                                       href="?section=config&config_tab=crud_permissions">Permisos de Acciones</a>
+                                </div>
+                            {% endif %}
+                            {% if config_tab == 'permissions' %}
+                                <div class="dashboard-config-card">
+                                    <p class="mb-4 text-muted">Configura qué secciones del menú están disponibles para cada rol.</p>
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <div class="table-responsive">
+                                            <table class="dashboard-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Rol</th>
+                                                        {% for item in permission_menu_items %}<th class="text-center">{{ item.label }}</th>{% endfor %}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for role_key, role_data in permission_matrix.items %}
+                                                        <tr>
+                                                            <td>
+                                                                <strong>{{ role_data.label }}</strong>
+                                                            </td>
+                                                            {% for item in permission_menu_items %}
+                                                                <td class="text-center">
+                                                                    <input type="checkbox"
+                                                                           name="perms_{{ role_key }}"
+                                                                           value="{{ item.key }}"
+                                                                           class="form-check-input"
+                                                                           {% if item.key in role_data.allowed %}checked{% endif %}>
+                                                                </td>
+                                                            {% endfor %}
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="dashboard-form__actions mt-4">
+                                            <button type="submit"
+                                                    class="btn btn-dashboard-primary btn-lg rounded-pill px-5">
+                                                Guardar permisos
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            {% elif config_tab == 'crud_permissions' %}
+                                <div class="dashboard-config-card">
+                                    <p class="mb-4 text-muted">Selecciona una sección y configura qué acciones están disponibles para cada rol.</p>
+                                    <form method="get" class="dashboard-form mb-5" style="max-width: 400px;">
+                                        <input type="hidden" name="section" value="config">
+                                        <input type="hidden" name="config_tab" value="crud_permissions">
+                                        <select name="crud_section" class="form-select" onchange="this.form.submit()">
+                                            {% for app in crud_apps %}
+                                                <option value="{{ app.key }}"
+                                                        {% if app.key == current_crud_section %}selected{% endif %}>
+                                                    {{ app.label }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </form>
+                                    <div style="height: 2rem;"></div>
+                                    <form method="post">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="crud_section" value="{{ current_crud_section }}">
+                                        <div class="table-responsive">
+                                            <table class="dashboard-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Rol</th>
+                                                        {% for action in crud_actions %}<th class="text-center">{{ action.label }}</th>{% endfor %}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for row in crud_section_matrix %}
+                                                        <tr>
+                                                            <td>
+                                                                <strong>{{ row.role_label }}</strong>
+                                                            </td>
+                                                            {% for action in row.actions %}
+                                                                <td class="text-center">
+                                                                    <input type="checkbox"
+                                                                           name="crud_{{ row.role_key }}_{{ current_crud_section }}_{{ action.key }}"
+                                                                           class="form-check-input"
+                                                                           {% if action.checked %}checked{% endif %}>
+                                                                </td>
+                                                            {% endfor %}
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="dashboard-form__actions mt-4">
+                                            <button type="submit"
+                                                    class="btn btn-dashboard-primary btn-lg rounded-pill px-5">
+                                                Guardar permisos de acciones
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            {% else %}
+                                <div class="dashboard-config-card">
+                                    <p class="mb-4 text-muted">
+                                        Estos datos se usan como información principal del negocio. Solo se permite registrar una empresa.
+                                    </p>
+                                    <form method="post" class="dashboard-form dashboard-config-form">
+                                        {% csrf_token %}
+                                        <div class="dashboard-form-grid">
+                                            {% for field in company_form %}
+                                                <div class="dashboard-field-card">
+                                                    <div class="dashboard-field-card__head">
+                                                        <label class="form-label mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                                        {% if field.field.required %}<span class="dashboard-field-card__required">Obligatorio</span>{% endif %}
+                                                    </div>
+                                                    <div class="dashboard-field-card__body">
+                                                        {{ field }}
+                                                        {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+                                                        {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>{% endif %}
+                                                    </div>
                                                 </div>
-                                                <div class="dashboard-field-card__body">
-                                                    {{ field }}
-                                                    {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
-                                                    {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>{% endif %}
-                                                </div>
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                    <div class="dashboard-form-gap" aria-hidden="true"></div>
-                                    <div class="dashboard-form__actions mt-4">
-                                        <button type="submit"
-                                                class="btn btn-dashboard-primary btn-lg rounded-pill px-5">
-                                            {% if company %}
-                                                Actualizar datos
-                                            {% else %}
-                                                Guardar datos
-                                            {% endif %}
-                                        </button>
-                                    </div>
-                                </form>
-                    </div>
-                    </div>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="dashboard-form-gap" aria-hidden="true"></div>
+                                        <div class="dashboard-form__actions mt-4">
+                                            <button type="submit"
+                                                    class="btn btn-dashboard-primary btn-lg rounded-pill px-5">
+                                                {% if company %}
+                                                    Actualizar datos
+                                                {% else %}
+                                                    Guardar datos
+                                                {% endif %}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            {% endif %}
+                        </div>
                     {% endif %}
                     {% if active_section == 'overview' %}
-                    <div id="overview-stats">
-                        <div class="dashboard-quick-switch mb-4">
-                            <a class="dashboard-quick-switch__item {% if overview_period == 'today' %}is-active{% endif %}"
-                               href="?section=overview&overview_period=today">Hoy</a>
-                            <a class="dashboard-quick-switch__item {% if overview_period == 'week' %}is-active{% endif %}"
-                               href="?section=overview&overview_period=week">Semana</a>
-                            <a class="dashboard-quick-switch__item {% if overview_period == 'month' %}is-active{% endif %}"
-                               href="?section=overview&overview_period=month">Mes</a>
-                            <a class="dashboard-quick-switch__item {% if overview_period == 'year' %}is-active{% endif %}"
-                               href="?section=overview&overview_period=year">Año</a>
-                            <a class="dashboard-quick-switch__item {% if overview_period == 'date' %}is-active{% endif %}"
-                               href="?section=overview&overview_period=date">Fecha</a>
+                        <div id="overview-stats">
+                            <div class="dashboard-quick-switch mb-4">
+                                <a class="dashboard-quick-switch__item {% if overview_period == 'today' %}is-active{% endif %}"
+                                   href="?section=overview&overview_period=today">Hoy</a>
+                                <a class="dashboard-quick-switch__item {% if overview_period == 'week' %}is-active{% endif %}"
+                                   href="?section=overview&overview_period=week">Semana</a>
+                                <a class="dashboard-quick-switch__item {% if overview_period == 'month' %}is-active{% endif %}"
+                                   href="?section=overview&overview_period=month">Mes</a>
+                                <a class="dashboard-quick-switch__item {% if overview_period == 'year' %}is-active{% endif %}"
+                                   href="?section=overview&overview_period=year">Año</a>
+                                <a class="dashboard-quick-switch__item {% if overview_period == 'date' %}is-active{% endif %}"
+                                   href="?section=overview&overview_period=date">Fecha</a>
+                            </div>
+                            {% if overview_period == 'date' %}
+                                <form method="get" class="mb-3">
+                                    <input type="hidden" name="section" value="overview" />
+                                    <input type="hidden" name="overview_period" value="date" />
+                                    <input type="date"
+                                           name="overview_date"
+                                           value="{{ overview_date }}"
+                                           class="dashboard-filters__input" />
+                                </form>
+                            {% endif %}
+                            <div class="dashboard-metrics mb-3">
+                                <a href="?section=sales" class="dashboard-metric-card">
+                                    <p class="dashboard-metric-card__label mb-1">Ventas {{ period_label }}</p>
+                                    <strong class="dashboard-metric-card__value">${{ overview_data.sales_period_total_fmt }}</strong>
+                                </a>
+                                <a href="?section=compras" class="dashboard-metric-card">
+                                    <p class="dashboard-metric-card__label mb-1">Compras {{ period_label }}</p>
+                                    <strong class="dashboard-metric-card__value">${{ overview_data.purchases_period_total_fmt }}</strong>
+                                </a>
+                                <a href="?section=inventory"
+                                   class="dashboard-metric-card{% if overview_data.low_stock_count > 0 %} dashboard-metric-card--danger{% endif %}">
+                                    <p class="dashboard-metric-card__label mb-1">Productos stock bajo</p>
+                                    <strong class="dashboard-metric-card__value">{{ overview_data.low_stock_count }}</strong>
+                                    <span class="dashboard-metric-card__hint">Productos con stock ≤ 5</span>
+                                </a>
+                            </div>
                         </div>
-                        {% if overview_period == 'date' %}
-                            <form method="get" class="mb-3">
-                                <input type="hidden" name="section" value="overview" />
-                                <input type="hidden" name="overview_period" value="date" />
-                                <input type="date" name="overview_date" value="{{ overview_date }}"
-                                       class="dashboard-filters__input" />
-                            </form>
-                        {% endif %}
-                         <div class="dashboard-metrics mb-3">
-                             <a href="?section=sales" class="dashboard-metric-card">
-                                 <p class="dashboard-metric-card__label mb-1">Ventas {{ period_label }}</p>
-                                 <strong class="dashboard-metric-card__value">${{ overview_data.sales_period_total_fmt }}</strong>
-                             </a>
-                             <a href="?section=compras" class="dashboard-metric-card">
-                                 <p class="dashboard-metric-card__label mb-1">Compras {{ period_label }}</p>
-                                 <strong class="dashboard-metric-card__value">${{ overview_data.purchases_period_total_fmt }}</strong>
-                             </a>
-                             <a href="?section=inventory" class="dashboard-metric-card{% if overview_data.low_stock_count > 0 %} dashboard-metric-card--danger{% endif %}">
-                                 <p class="dashboard-metric-card__label mb-1">Productos stock bajo</p>
-                                 <strong class="dashboard-metric-card__value">{{ overview_data.low_stock_count }}</strong>
-                                 <span class="dashboard-metric-card__hint">Productos con stock ≤ 5</span>
-                             </a>
-                         </div>
-                    </div>
                         <div class="dashboard-charts-row mt-5 mb-4">
                             <div class="dashboard-chart-col">
                                 <div class="dashboard-metric-card p-3">
-<p class="dashboard-metric-card__label mb-3" style="font-size:1rem;color:#0f172a">Servicios por d&iacute;a (7 d&iacute;as)</p>
-<canvas id="dailyCutsChart" style="max-width:560px;margin:0 auto;display:block"></canvas>
+                                    <p class="dashboard-metric-card__label mb-3"
+                                       style="font-size:1rem;
+                                              color:#0f172a">Servicios por d&iacute;a (7 d&iacute;as)</p>
+                                    <canvas id="dailyCutsChart"
+                                            style="max-width:560px;
+                                                   margin:0 auto;
+                                                   display:block"></canvas>
                                 </div>
                             </div>
                             <div class="dashboard-chart-col">
                                 <div class="dashboard-metric-card p-3">
-<p class="dashboard-metric-card__label mb-3" style="font-size:1rem;color:#0f172a">Servicios m&aacute;s vendidos (7 d&iacute;as)</p>
-<canvas id="topServicesChart" style="max-width:560px;margin:0 auto;display:block"></canvas>
+                                    <p class="dashboard-metric-card__label mb-3"
+                                       style="font-size:1rem;
+                                              color:#0f172a">Servicios m&aacute;s vendidos (7 d&iacute;as)</p>
+                                    <canvas id="topServicesChart"
+                                            style="max-width:560px;
+                                                   margin:0 auto;
+                                                   display:block"></canvas>
                                 </div>
                             </div>
                             <div class="dashboard-chart-col">
                                 <div class="dashboard-metric-card p-3">
-<p class="dashboard-metric-card__label mb-3" style="font-size:1rem;color:#0f172a">Insumos m&aacute;s usados</p>
-<canvas id="topSuppliesChart" style="max-width:560px;margin:0 auto;display:block"></canvas>
+                                    <p class="dashboard-metric-card__label mb-3"
+                                       style="font-size:1rem;
+                                              color:#0f172a">Insumos m&aacute;s usados</p>
+                                    <canvas id="topSuppliesChart"
+                                            style="max-width:560px;
+                                                   margin:0 auto;
+                                                   display:block"></canvas>
                                 </div>
                             </div>
                         </div>
@@ -319,11 +473,16 @@
                                                 class="dashboard-filters__select"
                                                 onchange="this.form.submit()">
                                             <option value="" {% if not barber_type %}selected{% endif %}>Todos</option>
-                                            <option value="colaborador" {% if barber_type == 'colaborador' %}selected{% endif %}>Colaborador</option>
+                                            <option value="colaborador"
+                                                    {% if barber_type == 'colaborador' %}selected{% endif %}>
+                                                Colaborador
+                                            </option>
                                             <option value="cliente" {% if barber_type == 'cliente' %}selected{% endif %}>Cliente</option>
                                         </select>
                                     </div>
-                                    {% if barber_search or barber_type %}<a href="?section=barbers&view=list" class="dashboard-filters__clear">Limpiar</a>{% endif %}
+                                    {% if barber_search or barber_type %}
+                                        <a href="?section=barbers&view=list" class="dashboard-filters__clear">Limpiar</a>
+                                    {% endif %}
                                 </form>
                             </div>
                             <div class="dashboard-table-wrap">
@@ -370,64 +529,72 @@
                                                     <td class="col-actions">
                                                         <div class="dashboard-row-actions dashboard-row-actions--controls">
                                                             {% if person.type == 'colaborador' %}
-                                                                <form method="get" class="dashboard-inline-form">
-                                                                    <input type="hidden" name="section" value="barbers" />
-                                                                    <input type="hidden" name="view" value="edit" />
-                                                                    <input type="hidden" name="barber" value="{{ person.pk }}" />
-                                                                    <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">Modificar</button>
-                                                                </form>
-                                                                {% if person.is_active %}
-                                                                    <form method="post" class="dashboard-inline-form">
-                                                                        {% csrf_token %}
+                                                                {% if can_modify_personal %}
+                                                                    <form method="get" class="dashboard-inline-form">
                                                                         <input type="hidden" name="section" value="barbers" />
-                                                                        <input type="hidden" name="action" value="deactivate" />
-                                                                        <input type="hidden" name="barber_id" value="{{ person.pk }}" />
-                                                                        <button type="submit"
-                                                                                class="dashboard-action-btn dashboard-action-btn--danger">
-                                                                            Desactivar
-                                                                        </button>
-                                                                    </form>
-                                                                {% else %}
-                                                                    <form method="post" class="dashboard-inline-form">
-                                                                        {% csrf_token %}
-                                                                        <input type="hidden" name="section" value="barbers" />
-                                                                        <input type="hidden" name="action" value="activate" />
-                                                                        <input type="hidden" name="barber_id" value="{{ person.pk }}" />
-                                                                        <button type="submit"
-                                                                                class="dashboard-action-btn dashboard-action-btn--success">
-                                                                            Activar
-                                                                        </button>
+                                                                        <input type="hidden" name="view" value="edit" />
+                                                                        <input type="hidden" name="barber" value="{{ person.pk }}" />
+                                                                        <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">Modificar</button>
                                                                     </form>
                                                                 {% endif %}
+                                                                {% if can_deactivate_personal %}
+                                                                    {% if person.is_active %}
+                                                                        <form method="post" class="dashboard-inline-form">
+                                                                            {% csrf_token %}
+                                                                            <input type="hidden" name="section" value="barbers" />
+                                                                            <input type="hidden" name="action" value="deactivate" />
+                                                                            <input type="hidden" name="barber_id" value="{{ person.pk }}" />
+                                                                            <button type="submit"
+                                                                                    class="dashboard-action-btn dashboard-action-btn--danger">
+                                                                                Desactivar
+                                                                            </button>
+                                                                        </form>
+                                                                    {% else %}
+                                                                        <form method="post" class="dashboard-inline-form">
+                                                                            {% csrf_token %}
+                                                                            <input type="hidden" name="section" value="barbers" />
+                                                                            <input type="hidden" name="action" value="activate" />
+                                                                            <input type="hidden" name="barber_id" value="{{ person.pk }}" />
+                                                                            <button type="submit"
+                                                                                    class="dashboard-action-btn dashboard-action-btn--success">
+                                                                                Activar
+                                                                            </button>
+                                                                        </form>
+                                                                    {% endif %}
+                                                                {% endif %}
                                                             {% else %}
-                                                                <form method="get" class="dashboard-inline-form">
-                                                                    <input type="hidden" name="section" value="barbers" />
-                                                                    <input type="hidden" name="view" value="edit" />
-                                                                    <input type="hidden" name="client" value="{{ person.pk }}" />
-                                                                    <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">Modificar</button>
-                                                                </form>
-                                                                {% if person.is_active %}
-                                                                    <form method="post" class="dashboard-inline-form">
-                                                                        {% csrf_token %}
+                                                                {% if can_modify_personal %}
+                                                                    <form method="get" class="dashboard-inline-form">
                                                                         <input type="hidden" name="section" value="barbers" />
-                                                                        <input type="hidden" name="action" value="deactivate" />
-                                                                        <input type="hidden" name="client_id" value="{{ person.pk }}" />
-                                                                        <button type="submit"
-                                                                                class="dashboard-action-btn dashboard-action-btn--danger">
-                                                                            Desactivar
-                                                                        </button>
+                                                                        <input type="hidden" name="view" value="edit" />
+                                                                        <input type="hidden" name="client" value="{{ person.pk }}" />
+                                                                        <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">Modificar</button>
                                                                     </form>
-                                                                {% else %}
-                                                                    <form method="post" class="dashboard-inline-form">
-                                                                        {% csrf_token %}
-                                                                        <input type="hidden" name="section" value="barbers" />
-                                                                        <input type="hidden" name="action" value="activate" />
-                                                                        <input type="hidden" name="client_id" value="{{ person.pk }}" />
-                                                                        <button type="submit"
-                                                                                class="dashboard-action-btn dashboard-action-btn--success">
-                                                                            Activar
-                                                                        </button>
-                                                                    </form>
+                                                                {% endif %}
+                                                                {% if can_deactivate_personal %}
+                                                                    {% if person.is_active %}
+                                                                        <form method="post" class="dashboard-inline-form">
+                                                                            {% csrf_token %}
+                                                                            <input type="hidden" name="section" value="barbers" />
+                                                                            <input type="hidden" name="action" value="deactivate" />
+                                                                            <input type="hidden" name="client_id" value="{{ person.pk }}" />
+                                                                            <button type="submit"
+                                                                                    class="dashboard-action-btn dashboard-action-btn--danger">
+                                                                                Desactivar
+                                                                            </button>
+                                                                        </form>
+                                                                    {% else %}
+                                                                        <form method="post" class="dashboard-inline-form">
+                                                                            {% csrf_token %}
+                                                                            <input type="hidden" name="section" value="barbers" />
+                                                                            <input type="hidden" name="action" value="activate" />
+                                                                            <input type="hidden" name="client_id" value="{{ person.pk }}" />
+                                                                            <button type="submit"
+                                                                                    class="dashboard-action-btn dashboard-action-btn--success">
+                                                                                Activar
+                                                                            </button>
+                                                                        </form>
+                                                                    {% endif %}
                                                                 {% endif %}
                                                             {% endif %}
                                                         </div>
@@ -519,13 +686,7 @@
                                                             <div class="dashboard-person__avatar" aria-hidden="true">{{ item.name|slice:":1"|default:"I" }}</div>
                                                             <div class="dashboard-person__body">
                                                                 <div class="dashboard-table__primary">{{ item.name }}</div>
-                                                                <div class="dashboard-table__meta">
-                                                                    {% if item.sku %}
-                                                                        {{ item.sku }}
-                                                                    {% else %}
-                                                                        Sin código
-                                                                    {% endif %}
-                                                                </div>
+                                                                <div class="dashboard-table__meta">{{ item.sku }}</div>
                                                             </div>
                                                         </div>
                                                     </td>
@@ -549,30 +710,34 @@
                                                                 <input type="hidden" name="section" value="catalog" />
                                                                 <input type="hidden" name="view" value="edit" />
                                                                 <input type="hidden" name="catalog_item" value="{{ item.pk }}" />
-                                                                <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">Modificar</button>
+                                                                {% if can_modify_productos %}
+                                                                    <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">Modificar</button>
+                                                                {% endif %}
                                                             </form>
-                                                            {% if item.is_active %}
-                                                                <form method="post" class="dashboard-inline-form">
-                                                                    {% csrf_token %}
-                                                                    <input type="hidden" name="section" value="catalog" />
-                                                                    <input type="hidden" name="action" value="deactivate" />
-                                                                    <input type="hidden" name="catalog_item_id" value="{{ item.pk }}" />
-                                                                    <button type="submit"
-                                                                            class="dashboard-action-btn dashboard-action-btn--danger">
-                                                                        Desactivar
-                                                                    </button>
-                                                                </form>
-                                                            {% else %}
-                                                                <form method="post" class="dashboard-inline-form">
-                                                                    {% csrf_token %}
-                                                                    <input type="hidden" name="section" value="catalog" />
-                                                                    <input type="hidden" name="action" value="activate" />
-                                                                    <input type="hidden" name="catalog_item_id" value="{{ item.pk }}" />
-                                                                    <button type="submit"
-                                                                            class="dashboard-action-btn dashboard-action-btn--success">
-                                                                        Activar
-                                                                    </button>
-                                                                </form>
+                                                            {% if can_deactivate_productos %}
+                                                                {% if item.is_active %}
+                                                                    <form method="post" class="dashboard-inline-form">
+                                                                        {% csrf_token %}
+                                                                        <input type="hidden" name="section" value="catalog" />
+                                                                        <input type="hidden" name="action" value="deactivate" />
+                                                                        <input type="hidden" name="catalog_item_id" value="{{ item.pk }}" />
+                                                                        <button type="submit"
+                                                                                class="dashboard-action-btn dashboard-action-btn--danger">
+                                                                            Desactivar
+                                                                        </button>
+                                                                    </form>
+                                                                {% else %}
+                                                                    <form method="post" class="dashboard-inline-form">
+                                                                        {% csrf_token %}
+                                                                        <input type="hidden" name="section" value="catalog" />
+                                                                        <input type="hidden" name="action" value="activate" />
+                                                                        <input type="hidden" name="catalog_item_id" value="{{ item.pk }}" />
+                                                                        <button type="submit"
+                                                                                class="dashboard-action-btn dashboard-action-btn--success">
+                                                                            Activar
+                                                                        </button>
+                                                                    </form>
+                                                                {% endif %}
                                                             {% endif %}
                                                         </div>
                                                     </td>
@@ -635,7 +800,9 @@
                                 </div>
                                 <div class="dashboard-filters__group">
                                     <span class="dashboard-filters__label">Colaborador</span>
-                                    <select name="filter_barber" class="dashboard-filters__select" onchange="this.form.submit()">
+                                    <select name="filter_barber"
+                                            class="dashboard-filters__select"
+                                            onchange="this.form.submit()">
                                         <option value="">Todos</option>
                                         {% for barber in active_barbers %}
                                             <option value="{{ barber.pk }}"
@@ -648,7 +815,9 @@
                                 <div class="dashboard-filters__group">
                                     <span class="dashboard-filters__label">Tipo</span>
                                     <div class="dashboard-filters__row">
-                                        <select name="filter_kind" class="dashboard-filters__select" onchange="this.form.submit()">
+                                        <select name="filter_kind"
+                                                class="dashboard-filters__select"
+                                                onchange="this.form.submit()">
                                             <option value="">Todos</option>
                                             <option value="service" {% if filter_kind == 'service' %}selected{% endif %}>Servicios</option>
                                             <option value="product" {% if filter_kind == 'product' %}selected{% endif %}>Productos</option>
@@ -668,12 +837,11 @@
                                     <table class="table dashboard-table dashboard-table--sales align-middle table-hover mb-0">
                                         <thead>
                                             <tr>
-                                                <th>Colaborador</th>
-                                                <th>Tipo</th>
-                                                <th>Item</th>
-                                                <th>Cant.</th>
-                                                <th>Valor</th>
-                                                <th>Propina</th>
+                                                <th class="col-code">Código</th>
+                                                <th>Producto</th>
+                                                <th>Cantidad</th>
+                                                <th>Total</th>
+                                                <th>Fecha</th>
                                                 <th>Estado</th>
                                                 <th>Acciones</th>
                                             </tr>
@@ -681,17 +849,8 @@
                                         <tbody>
                                             {% for record in sales %}
                                                 <tr>
-                                                    <td>
-                                                        <div class="dashboard-person">
-                                                            <div class="dashboard-person__avatar" aria-hidden="true">{{ record.employee.full_name|slice:':1'|default:'B' }}</div>
-                                                            <div class="dashboard-person__body">
-                                                                <div class="dashboard-table__primary">{{ record.employee.full_name }}</div>
-                                                                <div class="dashboard-table__meta">{{ record.scheduled_for|date:'d/m/Y H:i' }}</div>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <span class="dashboard-table__chip">{{ record.product.get_kind_display }}</span>
+                                                    <td class="col-code">
+                                                        <span class="dashboard-table__meta">{{ record.codigo }}</span>
                                                     </td>
                                                     <td>
                                                         <div class="dashboard-table__primary">{{ record.product.name }}</div>
@@ -705,7 +864,7 @@
                                                     </td>
                                                     <td>{{ record.quantity }}</td>
                                                     <td>${{ record.product_price }}</td>
-                                                    <td>${{ record.tip_amount|default_if_none:'0.00' }}</td>
+                                                    <td>{{ record.scheduled_for|date:'d/m/Y H:i' }}</td>
                                                     <td>
                                                         <span class="dashboard-status {% if record.status == 'done' %}is-active{% else %}is-inactive{% endif %}">
                                                             {{ record.get_status_display }}
@@ -713,7 +872,7 @@
                                                     </td>
                                                     <td>
                                                         <div class="dashboard-row-actions dashboard-row-actions--controls">
-                                                            {% if record.status != 'canceled' %}
+                                                            {% if record.status != 'canceled' and can_modify_ventas %}
                                                                 <form method="get" class="dashboard-inline-form">
                                                                     <input type="hidden" name="section" value="sales" />
                                                                     <input type="hidden" name="view" value="edit" />
@@ -721,7 +880,7 @@
                                                                     <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">Modificar</button>
                                                                 </form>
                                                             {% endif %}
-                                                            {% if is_admin and record.status != 'canceled' %}
+                                                            {% if can_deactivate_ventas and record.status != 'canceled' %}
                                                                 <form method="post"
                                                                       class="dashboard-inline-form js-confirmable"
                                                                       data-confirm="¿Anular este registro? Esta acción marcará el registro como Cancelado.">
@@ -740,7 +899,7 @@
                                                 </tr>
                                             {% empty %}
                                                 <tr>
-                                                    <td colspan="8" class="dashboard-empty-state">
+                                                    <td colspan="7" class="dashboard-empty-state">
                                                         <div class="dashboard-empty-state__title">Todavía no hay productos ni servicios registrados.</div>
                                                         <div class="dashboard-empty-state__copy">
                                                             Registra el primero desde el formulario para ver
@@ -795,8 +954,10 @@
                                     <p class="eyebrow mb-1">Control de inventario</p>
                                 </div>
                                 <div class="d-flex gap-2">
-                                    <a href="?section=inventory&view=form&inventory_action=adjust"
-                                       class="dashboard-action-btn">Ajustar stock</a>
+                                    {% if can_adjust_inventory %}
+                                        <a href="?section=inventory&view=form&inventory_action=adjust"
+                                           class="dashboard-action-btn">Ajustar stock</a>
+                                    {% endif %}
                                 </div>
                             </div>
                             <div class="dashboard-table-wrap">
@@ -805,7 +966,7 @@
                                         <thead>
                                             <tr>
                                                 <th>Producto</th>
-                                                <th>Código</th>
+                                                <th class="col-code">Código</th>
                                                 <th>Stock actual</th>
                                                 <th>Precio unitario</th>
                                                 <th>Acciones</th>
@@ -818,7 +979,7 @@
                                                         <div class="dashboard-table__primary">{{ product.name }}</div>
                                                         <div class="dashboard-table__meta">{{ product.description|truncatechars:60 }}</div>
                                                     </td>
-                                                    <td>{{ product.sku|default:"—" }}</td>
+                                                    <td class="col-code">{{ product.sku }}</td>
                                                     <td>
                                                         <span class="{% if product.current_stock <= 0 %}text-danger fw-bold{% elif product.current_stock <= 5 %}text-warning fw-bold{% endif %}">
                                                             {{ product.current_stock }}
@@ -896,25 +1057,64 @@
                                     <table class="table dashboard-table align-middle table-hover mb-0">
                                         <thead>
                                             <tr>
+                                                <th class="col-code">Código</th>
                                                 <th>Producto</th>
                                                 <th>Cantidad</th>
                                                 <th>Costo unitario</th>
                                                 <th>Total</th>
                                                 <th>Fecha</th>
+                                                <th class="col-state">Estado</th>
+                                                <th class="col-actions">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {% for purchase in purchase_page %}
                                                 <tr>
+                                                    <td class="col-code">
+                                                        <span class="dashboard-table__meta">{{ purchase.codigo }}</span>
+                                                    </td>
                                                     <td>{{ purchase.product.name }}</td>
                                                     <td>{{ purchase.quantity }}</td>
                                                     <td>${{ purchase.unit_cost }}</td>
                                                     <td>${{ purchase.total_cost|floatformat:2 }}</td>
                                                     <td>{{ purchase.created_at|date:"Y-m-d H:i" }}</td>
+                                                    <td class="col-state">
+                                                        <span class="dashboard-status {% if purchase.status == 'active' %}is-active{% else %}is-inactive{% endif %}">
+                                                            {% if purchase.status == 'active' %}
+                                                                Activo
+                                                            {% else %}
+                                                                Anulado
+                                                            {% endif %}
+                                                        </span>
+                                                    </td>
+                                                    <td class="col-actions">
+                                                        <div class="dashboard-row-actions dashboard-row-actions--controls">
+                                                            {% if can_modify_compras and purchase.status == 'active' %}
+                                                                <form method="get" class="dashboard-inline-form">
+                                                                    <input type="hidden" name="section" value="compras" />
+                                                                    <input type="hidden" name="view" value="edit" />
+                                                                    <input type="hidden" name="purchase" value="{{ purchase.pk }}" />
+                                                                    <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">Modificar</button>
+                                                                </form>
+                                                            {% endif %}
+                                                            {% if can_deactivate_compras and purchase.status == 'active' %}
+                                                                <form method="post" class="dashboard-inline-form">
+                                                                    {% csrf_token %}
+                                                                    <input type="hidden" name="section" value="compras" />
+                                                                    <input type="hidden" name="action" value="deactivate" />
+                                                                    <input type="hidden" name="purchase_id" value="{{ purchase.pk }}" />
+                                                                    <button type="submit"
+                                                                            class="dashboard-action-btn dashboard-action-btn--danger">
+                                                                        Anular
+                                                                    </button>
+                                                                </form>
+                                                            {% endif %}
+                                                        </div>
+                                                    </td>
                                                 </tr>
                                             {% empty %}
                                                 <tr>
-                                                    <td colspan="5" class="dashboard-empty-state">No hay compras registradas.</td>
+                                                    <td colspan="8" class="dashboard-empty-state">No hay compras registradas.</td>
                                                 </tr>
                                             {% endfor %}
                                         </tbody>
@@ -953,6 +1153,7 @@
                                             <thead>
                                                 <tr>
                                                     <th>Fecha</th>
+                                                    <th>Origen</th>
                                                     <th>Tipo</th>
                                                     <th>Cantidad</th>
                                                     <th>Costo unit.</th>
@@ -963,6 +1164,7 @@
                                                 {% for mov in inventory_movements_page %}
                                                     <tr>
                                                         <td>{{ mov.created_at|date:'d/m/Y H:i' }}</td>
+                                                        <td>{{ mov.origen|default:'—' }}</td>
                                                         <td>
                                                             <span class="dashboard-table__chip">{{ mov.get_movement_type_display }}</span>
                                                         </td>
@@ -1139,13 +1341,17 @@
                                                 Modificar colaborador
                                             {% endif %}
                                         {% elif active_section == 'sales' %}
-                                            {% if sale_to_edit.product.kind == 'product' %}
+                                            {% if sale_to_edit and sale_to_edit.product.kind == 'product' %}
                                                 Modificar producto
                                             {% else %}
                                                 Modificar corte o servicio
                                             {% endif %}
                                         {% elif active_section == 'compras' %}
-                                            Registrar compra
+                                            {% if purchase_to_edit %}
+                                                Modificar compra
+                                            {% else %}
+                                                Registrar compra
+                                            {% endif %}
                                         {% elif active_section == 'inventory' %}
                                             Ajustar stock
                                         {% else %}
@@ -1162,14 +1368,18 @@
                                             el estado permanecen intactos.
                                         {% endif %}
                                     {% elif active_section == 'sales' %}
-                                        {% if sale_to_edit.product.kind == 'product' %}
+                                        {% if sale_to_edit and sale_to_edit.product.kind == 'product' %}
                                             Cambia el producto y la cantidad. El valor se autocompleta.
                                         {% else %}
                                             Cambia el colaborador, el servicio y la propina. El valor y la
                                             comisión se autocompletan según el servicio.
                                         {% endif %}
                                     {% elif active_section == 'compras' %}
-                                        Registra una compra para incrementar el stock del producto.
+                                        {% if purchase_to_edit %}
+                                            Actualiza cantidad, costo unitario y observaciones.
+                                        {% else %}
+                                            Registra una compra para incrementar el stock del producto.
+                                        {% endif %}
                                     {% elif active_section == 'inventory' %}
                                         Ajusta manualmente el stock. Usa valores negativos para reducir.
                                     {% else %}
@@ -1202,35 +1412,40 @@
                                 {% elif active_section == 'sales' and quick_view == 'edit' and sale_to_edit %}
                                     <input type="hidden" name="action" value="update" />
                                     <input type="hidden" name="sale_id" value="{{ sale_to_edit.pk }}" />
+                                {% elif active_section == 'compras' and quick_view == 'edit' and purchase_to_edit %}
+                                    <input type="hidden" name="action" value="update" />
+                                    <input type="hidden" name="purchase_id" value="{{ purchase_to_edit.pk }}" />
                                 {% elif active_section == 'compras' and quick_view == 'form' %}
                                     <input type="hidden" name="action" value="save" />
-                                {% elif active_section == 'inventory' and quick_view == 'form' %}
+                                {% elif active_section == 'inventory' and quick_view == 'form' and can_adjust_inventory %}
                                     <input type="hidden" name="action" value="adjust" />
                                 {% endif %}
                                 <div class="dashboard-form-grid">
-                                    {% for field in form %}
-                                        {% if field.name == 'is_supply' %}
-                                            <div class="form-check p-0 m-0 d-flex align-items-center gap-2"
-                                                 style="grid-column: span 4">
-                                                {{ field }}
-                                                <label class="form-check-label fw-semibold"
-                                                       for="{{ field.id_for_label }}"
-                                                       style="color:#0f172a">{{ field.label }}</label>
-                                            </div>
-                                        {% else %}
-                                            <div class="dashboard-field-card {% if field.name == 'notes' or field.name == 'description' %}dashboard-field-card--wide{% endif %}">
-                                                <div class="dashboard-field-card__head">
-                                                    <label class="form-label mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                                                    {% if field.field.required %}<span class="dashboard-field-card__required">Obligatorio</span>{% endif %}
-                                                </div>
-                                                <div class="dashboard-field-card__body">
+                                    {% if form %}
+                                        {% for field in form %}
+                                            {% if field.name == 'is_supply' %}
+                                                <div class="form-check p-0 m-0 d-flex align-items-center gap-2"
+                                                     style="grid-column: span 4">
                                                     {{ field }}
-                                                    {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
-                                                    {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>{% endif %}
+                                                    <label class="form-check-label fw-semibold"
+                                                           for="{{ field.id_for_label }}"
+                                                           style="color:#0f172a">{{ field.label }}</label>
                                                 </div>
-                                            </div>
-                                        {% endif %}
-                                    {% endfor %}
+                                            {% else %}
+                                                <div class="dashboard-field-card {% if field.name == 'notes' or field.name == 'description' %}dashboard-field-card--wide{% endif %}">
+                                                    <div class="dashboard-field-card__head">
+                                                        <label class="form-label mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                                        {% if field.field.required %}<span class="dashboard-field-card__required">Obligatorio</span>{% endif %}
+                                                    </div>
+                                                    <div class="dashboard-field-card__body">
+                                                        {{ field }}
+                                                        {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+                                                        {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>{% endif %}
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
                                 </div>
                                 <div class="dashboard-form-gap" aria-hidden="true"></div>
                                 <div class="dashboard-form__actions mt-4">
@@ -1338,10 +1553,6 @@
                         }, 350);
                     });
 
-                    purchaseFilterInput.focus();
-                    var value = purchaseFilterInput.value;
-                    purchaseFilterInput.value = value;
-                    purchaseFilterInput.setSelectionRange(value.length, value.length);
                 }
 
                 if (barberSearchInput) {
@@ -1352,10 +1563,6 @@
                         }, 350);
                     });
 
-                    barberSearchInput.focus();
-                    var barberValue = barberSearchInput.value;
-                    barberSearchInput.value = barberValue;
-                    barberSearchInput.setSelectionRange(barberValue.length, barberValue.length);
                 }
 
                 if (catalogSearchInput) {
@@ -1366,10 +1573,6 @@
                         }, 350);
                     });
 
-                    catalogSearchInput.focus();
-                    var catalogValue = catalogSearchInput.value;
-                    catalogSearchInput.value = catalogValue;
-                    catalogSearchInput.setSelectionRange(catalogValue.length, catalogValue.length);
                 }
 
                 if (catalogKindInput) {

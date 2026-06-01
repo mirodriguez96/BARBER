@@ -6,6 +6,7 @@ from .models import Purchase, Sale
 @admin.register(Sale)
 class SaleAdmin(admin.ModelAdmin):
     list_display = (
+        "codigo",
         "client",
         "employee",
         "product",
@@ -18,6 +19,7 @@ class SaleAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "scheduled_for", "employee")
     search_fields = (
+        "codigo",
         "client__full_name",
         "employee__full_name",
         "product__name",
@@ -28,7 +30,14 @@ class SaleAdmin(admin.ModelAdmin):
 
 @admin.register(Purchase)
 class PurchaseAdmin(admin.ModelAdmin):
-    list_display = ("product", "quantity", "unit_cost", "created_by", "created_at")
+    list_display = (
+        "codigo",
+        "product",
+        "quantity",
+        "unit_cost",
+        "created_by",
+        "created_at",
+    )
     list_filter = ("created_at",)
-    search_fields = ("product__name", "notes")
+    search_fields = ("codigo", "product__name", "notes")
     autocomplete_fields = ("product", "created_by")

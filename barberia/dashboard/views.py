@@ -6,6 +6,7 @@ from itertools import chain
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum, Value
 from django.db.models.functions import Coalesce, TruncDate
 from django.shortcuts import get_object_or_404, redirect, render
@@ -29,10 +30,12 @@ from .forms import (
     InventoryAdjustForm,
     ProductSaleEditForm,
     ProductSaleForm,
+    PurchaseEditForm,
     PurchaseForm,
     SaleEditForm,
     SaleForm,
 )
+from .models import RoleCrudPermission, RoleMenuPermission
 
 
 @login_required
@@ -46,7 +49,10 @@ def home(request):
     catalog_id = request.GET.get("catalog_item")
     inventory_action = request.GET.get("inventory_action", "adjust")
     sale_id = request.GET.get("sale")
+    purchase_id = request.GET.get("purchase")
     product_id = request.GET.get("product")
+    config_tab = request.GET.get("config_tab", "company")
+    crud_section = request.GET.get("crud_section", "personal")
     if section not in {
         "overview",
         "barbers",
@@ -59,22 +65,198 @@ def home(request):
     }:
         quick_view = "form"
 
+    ALL_MENU_KEYS = [
+        "overview",
+        "barbers",
+        "catalog",
+        "sales",
+        "compras",
+        "payments",
+        "inventory",
+        "config",
+    ]
+    PERMISSION_MENU_ITEMS = [
+        {"key": "barbers", "label": "Personal"},
+        {"key": "catalog", "label": "Productos"},
+        {"key": "sales", "label": "Ventas"},
+        {"key": "compras", "label": "Compras"},
+        {"key": "payments", "label": "Pagos"},
+        {"key": "inventory", "label": "Inventario"},
+        {"key": "config", "label": "Configuración"},
+    ]
+    CRUD_APPS = [
+        {"key": "personal", "label": "Personal"},
+        {"key": "productos", "label": "Productos"},
+        {"key": "ventas", "label": "Ventas"},
+        {"key": "compras", "label": "Compras"},
+        {"key": "inventario", "label": "Inventario"},
+    ]
+    CRUD_ACTIONS = [
+        {"key": "registrar", "label": "Registrar"},
+        {"key": "modificar", "label": "Modificar"},
+        {"key": "desactivar", "label": "Desactivar"},
+        {"key": "ajustar", "label": "Ajustar"},
+    ]
+    is_admin = request.user.role == User.Role.ADMIN
+
+    # CRUD permissions for 'personal' app (colaboradores-clientes)
+    crud_allowed_personal = set()
+    if not is_admin:
+        crud_allowed_personal = set(
+            RoleCrudPermission.objects.filter(
+                role=request.user.role,
+                app_key=RoleCrudPermission.AppKey.PERSONAL,
+            ).values_list("action", flat=True)
+        )
+    can_register_personal = (
+        is_admin or RoleCrudPermission.Action.REGISTRAR in crud_allowed_personal
+    )
+    can_modify_personal = (
+        is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_personal
+    )
+    can_deactivate_personal = (
+        is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_personal
+    )
+
+    # CRUD permissions for 'productos' app (catalog)
+    crud_allowed_productos = set()
+    if not is_admin:
+        crud_allowed_productos = set(
+            RoleCrudPermission.objects.filter(
+                role=request.user.role,
+                app_key=RoleCrudPermission.AppKey.PRODUCTOS,
+            ).values_list("action", flat=True)
+        )
+    can_register_productos = (
+        is_admin or RoleCrudPermission.Action.REGISTRAR in crud_allowed_productos
+    )
+    can_modify_productos = (
+        is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_productos
+    )
+    can_deactivate_productos = (
+        is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_productos
+    )
+
+    # CRUD permissions for 'ventas' app (sales)
+    crud_allowed_ventas = set()
+    if not is_admin:
+        crud_allowed_ventas = set(
+            RoleCrudPermission.objects.filter(
+                role=request.user.role,
+                app_key=RoleCrudPermission.AppKey.VENTAS,
+            ).values_list("action", flat=True)
+        )
+    can_register_ventas = (
+        is_admin or RoleCrudPermission.Action.REGISTRAR in crud_allowed_ventas
+    )
+    can_modify_ventas = (
+        is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_ventas
+    )
+    can_deactivate_ventas = (
+        is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_ventas
+    )
+
+    # CRUD permissions for 'compras' app (purchases)
+    crud_allowed_compras = set()
+    if not is_admin:
+        crud_allowed_compras = set(
+            RoleCrudPermission.objects.filter(
+                role=request.user.role,
+                app_key=RoleCrudPermission.AppKey.COMPRAS,
+            ).values_list("action", flat=True)
+        )
+    can_register_compras = (
+        is_admin or RoleCrudPermission.Action.REGISTRAR in crud_allowed_compras
+    )
+    can_modify_compras = (
+        is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_compras
+    )
+    can_deactivate_compras = (
+        is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_compras
+    )
+
+    # CRUD permissions for 'inventario' app (inventory)
+    crud_allowed_inventario = set()
+    if not is_admin:
+        crud_allowed_inventario = set(
+            RoleCrudPermission.objects.filter(
+                role=request.user.role,
+                app_key=RoleCrudPermission.AppKey.INVENTARIO,
+            ).values_list("action", flat=True)
+        )
+    can_adjust_inventory = (
+        is_admin or RoleCrudPermission.Action.AJUSTAR in crud_allowed_inventario
+    )
+
+    if not is_admin:
+        allowed_keys = set(
+            RoleMenuPermission.objects.filter(role=request.user.role).values_list(
+                "menu_key", flat=True
+            )
+        )
+        if section not in allowed_keys and section != "overview":
+            return redirect(f"{request.path}?section=overview")
+    else:
+        allowed_keys = set(ALL_MENU_KEYS)
+
     company = Company.objects.first()
     company_form = None
     if section == "config":
-        if request.method == "POST":
-            company_form = CompanyForm(request.POST, instance=company)
-            if company_form.is_valid():
-                company = company_form.save()
-                message = (
-                    "La información de la empresa se actualizó correctamente."
-                    if company.pk
-                    else "La información de la empresa se guardó correctamente."
+        if config_tab == "permissions":
+            if not is_admin:
+                return redirect(f"{request.path}?section=overview")
+            if request.method == "POST":
+                for role_key, _ in User.Role.choices:
+                    if role_key == User.Role.ADMIN:
+                        continue
+                    RoleMenuPermission.objects.filter(role=role_key).delete()
+                    for menu_key in request.POST.getlist(f"perms_{role_key}"):
+                        RoleMenuPermission.objects.create(
+                            role=role_key, menu_key=menu_key
+                        )
+                messages.success(request, "Permisos actualizados correctamente.")
+                return redirect(f"{request.path}?section=config&config_tab=permissions")
+        elif config_tab == "crud_permissions":
+            if not is_admin:
+                return redirect(f"{request.path}?section=overview")
+            crud_section = request.POST.get(
+                "crud_section", request.GET.get("crud_section", CRUD_APPS[0]["key"])
+            )
+            if request.method == "POST":
+                RoleCrudPermission.objects.filter(app_key=crud_section).delete()
+                for role_key, _ in User.Role.choices:
+                    if role_key == User.Role.ADMIN:
+                        continue
+                    for action in CRUD_ACTIONS:
+                        checkbox_name = (
+                            f"crud_{role_key}_{crud_section}_{action['key']}"
+                        )
+                        if checkbox_name in request.POST:
+                            RoleCrudPermission.objects.create(
+                                role=role_key,
+                                app_key=crud_section,
+                                action=action["key"],
+                            )
+                messages.success(
+                    request, "Permisos de acciones actualizados correctamente."
                 )
-                messages.success(request, message)
-                return redirect(f"{request.path}?section=config")
+                return redirect(
+                    f"{request.path}?section=config&config_tab=crud_permissions&crud_section={crud_section}"
+                )
         else:
-            company_form = CompanyForm(instance=company)
+            if request.method == "POST":
+                company_form = CompanyForm(request.POST, instance=company)
+                if company_form.is_valid():
+                    company = company_form.save()
+                    message = (
+                        "La información de la empresa se actualizó correctamente."
+                        if company.pk
+                        else "La información de la empresa se guardó correctamente."
+                    )
+                    messages.success(request, message)
+                    return redirect(f"{request.path}?section=config")
+            else:
+                company_form = CompanyForm(instance=company)
 
     barber_to_edit = None
     if section == "barbers" and quick_view == "edit" and barber_id:
@@ -92,6 +274,10 @@ def home(request):
     if section == "sales" and quick_view == "edit" and sale_id:
         sale_to_edit = get_object_or_404(Sale, pk=sale_id)
 
+    purchase_to_edit = None
+    if section == "compras" and quick_view == "edit" and purchase_id:
+        purchase_to_edit = get_object_or_404(Purchase, pk=purchase_id)
+
     forms_map = {
         "barbers": BarberForm,
         "catalog": CatalogItemForm,
@@ -102,6 +288,9 @@ def home(request):
 
     if request.method == "POST":
         section = request.POST.get("section", section)
+        if not is_admin and section not in allowed_keys:
+            messages.error(request, "No tienes permiso para realizar esta acción.")
+            return redirect(f"{request.path}?section=overview")
         action = request.POST.get("action", "save")
         record_type = request.POST.get("type", "colaborador")
 
@@ -111,6 +300,11 @@ def home(request):
             and action == "deactivate"
             and request.POST.get("barber_id")
         ):
+            if not can_deactivate_personal:
+                messages.error(
+                    request, "No tienes permiso para desactivar colaboradores."
+                )
+                return redirect(f"{request.path}?section=barbers&view=list")
             barber = get_object_or_404(Employee, pk=request.POST.get("barber_id"))
             barber.is_active = False
             barber.save(update_fields=["is_active", "updated_at"])
@@ -122,6 +316,9 @@ def home(request):
             and action == "activate"
             and request.POST.get("barber_id")
         ):
+            if not can_deactivate_personal:
+                messages.error(request, "No tienes permiso para activar colaboradores.")
+                return redirect(f"{request.path}?section=barbers&view=list")
             barber = get_object_or_404(Employee, pk=request.POST.get("barber_id"))
             barber.is_active = True
             barber.save(update_fields=["is_active", "updated_at"])
@@ -133,6 +330,11 @@ def home(request):
             and action == "update"
             and request.POST.get("barber_id")
         ):
+            if not can_modify_personal:
+                messages.error(
+                    request, "No tienes permiso para modificar colaboradores."
+                )
+                return redirect(f"{request.path}?section=barbers&view=list")
             barber = get_object_or_404(Employee, pk=request.POST.get("barber_id"))
             form = BarberEditForm(request.POST, instance=barber)
             if form.is_valid():
@@ -148,6 +350,9 @@ def home(request):
             and action == "deactivate"
             and request.POST.get("client_id")
         ):
+            if not can_deactivate_personal:
+                messages.error(request, "No tienes permiso para desactivar clientes.")
+                return redirect(f"{request.path}?section=barbers&view=list")
             client = get_object_or_404(Client, pk=request.POST.get("client_id"))
             client.is_active = False
             client.save(update_fields=["is_active", "updated_at"])
@@ -159,6 +364,9 @@ def home(request):
             and action == "activate"
             and request.POST.get("client_id")
         ):
+            if not can_deactivate_personal:
+                messages.error(request, "No tienes permiso para activar clientes.")
+                return redirect(f"{request.path}?section=barbers&view=list")
             client = get_object_or_404(Client, pk=request.POST.get("client_id"))
             client.is_active = True
             client.save(update_fields=["is_active", "updated_at"])
@@ -170,6 +378,9 @@ def home(request):
             and action == "update"
             and request.POST.get("client_id")
         ):
+            if not can_modify_personal:
+                messages.error(request, "No tienes permiso para modificar clientes.")
+                return redirect(f"{request.path}?section=barbers&view=list")
             client = get_object_or_404(Client, pk=request.POST.get("client_id"))
             form = ClientEditForm(request.POST, instance=client)
             if form.is_valid():
@@ -180,6 +391,12 @@ def home(request):
             client_to_edit = client
             messages.error(request, "Revisa los campos marcados en rojo.")
         elif section == "catalog" and action == "deactivate":
+            if not can_deactivate_productos:
+                messages.error(
+                    request,
+                    "No tienes permiso para desactivar productos o servicios.",
+                )
+                return redirect(f"{request.path}?section=catalog&view=list")
             catalog_item = get_object_or_404(
                 CatalogItem,
                 pk=request.POST.get("catalog_item_id"),
@@ -189,6 +406,12 @@ def home(request):
             messages.success(request, f"{catalog_item.name} fue desactivado.")
             return redirect(f"{request.path}?section=catalog&view=list")
         elif section == "catalog" and action == "activate":
+            if not can_deactivate_productos:
+                messages.error(
+                    request,
+                    "No tienes permiso para activar productos o servicios.",
+                )
+                return redirect(f"{request.path}?section=catalog&view=list")
             catalog_item = get_object_or_404(
                 CatalogItem,
                 pk=request.POST.get("catalog_item_id"),
@@ -198,6 +421,12 @@ def home(request):
             messages.success(request, f"{catalog_item.name} fue activado.")
             return redirect(f"{request.path}?section=catalog&view=list")
         elif section == "catalog" and action == "update":
+            if not can_modify_productos:
+                messages.error(
+                    request,
+                    "No tienes permiso para modificar productos o servicios.",
+                )
+                return redirect(f"{request.path}?section=catalog&view=list")
             catalog_item = get_object_or_404(
                 CatalogItem,
                 pk=request.POST.get("catalog_item_id"),
@@ -214,17 +443,20 @@ def home(request):
             catalog_item_to_edit = catalog_item
             messages.error(request, "Revisa los campos marcados en rojo.")
         elif section == "sales" and action == "update":
+            if not can_modify_ventas:
+                messages.error(
+                    request,
+                    "No tienes permiso para modificar servicios.",
+                )
+                return redirect(f"{request.path}?section=sales&view=list")
             sale = get_object_or_404(
                 Sale,
                 pk=request.POST.get("sale_id"),
             )
-            if (
-                request.user.role != User.Role.ADMIN
-                and sale.employee.user_id != request.user.pk
-            ):
+            if not is_admin and sale.employee.user_id != request.user.pk:
                 messages.error(
                     request,
-                    "No tienes permiso para modificar este servicio.",
+                    "No puedes modificar un servicio de otro colaborador.",
                 )
                 return redirect(f"{request.path}?section=sales&view=list")
             if sale.status == Sale.Status.CANCELED:
@@ -233,12 +465,12 @@ def home(request):
                     "No se puede modificar un servicio anulado.",
                 )
                 return redirect(f"{request.path}?section=sales&view=list")
+            original_quantity = sale.quantity
+            original_product_id = sale.product_id
             if sale.product.kind == CatalogItem.Kind.PRODUCT:
                 form_class = ProductSaleEditForm
-                old_quantity = sale.quantity
             else:
                 form_class = SaleEditForm
-                old_quantity = 0
             form = form_class(
                 request.POST,
                 instance=sale,
@@ -249,48 +481,99 @@ def home(request):
                 record.performed_by = request.user
                 if record.status == Sale.Status.SCHEDULED:
                     record.status = Sale.Status.DONE
-                if record.product.kind == CatalogItem.Kind.PRODUCT:
-                    record.product_price = record.product.price * record.quantity
-                    try:
-                        record.employee = request.user.employee
-                    except Exception:
-                        record.employee = None
-                    quantity_diff = record.quantity - old_quantity
-                    if quantity_diff != 0:
-                        product = record.product
-                        product.current_stock -= quantity_diff
-                        product.save(update_fields=["current_stock"])
+                old_is_product = (
+                    original_product_id
+                    and CatalogItem.objects.filter(
+                        pk=original_product_id, kind=CatalogItem.Kind.PRODUCT
+                    ).exists()
+                )
+                new_is_product = record.product.kind == CatalogItem.Kind.PRODUCT
+                same_product = (
+                    old_is_product
+                    and new_is_product
+                    and original_product_id == record.product_id
+                )
+                with transaction.atomic():
+                    if old_is_product and not same_product:
+                        revert_product = sale.product
+                        CatalogItem.objects.filter(pk=revert_product.pk).update(
+                            current_stock=F("current_stock") + original_quantity,
+                        )
                         InventoryMovement.objects.create(
-                            product=product,
-                            quantity=-quantity_diff,
+                            product=revert_product,
+                            quantity=original_quantity,
                             movement_type=InventoryMovement.MovementType.ADJUSTMENT,
-                            unit_cost=product.price,
+                            unit_cost=revert_product.price,
                             created_by=request.user,
-                            reference_sale=record,
+                            origen=record.codigo,
                             notes="Ajuste por modificación de venta",
                         )
-                record.save()
+                    if new_is_product:
+                        original_unit_price = (
+                            sale.product_price / original_quantity
+                            if original_quantity
+                            else Decimal("0")
+                        )
+                        record.product_price = original_unit_price * record.quantity
+                        if same_product:
+                            quantity_diff = record.quantity - original_quantity
+                            if quantity_diff != 0:
+                                CatalogItem.objects.filter(pk=record.product_id).update(
+                                    current_stock=F("current_stock") - quantity_diff,
+                                )
+                                InventoryMovement.objects.create(
+                                    product=record.product,
+                                    quantity=-quantity_diff,
+                                    movement_type=InventoryMovement.MovementType.ADJUSTMENT,
+                                    unit_cost=record.product.price,
+                                    created_by=request.user,
+                                    origen=record.codigo,
+                                    notes="Ajuste por modificación de venta",
+                                )
+                        elif not old_is_product:
+                            CatalogItem.objects.filter(pk=record.product_id).update(
+                                current_stock=F("current_stock") - record.quantity,
+                            )
+                            InventoryMovement.objects.create(
+                                product=record.product,
+                                quantity=-record.quantity,
+                                movement_type=InventoryMovement.MovementType.ADJUSTMENT,
+                                unit_cost=record.product.price,
+                                created_by=request.user,
+                                origen=record.codigo,
+                                notes="Ajuste por modificación de venta",
+                            )
+                    record.save()
                 messages.success(request, "Servicio actualizado correctamente.")
                 return redirect(f"{request.path}?section=sales&view=list")
             quick_view = "edit"
             sale_to_edit = sale
             messages.error(request, "Revisa los campos marcados en rojo.")
         elif section == "compras" and action == "save":
+            if not can_register_compras:
+                messages.error(
+                    request,
+                    "No tienes permiso para registrar nuevas compras.",
+                )
+                return redirect(f"{request.path}?section=compras&view=list")
             form = PurchaseForm(request.POST, user=request.user)
             if form.is_valid():
                 purchase = form.save(commit=False)
                 purchase.created_by = request.user
                 purchase.save()
+                purchase.refresh_from_db()
                 product = purchase.product
-                product.current_stock += purchase.quantity
-                product.save(update_fields=["current_stock"])
+                CatalogItem.objects.filter(pk=product.pk).update(
+                    current_stock=F("current_stock") + purchase.quantity,
+                )
                 InventoryMovement.objects.create(
-                    product=product,
+                    product=purchase.product,
                     quantity=purchase.quantity,
                     movement_type=InventoryMovement.MovementType.PURCHASE,
                     unit_cost=purchase.unit_cost,
                     created_by=request.user,
                     notes=purchase.notes,
+                    origen=purchase.codigo,
                 )
                 messages.success(request, "Compra registrada correctamente.")
                 return redirect(f"{request.path}?section=compras&view=list")
@@ -298,6 +581,12 @@ def home(request):
             messages.error(request, "Revisa los campos marcados en rojo.")
 
         elif section == "inventory" and action == "adjust":
+            if not can_adjust_inventory:
+                messages.error(
+                    request,
+                    "No tienes permiso para ajustar el inventario.",
+                )
+                return redirect(f"{request.path}?section=inventory&view=list")
             form = InventoryAdjustForm(request.POST, user=request.user)
             if form.is_valid():
                 movement = form.save(commit=False)
@@ -308,8 +597,9 @@ def home(request):
                 product = movement.product
                 movement.unit_cost = product.price
                 movement.save()
-                product.current_stock += movement.quantity
-                product.save(update_fields=["current_stock"])
+                CatalogItem.objects.filter(pk=product.pk).update(
+                    current_stock=F("current_stock") + movement.quantity,
+                )
                 messages.success(request, "Ajuste de stock registrado correctamente.")
                 return redirect(f"{request.path}?section=inventory&view=list")
             inventory_adjust_form = form
@@ -337,8 +627,17 @@ def home(request):
                     f"{request.path}?section=sales&view=list{filter_params_local}"
                 )
 
-            if request.user.role != User.Role.ADMIN:
-                messages.error(request, "No tienes permiso para anular este servicio.")
+            if not can_deactivate_ventas:
+                messages.error(request, "No tienes permiso para anular servicios.")
+                return redirect(
+                    f"{request.path}?section=sales&view=list{filter_params_local}"
+                )
+
+            if not is_admin and sale.employee.user_id != request.user.pk:
+                messages.error(
+                    request,
+                    "No puedes anular un servicio de otro colaborador.",
+                )
                 return redirect(
                     f"{request.path}?section=sales&view=list{filter_params_local}"
                 )
@@ -351,14 +650,101 @@ def home(request):
 
             sale.status = Sale.Status.CANCELED
             sale.save(update_fields=["status"])
+            if sale.product.kind == CatalogItem.Kind.PRODUCT:
+                CatalogItem.objects.filter(pk=sale.product_id).update(
+                    current_stock=F("current_stock") + sale.quantity,
+                )
+                InventoryMovement.objects.create(
+                    product=sale.product,
+                    quantity=sale.quantity,
+                    movement_type=InventoryMovement.MovementType.ADJUSTMENT,
+                    unit_cost=sale.product.price,
+                    created_by=request.user,
+                    origen=sale.codigo,
+                    notes="Venta anulada — reversión de stock",
+                )
             messages.success(request, "Servicio anulado correctamente.")
             return redirect(
                 f"{request.path}?section=sales&view=list{filter_params_local}"
             )
+
+        elif section == "compras" and action == "update":
+            if not can_modify_compras:
+                messages.error(request, "No tienes permiso para modificar compras.")
+                return redirect(f"{request.path}?section=compras&view=list")
+            purchase = get_object_or_404(
+                Purchase,
+                pk=request.POST.get("purchase_id"),
+            )
+            old_quantity = purchase.quantity
+            form = PurchaseEditForm(request.POST, instance=purchase)
+            if form.is_valid():
+                new_quantity = form.cleaned_data["quantity"]
+                quantity_diff = new_quantity - old_quantity
+                form.save()
+                if quantity_diff != 0:
+                    CatalogItem.objects.filter(pk=purchase.product_id).update(
+                        current_stock=F("current_stock") + quantity_diff,
+                    )
+                    InventoryMovement.objects.create(
+                        product=purchase.product,
+                        quantity=quantity_diff,
+                        movement_type=InventoryMovement.MovementType.ADJUSTMENT,
+                        unit_cost=purchase.unit_cost,
+                        created_by=request.user,
+                        notes="Ajuste por modificación de compra",
+                        origen=purchase.codigo,
+                    )
+                messages.success(request, "Compra actualizada correctamente.")
+                return redirect(f"{request.path}?section=compras&view=list")
+            quick_view = "edit"
+            purchase_to_edit = purchase
+            messages.error(request, "Revisa los campos marcados en rojo.")
+
+        elif section == "compras" and action == "deactivate":
+            if not can_deactivate_compras:
+                messages.error(request, "No tienes permiso para anular compras.")
+                return redirect(f"{request.path}?section=compras&view=list")
+            purchase = get_object_or_404(
+                Purchase,
+                pk=request.POST.get("purchase_id"),
+            )
+            if purchase.status == Purchase.Status.CANCELED:
+                messages.info(request, "La compra ya está anulada.")
+                return redirect(f"{request.path}?section=compras&view=list")
+            purchase.status = Purchase.Status.CANCELED
+            purchase.save(update_fields=["status"])
+            CatalogItem.objects.filter(pk=purchase.product_id).update(
+                current_stock=F("current_stock") - purchase.quantity,
+            )
+            InventoryMovement.objects.create(
+                product=purchase.product,
+                quantity=-purchase.quantity,
+                movement_type=InventoryMovement.MovementType.ADJUSTMENT,
+                unit_cost=purchase.unit_cost,
+                created_by=request.user,
+                notes="Compra anulada",
+                origen=purchase.codigo,
+            )
+            messages.success(request, "Compra anulada correctamente.")
+            return redirect(f"{request.path}?section=compras&view=list")
+
         else:
             if section == "barbers":
+                if not can_register_personal:
+                    messages.error(
+                        request,
+                        "No tienes permiso para registrar nuevos colaboradores o clientes.",
+                    )
+                    return redirect(f"{request.path}?section=barbers&view=list")
                 form_class = ClientForm if record_type == "cliente" else BarberForm
             elif section == "sales":
+                if not can_register_ventas:
+                    messages.error(
+                        request,
+                        "No tienes permiso para registrar servicios.",
+                    )
+                    return redirect(f"{request.path}?section=sales&view=list")
                 form_class = ProductSaleForm if record_type == "producto" else SaleForm
             else:
                 form_class = forms_map.get(section, BarberForm)
@@ -370,33 +756,44 @@ def home(request):
                     if not record.scheduled_for:
                         record.scheduled_for = timezone.now()
                     record.status = Sale.Status.DONE
+                    if record.product and record.product_price is None:
+                        record.product_price = record.product.price
                     if record_type == "producto":
                         record.product_price = record.product.price * record.quantity
                         try:
                             record.employee = request.user.employee
-                        except Exception:
+                        except Employee.DoesNotExist:
                             record.employee = None
                 record.save()
                 if section == "sales" and record_type == "producto":
-                    product = record.product
-                    product.current_stock -= record.quantity
-                    product.save(update_fields=["current_stock"])
+                    record.refresh_from_db()
+                    CatalogItem.objects.filter(pk=record.product_id).update(
+                        current_stock=F("current_stock") - record.quantity,
+                    )
                     unit_price = record.product_price / record.quantity
                     InventoryMovement.objects.create(
-                        product=product,
+                        product=record.product,
                         quantity=-record.quantity,
                         movement_type=InventoryMovement.MovementType.SALE,
                         unit_cost=unit_price,
                         created_by=request.user,
-                        reference_sale=record,
+                        origen=record.codigo,
                     )
                 messages.success(request, "Registro guardado correctamente.")
                 return redirect(f"{request.path}?section={section}")
             messages.error(request, "Revisa los campos marcados en rojo.")
     elif section == "barbers" and quick_view == "edit":
         if barber_to_edit is not None:
+            if not can_modify_personal:
+                messages.error(
+                    request, "No tienes permiso para modificar colaboradores."
+                )
+                return redirect(f"{request.path}?section=barbers&view=list")
             form = BarberEditForm(instance=barber_to_edit)
         elif client_to_edit is not None:
+            if not can_modify_personal:
+                messages.error(request, "No tienes permiso para modificar clientes.")
+                return redirect(f"{request.path}?section=barbers&view=list")
             form = ClientEditForm(instance=client_to_edit)
         else:
             form = BarberForm(user=request.user)
@@ -405,15 +802,24 @@ def home(request):
         and quick_view == "edit"
         and catalog_item_to_edit is not None
     ):
-        form = CatalogItemEditForm(instance=catalog_item_to_edit)
-    elif section == "sales" and quick_view == "edit" and sale_to_edit is not None:
-        if (
-            request.user.role != User.Role.ADMIN
-            and sale_to_edit.employee.user_id != request.user.pk
-        ):
+        if not can_modify_productos:
             messages.error(
                 request,
-                "No tienes permiso para modificar este servicio.",
+                "No tienes permiso para modificar productos o servicios.",
+            )
+            return redirect(f"{request.path}?section=catalog&view=list")
+        form = CatalogItemEditForm(instance=catalog_item_to_edit)
+    elif section == "sales" and quick_view == "edit" and sale_to_edit is not None:
+        if not can_modify_ventas:
+            messages.error(
+                request,
+                "No tienes permiso para modificar servicios.",
+            )
+            return redirect(f"{request.path}?section=sales&view=list")
+        if not is_admin and sale_to_edit.employee.user_id != request.user.pk:
+            messages.error(
+                request,
+                "No puedes modificar un servicio de otro colaborador.",
             )
             return redirect(f"{request.path}?section=sales&view=list")
         if sale_to_edit.product.kind == CatalogItem.Kind.PRODUCT:
@@ -426,20 +832,60 @@ def home(request):
                 instance=sale_to_edit,
                 user=request.user,
             )
+    elif section == "compras" and quick_view == "edit" and purchase_to_edit is not None:
+        if not can_modify_compras:
+            messages.error(
+                request,
+                "No tienes permiso para modificar compras.",
+            )
+            return redirect(f"{request.path}?section=compras&view=list")
+        form = PurchaseEditForm(instance=purchase_to_edit, user=request.user)
     else:
         if section == "barbers":
+            if quick_view == "form" and not can_register_personal:
+                messages.error(
+                    request,
+                    "No tienes permiso para registrar nuevos colaboradores o clientes.",
+                )
+                return redirect(f"{request.path}?section=barbers&view=list")
             form_class = ClientForm if record_type == "cliente" else BarberForm
             form = form_class(user=request.user)
         elif section == "sales":
+            if quick_view == "form" and not can_register_ventas:
+                messages.error(
+                    request,
+                    "No tienes permiso para registrar servicios.",
+                )
+                return redirect(f"{request.path}?section=sales&view=list")
             form_class = ProductSaleForm if sale_type == "producto" else SaleForm
             form = form_class(user=request.user)
         elif section == "inventory":
+            if quick_view == "form" and not can_adjust_inventory:
+                messages.error(
+                    request,
+                    "No tienes permiso para ajustar el inventario.",
+                )
+                return redirect(f"{request.path}?section=inventory&view=list")
             if inventory_action == "adjust":
                 form = InventoryAdjustForm(user=request.user)
             else:
                 form = None
         elif section == "compras":
+            if quick_view == "form" and not can_register_compras:
+                messages.error(
+                    request,
+                    "No tienes permiso para registrar nuevas compras.",
+                )
+                return redirect(f"{request.path}?section=compras&view=list")
             form = PurchaseForm(user=request.user)
+        elif section == "catalog":
+            if quick_view == "form" and not can_register_productos:
+                messages.error(
+                    request,
+                    "No tienes permiso para registrar nuevos productos o servicios.",
+                )
+                return redirect(f"{request.path}?section=catalog&view=list")
+            form = CatalogItemForm(user=request.user)
         else:
             form_class = forms_map.get(section, BarberForm)
             form = form_class(user=request.user)
@@ -835,7 +1281,10 @@ def home(request):
 
     sales_period = Sale.objects.filter(date_filter, status=Sale.Status.DONE).aggregate(
         total=Coalesce(
-            Sum(F("product_price") * F("quantity"), output_field=DecimalField()),
+            Sum(
+                "product_price",
+                output_field=DecimalField(max_digits=12, decimal_places=2),
+            ),
             Value(Decimal("0.00")),
         ),
         count=Coalesce(Count("id"), Value(0)),
@@ -955,6 +1404,47 @@ def home(request):
         "config": "Configuración de la empresa",
     }
 
+    permission_matrix = {}
+    if section == "config" and config_tab == "permissions":
+        for role_key, role_label in User.Role.choices:
+            if role_key == User.Role.ADMIN:
+                continue
+            allowed = set(
+                RoleMenuPermission.objects.filter(role=role_key).values_list(
+                    "menu_key", flat=True
+                )
+            )
+            permission_matrix[role_key] = {
+                "label": role_label,
+                "allowed": allowed,
+            }
+
+    crud_section_matrix = []
+    if section == "config" and config_tab == "crud_permissions":
+        for role_key, role_label in User.Role.choices:
+            if role_key == User.Role.ADMIN:
+                continue
+            allowed_actions = set(
+                RoleCrudPermission.objects.filter(
+                    role=role_key, app_key=crud_section
+                ).values_list("action", flat=True)
+            )
+            actions_data = []
+            for action in CRUD_ACTIONS:
+                actions_data.append(
+                    {
+                        "key": action["key"],
+                        "checked": action["key"] in allowed_actions,
+                    }
+                )
+            crud_section_matrix.append(
+                {
+                    "role_key": role_key,
+                    "role_label": role_label,
+                    "actions": actions_data,
+                }
+            )
+
     context = {
         "active_section": section,
         "quick_view": quick_view,
@@ -964,6 +1454,7 @@ def home(request):
         "client_to_edit": client_to_edit,
         "catalog_item_to_edit": catalog_item_to_edit,
         "sale_to_edit": sale_to_edit,
+        "purchase_to_edit": purchase_to_edit,
         "section_title": section_titles.get(
             section, "Registro de colaboradores y clientes"
         ),
@@ -1012,16 +1503,54 @@ def home(request):
         "inventory_movements_page": inventory_movements_page,
         "company": company,
         "company_form": company_form,
-        "menu_items": [
-            {"key": "overview", "label": "INICIO", "hint": ""},
-            {"key": "barbers", "label": "COLABORADORES / CLIENTES", "hint": ""},
-            {"key": "catalog", "label": "PRODUCTOS Y SERVICIOS", "hint": ""},
-            {"key": "sales", "label": "VENTAS", "hint": ""},
-            {"key": "compras", "label": "COMPRAS", "hint": ""},
-            {"key": "payments", "label": "PAGOS", "hint": ""},
-            {"key": "inventory", "label": "INVENTARIO", "hint": ""},
-            {"key": "config", "label": "CONFIGURACIÓN", "hint": "Empresa"},
-        ],
-        "is_admin": request.user.role == User.Role.ADMIN,
+        "menu_items": (
+            [
+                {"key": "overview", "label": "INICIO", "hint": ""},
+                {"key": "barbers", "label": "COLABORADORES / CLIENTES", "hint": ""},
+                {"key": "catalog", "label": "PRODUCTOS Y SERVICIOS", "hint": ""},
+                {"key": "sales", "label": "VENTAS", "hint": ""},
+                {"key": "compras", "label": "COMPRAS", "hint": ""},
+                {"key": "payments", "label": "PAGOS", "hint": ""},
+                {"key": "inventory", "label": "INVENTARIO", "hint": ""},
+                {"key": "config", "label": "CONFIGURACIÓN", "hint": "Empresa"},
+            ]
+            if is_admin
+            else [
+                item
+                for item in [
+                    {"key": "overview", "label": "INICIO", "hint": ""},
+                    {"key": "barbers", "label": "COLABORADORES / CLIENTES", "hint": ""},
+                    {"key": "catalog", "label": "PRODUCTOS Y SERVICIOS", "hint": ""},
+                    {"key": "sales", "label": "VENTAS", "hint": ""},
+                    {"key": "compras", "label": "COMPRAS", "hint": ""},
+                    {"key": "payments", "label": "PAGOS", "hint": ""},
+                    {"key": "inventory", "label": "INVENTARIO", "hint": ""},
+                    {"key": "config", "label": "CONFIGURACIÓN", "hint": "Empresa"},
+                ]
+                if item["key"] in allowed_keys or item["key"] == "overview"
+            ]
+        ),
+        "is_admin": is_admin,
+        "config_tab": config_tab,
+        "permission_matrix": permission_matrix,
+        "permission_menu_items": PERMISSION_MENU_ITEMS,
+        "all_menu_keys": ALL_MENU_KEYS,
+        "crud_section_matrix": crud_section_matrix,
+        "crud_apps": CRUD_APPS,
+        "crud_actions": CRUD_ACTIONS,
+        "current_crud_section": crud_section,
+        "can_register_personal": can_register_personal,
+        "can_modify_personal": can_modify_personal,
+        "can_deactivate_personal": can_deactivate_personal,
+        "can_register_productos": can_register_productos,
+        "can_modify_productos": can_modify_productos,
+        "can_deactivate_productos": can_deactivate_productos,
+        "can_register_ventas": can_register_ventas,
+        "can_modify_ventas": can_modify_ventas,
+        "can_deactivate_ventas": can_deactivate_ventas,
+        "can_register_compras": can_register_compras,
+        "can_modify_compras": can_modify_compras,
+        "can_deactivate_compras": can_deactivate_compras,
+        "can_adjust_inventory": can_adjust_inventory,
     }
     return render(request, "dashboard/home.html", context)

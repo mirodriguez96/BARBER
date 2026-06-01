@@ -7,8 +7,9 @@ from django.utils import timezone
 
 from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
+from barberia.dashboard.models import RoleCrudPermission, RoleMenuPermission
 from barberia.inventory.models import InventoryMovement
-from barberia.operations.models import Sale
+from barberia.operations.models import Purchase, Sale
 from barberia.people.models import Employee
 
 
@@ -404,7 +405,7 @@ class InventoryDashboardViewsTest(TestCase):
         self.assertEqual(movements.count(), 1)
         movement = movements.first()
         self.assertEqual(movement.quantity, -2)
-        self.assertIsNotNone(movement.reference_sale)
+        self.assertNotEqual(movement.origen, "")
         self.assertEqual(movement.created_by, self.user)
 
     def test_product_sale_creates_sale_movement_with_correct_reference(self):
@@ -423,7 +424,7 @@ class InventoryDashboardViewsTest(TestCase):
             movement_type=InventoryMovement.MovementType.SALE,
         )
         movement = movements.first()
-        self.assertEqual(movement.reference_sale, record)
+        self.assertEqual(movement.origen, record.codigo)
 
     def test_service_sale_does_not_affect_stock(self):
         initial_stock = self.product_1.current_stock
@@ -521,7 +522,8 @@ class InventoryDashboardViewsTest(TestCase):
         self.assertEqual(movements.count(), 1)
         movement = movements.first()
         self.assertEqual(movement.quantity, -2)
-        self.assertEqual(movement.reference_sale, record)
+        record.refresh_from_db()
+        self.assertEqual(movement.origen, record.codigo)
         self.assertEqual(movement.notes, "Ajuste por modificación de venta")
 
     def test_product_edit_no_movement_when_quantity_unchanged(self):
@@ -601,6 +603,35 @@ class InventoryDashboardViewsTest(TestCase):
         keys = [m["key"] for m in menu]
         self.assertIn("compras", keys)
 
+    def test_purchase_edit_adjusts_stock(self):
+        initial_stock = self.product_1.current_stock
+        purchase = Purchase.objects.create(
+            product=self.product_1,
+            quantity=10,
+            unit_cost=Decimal("50.00"),
+            created_by=self.user,
+        )
+        data = {
+            "section": "compras",
+            "action": "update",
+            "purchase_id": purchase.pk,
+            "quantity": "5",
+            "unit_cost": "55.00",
+            "notes": "Editado",
+        }
+        total_movements_before = InventoryMovement.objects.count()
+        response = self.client.post(self.list_url, data)
+        self.assertRedirects(response, f"{self.list_url}?section=compras&view=list")
+        purchase.refresh_from_db()
+        self.assertEqual(purchase.quantity, 5)
+        total_movements_after = InventoryMovement.objects.count()
+        self.assertEqual(total_movements_after, total_movements_before + 1)
+        latest = InventoryMovement.objects.last()
+        self.assertEqual(latest.product_id, self.product_1.pk)
+        self.assertEqual(latest.quantity, -5)
+        self.product_1.refresh_from_db()
+        self.assertEqual(self.product_1.current_stock, initial_stock - 5)
+
 
 class InventoryBarberoAccessTest(TestCase):
     def setUp(self):
@@ -620,6 +651,13 @@ class InventoryBarberoAccessTest(TestCase):
             name="Gel",
             price=Decimal("80.00"),
             sku="PRD080",
+        )
+        RoleMenuPermission.objects.create(role=User.Role.BARBERO, menu_key="inventory")
+        RoleMenuPermission.objects.create(role=User.Role.BARBERO, menu_key="compras")
+        RoleCrudPermission.objects.create(
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.COMPRAS,
+            action=RoleCrudPermission.Action.REGISTRAR,
         )
         self.list_url = reverse("dashboard:home")
         self.client.login(username="barbero_inv", password="pass1234")

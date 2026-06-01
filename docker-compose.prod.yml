@@ -1,0 +1,66 @@
+services:
+  db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_DB: barber_tenants_registry
+      POSTGRES_USER: barber_app
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Debe definir DB_PASSWORD en .env}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U barber_app -d barber_tenants_registry"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  web:
+    image: ghcr.io/${GHCR_OWNER:?Debe definir GHCR_OWNER}/barber:latest
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DJANGO_SETTINGS_MODULE: barberia.settings.docker
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Debe definir DJANGO_SECRET_KEY en .env}
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: barber_app
+      DB_PASSWORD: ${DB_PASSWORD:?Debe definir DB_PASSWORD en .env}
+      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:?Debe definir DJANGO_ALLOWED_HOSTS}"
+      DJANGO_CSRF_TRUSTED_ORIGINS: "${DJANGO_CSRF_TRUSTED_ORIGINS:?Debe definir DJANGO_CSRF_TRUSTED_ORIGINS}"
+      DJANGO_DEBUG: "False"
+      DJANGO_SECURE_SSL_REDIRECT: "True"
+      DJANGO_SESSION_COOKIE_SECURE: "True"
+      DJANGO_CSRF_COOKIE_SECURE: "True"
+      DJANGO_SESSION_COOKIE_SAMESITE: "Lax"
+      DJANGO_SECURE_HSTS_SECONDS: "31536000"
+      DJANGO_HSTS_INCLUDE_SUBDOMAINS: "True"
+      DJANGO_HSTS_PRELOAD: "True"
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - static_prod_data:/app/staticfiles
+      - media_prod_data:/app/media
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: always
+    depends_on:
+      web:
+        condition: service_healthy
+    command: tunnel run
+    volumes:
+      - ./cloudflared:/home/nonroot/.cloudflared
+
+volumes:
+  postgres_prod_data:
+  static_prod_data:
+  media_prod_data:

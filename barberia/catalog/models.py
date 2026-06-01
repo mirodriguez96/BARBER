@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 
 
@@ -18,6 +20,17 @@ class CatalogItem(models.Model):
     )
     current_stock = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
+
+    def save(self, *args, **kwargs):
+        is_new = not self.pk
+        if is_new:
+            temp_sku = f"TMP-{uuid.uuid4().hex[:12].upper()}"
+            self.sku = temp_sku
+        super().save(*args, **kwargs)
+        if is_new:
+            prefix = "PROD" if self.kind == self.Kind.PRODUCT else "SERV"
+            self.sku = f"{prefix}-{self.pk}"
+            CatalogItem.objects.filter(pk=self.pk).update(sku=self.sku)
 
     def __str__(self):
         return self.name
