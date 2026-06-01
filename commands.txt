@@ -47,8 +47,8 @@ Ver logs del servicio web
 Ejecutar un comando dentro del contenedor web
     docker compose exec web python manage.py <comando>
 
-Crear superusuario en DB pública (admin.colstyle.com)
-    docker compose exec web python manage.py createsuperuser
+Crear superusuario en DB default (admin.colstyle.com)
+    docker compose exec -it web python manage.py createsuperuser
 
 Crear superusuario en DB de un tenant específico
     docker compose exec web python manage.py register_tenant <schema_name> --domain "<schema>.colstyle.com" --superuser-only
