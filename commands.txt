@@ -28,10 +28,7 @@ POBLAR UNA BD EN VENV Y docker
         "
 
     HABILITAR BD default
-        docker compose exec web python manage.py shell -c "
-        from axes.models import AccessAttempt;
-        AccessAttempt.objects.all().delete();
-        print('OK')"
+        docker compose exec web python manage.py shell -c "from axes.models import AccessAttempt; AccessAttempt.objects.all().delete(); print('OK')"
 
 
 

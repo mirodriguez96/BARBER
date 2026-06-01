@@ -16,7 +16,7 @@ services:
       start_period: 30s
 
   web:
-    image: ghcr.io/${GHCR_OWNER:?Debe definir GHCR_OWNER}/barber:latest
+    image: ghcr.io/${GHCR_OWNER:-mirodriguez96}/barber:latest
     restart: always
     depends_on:
       db:
