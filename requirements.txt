@@ -1,8 +1,8 @@
 Django>=5.0,<6.0
 hypothesis>=6.155.1,<7.0
-beautifulsoup4>=4.13,<5.0
+beautifulsoup4>=4.14.3,<5.0
 gunicorn>=26.0.0,<27.0
 psycopg2-binary>=2.9,<3.0
 Pillow>=12.2.0,<13.0
 whitenoise>=6.12.0,<7.0
-django-axes>=6.0,<7.0
+django-axes>=8.3.1,<9.0
