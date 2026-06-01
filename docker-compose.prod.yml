@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: barber_app
       POSTGRES_PASSWORD: ${DB_PASSWORD:?Debe definir DB_PASSWORD en .env}
     volumes:
-      - postgres_prod_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U barber_app -d barber_tenants_registry"]
       interval: 10s
@@ -41,10 +41,16 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     volumes:
-      - static_prod_data:/app/staticfiles
-      - media_prod_data:/app/media
+      - static_files:/app/staticfiles
+      - media_files:/app/media
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health/').status==200 else 1)",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -54,13 +60,12 @@ services:
     image: cloudflare/cloudflared:latest
     restart: always
     depends_on:
-      web:
-        condition: service_healthy
+      - web
     command: tunnel run
     volumes:
       - ./cloudflared:/home/nonroot/.cloudflared
 
 volumes:
-  postgres_prod_data:
-  static_prod_data:
-  media_prod_data:
+  postgres_data:
+  static_files:
+  media_files:
