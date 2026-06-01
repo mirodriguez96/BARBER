@@ -1,7 +1,5 @@
 import threading
 
-from django.conf import settings
-
 _thread_local = threading.local()
 
 
