@@ -1,46 +1,55 @@
 {% extends "common/base.html" %}
 {% block title %}Super Admin - Barberías{% endblock %}
 {% block content %}
-<div class="container mt-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Panel de Administración de Barberías</h1>
-    <a href="{% url 'admin:index' %}" class="btn btn-outline-secondary">Admin Django</a>
-  </div>
-
-  <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <span>Tenants registrados ({{ tenants|length }})</span>
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Panel de Administración de Barberías</h1>
+            <a href="{% url 'admin:index' %}" class="btn btn-outline-secondary">Admin Django</a>
+        </div>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Tenants registrados ({{ tenants|length }})</span>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Schema</th>
+                            <th>Nombre</th>
+                            <th>NIT</th>
+                            <th>BD</th>
+                            <th>Activo</th>
+                            <th>Creado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in tenants %}
+                            <tr>
+                                <td>
+                                    <code>{{ t.schema_name }}</code>
+                                </td>
+                                <td>{{ t.name }}</td>
+                                <td>{{ t.nit|default:"-" }}</td>
+                                <td>
+                                    <code>{{ t.db_name }}</code>
+                                </td>
+                                <td>
+                                    {% if t.is_active %}
+                                        ✅
+                                    {% else %}
+                                        ❌
+                                    {% endif %}
+                                </td>
+                                <td>{{ t.created_at|date:"d/m/Y H:i" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-3">No hay tenants registrados</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    <div class="card-body p-0">
-      <table class="table table-striped mb-0">
-        <thead>
-          <tr>
-            <th>Schema</th>
-            <th>Nombre</th>
-            <th>NIT</th>
-            <th>BD</th>
-            <th>Activo</th>
-            <th>Creado</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for t in tenants %}
-          <tr>
-            <td><code>{{ t.schema_name }}</code></td>
-            <td>{{ t.name }}</td>
-            <td>{{ t.nit|default:"-" }}</td>
-            <td><code>{{ t.db_name }}</code></td>
-            <td>{% if t.is_active %}✅{% else %}❌{% endif %}</td>
-            <td>{{ t.created_at|date:"d/m/Y H:i" }}</td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="6" class="text-center text-muted py-3">No hay tenants registrados</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
 {% endblock %}
