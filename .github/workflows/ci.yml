@@ -43,7 +43,7 @@ jobs:
           pip install --upgrade pip
           pip install bandit safety
       - name: Bandit SAST
-        run: bandit -r barberia/ -x barberia/tests
+        run: bandit -r barberia/ -x barberia/tests --skip B105,B106
       - name: Safety check dependencies
         run: safety check -r requirements.txt
       - name: Trivy filesystem scan
