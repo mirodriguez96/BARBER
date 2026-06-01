@@ -1,6 +1,6 @@
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
-from django.db import connections, ProgrammingError
+from django.db import ProgrammingError, connections
 
 from barberia.tenants.models import Tenant
 
