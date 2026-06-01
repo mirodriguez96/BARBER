@@ -1,6 +1,6 @@
 ----------------------------------------------------TENET-------------------------------------------------
 REGISTRAR UNO NUEVO
-    docker compose exec web python manage.py register_tenant prueba --name "Luxor" --nit "1234" --domain "luxor.colstyle.com" --admin-password admin123
+    docker compose exec web python manage.py register_tenant luxor --name "Luxor" --nit "1234" --domain "luxor.colstyle.com" --admin-password admin123
     python manage.py register_tenant luxor --name "Luxor" --nit "1234" --domain "luxor.colstyle.com" --admin-password admin123
 
 
@@ -96,5 +96,3 @@ COPIAR CERTIFICADO AL BIND AMOUNT
 
 GENERAR SECRET KEY SIN CARACTERES ESPECIALES
     python3 -c "import secrets; print(secrets.token_urlsafe(50))"
-
-## COMMIT DE PRUEBA
