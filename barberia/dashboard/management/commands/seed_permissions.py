@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from django.db import connections
+from django.db import OperationalError, connections
 
 from barberia.accounts.models import User
 from barberia.dashboard.models import RoleCrudPermission, RoleMenuPermission
@@ -25,8 +25,8 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
             "--tenant",
-            default="luxor",
-            help="Nombre del tenant (ej: luxor → BD barber_luxor)",
+            help="Nombre del tenant (ej: luxor → BD barber_luxor). "
+            "Si no se especifica, aplica a todos los tenants activos.",
         )
 
     def _ensure_database(self, db_name):
@@ -34,15 +34,22 @@ class Command(BaseCommand):
             cfg = settings.DATABASES["default"]
             connections.databases[db_name] = {**cfg, "NAME": db_name}
 
-    def handle(self, *args, **options):
-        tenant = options["tenant"]
+    def _seed_tenant(self, tenant, **options):
         db_name = f"barber_{tenant}"
 
         self._ensure_database(db_name)
         set_current_db_name(db_name)
 
-        RoleMenuPermission.objects.all().delete()
-        RoleCrudPermission.objects.all().delete()
+        try:
+            RoleMenuPermission.objects.all().delete()
+            RoleCrudPermission.objects.all().delete()
+        except OperationalError as e:
+            self.stderr.write(
+                self.style.WARNING(
+                    f"Saltando tenant '{tenant}' (BD no disponible): {e}"
+                )
+            )
+            return
 
         for role in [User.Role.BARBERO, User.Role.ESTILISTA]:
             for key in ALL_MENU_KEYS:
@@ -67,3 +74,18 @@ class Command(BaseCommand):
                 f"{created_menu} menú, {created_crud} acciones"
             )
         )
+
+    def handle(self, *args, **options):
+        if options["tenant"]:
+            self._seed_tenant(options["tenant"], **options)
+            return
+
+        from barberia.tenants.models import Tenant
+
+        tenants = Tenant.objects.using("default").filter(is_active=True)
+        if not tenants.exists():
+            self.stdout.write(self.style.WARNING("No hay tenants activos para seed."))
+            return
+
+        for tenant in tenants:
+            self._seed_tenant(tenant.schema_name, **options)
