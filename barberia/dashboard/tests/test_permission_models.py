@@ -91,12 +91,12 @@ class RoleCrudPermissionModelTest(TestCase):
             )
 
     def test_all_app_keys(self):
-        expected = {"personal", "productos", "ventas", "compras"}
+        expected = {"personal", "productos", "ventas", "compras", "inventario"}
         actual = {k.value for k in RoleCrudPermission.AppKey}
         self.assertEqual(actual, expected)
 
     def test_all_actions(self):
-        expected = {"registrar", "modificar", "desactivar"}
+        expected = {"registrar", "modificar", "desactivar", "ajustar"}
         actual = {a.value for a in RoleCrudPermission.Action}
         self.assertEqual(actual, expected)
 

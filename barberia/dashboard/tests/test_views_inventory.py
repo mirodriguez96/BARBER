@@ -9,7 +9,7 @@ from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
 from barberia.dashboard.models import RoleCrudPermission, RoleMenuPermission
 from barberia.inventory.models import InventoryMovement
-from barberia.operations.models import Sale
+from barberia.operations.models import Purchase, Sale
 from barberia.people.models import Employee
 
 
@@ -601,6 +601,35 @@ class InventoryDashboardViewsTest(TestCase):
         menu = response.context["menu_items"]
         keys = [m["key"] for m in menu]
         self.assertIn("compras", keys)
+
+    def test_purchase_edit_adjusts_stock(self):
+        initial_stock = self.product_1.current_stock
+        purchase = Purchase.objects.create(
+            product=self.product_1,
+            quantity=10,
+            unit_cost=Decimal("50.00"),
+            created_by=self.user,
+        )
+        data = {
+            "section": "compras",
+            "action": "update",
+            "purchase_id": purchase.pk,
+            "quantity": "5",
+            "unit_cost": "55.00",
+            "notes": "Editado",
+        }
+        total_movements_before = InventoryMovement.objects.count()
+        response = self.client.post(self.list_url, data)
+        self.assertRedirects(response, f"{self.list_url}?section=compras&view=list")
+        purchase.refresh_from_db()
+        self.assertEqual(purchase.quantity, 5)
+        total_movements_after = InventoryMovement.objects.count()
+        self.assertEqual(total_movements_after, total_movements_before + 1)
+        latest = InventoryMovement.objects.last()
+        self.assertEqual(latest.product_id, self.product_1.pk)
+        self.assertEqual(latest.quantity, -5)
+        self.product_1.refresh_from_db()
+        self.assertEqual(self.product_1.current_stock, initial_stock - 5)
 
 
 class InventoryBarberoAccessTest(TestCase):

@@ -501,6 +501,7 @@ class ProductRecordDashboardViewsTest(TestCase):
             barber_commission_percent=Decimal("0.00"),
             is_active=True,
             sku="PRD100",
+            current_stock=10,
         )
         self.service_item = CatalogItem.objects.create(
             kind=CatalogItem.Kind.SERVICE,
@@ -542,7 +543,7 @@ class ProductRecordDashboardViewsTest(TestCase):
             "type": "producto",
             "product": self.product.pk,
             "quantity": "3",
-            "product_price": "300.00",
+            "product_price": "90.00",
             "notes": "Producto de prueba",
         }
         response = self.client.post(self.list_url, data)
@@ -554,6 +555,9 @@ class ProductRecordDashboardViewsTest(TestCase):
         self.assertEqual(record.status, Sale.Status.DONE)
         self.assertIsNone(record.commission_amount)
         self.assertIsNotNone(record.scheduled_for)
+        # Verify stock was decremented
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.current_stock, 7)
 
     def test_products_create_post_invalid(self):
         data = {

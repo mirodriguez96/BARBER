@@ -89,11 +89,13 @@ def home(request):
         {"key": "productos", "label": "Productos"},
         {"key": "ventas", "label": "Ventas"},
         {"key": "compras", "label": "Compras"},
+        {"key": "inventario", "label": "Inventario"},
     ]
     CRUD_ACTIONS = [
         {"key": "registrar", "label": "Registrar"},
         {"key": "modificar", "label": "Modificar"},
         {"key": "desactivar", "label": "Desactivar"},
+        {"key": "ajustar", "label": "Ajustar"},
     ]
     is_admin = request.user.role == User.Role.ADMIN
 
@@ -106,9 +108,15 @@ def home(request):
                 app_key=RoleCrudPermission.AppKey.PERSONAL,
             ).values_list("action", flat=True)
         )
-    can_register_personal = is_admin or RoleCrudPermission.Action.REGISTRAR in crud_allowed_personal
-    can_modify_personal = is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_personal
-    can_deactivate_personal = is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_personal
+    can_register_personal = (
+        is_admin or RoleCrudPermission.Action.REGISTRAR in crud_allowed_personal
+    )
+    can_modify_personal = (
+        is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_personal
+    )
+    can_deactivate_personal = (
+        is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_personal
+    )
 
     # CRUD permissions for 'productos' app (catalog)
     crud_allowed_productos = set()
@@ -119,9 +127,15 @@ def home(request):
                 app_key=RoleCrudPermission.AppKey.PRODUCTOS,
             ).values_list("action", flat=True)
         )
-    can_register_productos = is_admin or RoleCrudPermission.Action.REGISTRAR in crud_allowed_productos
-    can_modify_productos = is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_productos
-    can_deactivate_productos = is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_productos
+    can_register_productos = (
+        is_admin or RoleCrudPermission.Action.REGISTRAR in crud_allowed_productos
+    )
+    can_modify_productos = (
+        is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_productos
+    )
+    can_deactivate_productos = (
+        is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_productos
+    )
 
     # CRUD permissions for 'ventas' app (sales)
     crud_allowed_ventas = set()
@@ -132,9 +146,15 @@ def home(request):
                 app_key=RoleCrudPermission.AppKey.VENTAS,
             ).values_list("action", flat=True)
         )
-    can_register_ventas = is_admin or RoleCrudPermission.Action.REGISTRAR in crud_allowed_ventas
-    can_modify_ventas = is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_ventas
-    can_deactivate_ventas = is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_ventas
+    can_register_ventas = (
+        is_admin or RoleCrudPermission.Action.REGISTRAR in crud_allowed_ventas
+    )
+    can_modify_ventas = (
+        is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_ventas
+    )
+    can_deactivate_ventas = (
+        is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_ventas
+    )
 
     # CRUD permissions for 'compras' app (purchases)
     crud_allowed_compras = set()
@@ -145,9 +165,28 @@ def home(request):
                 app_key=RoleCrudPermission.AppKey.COMPRAS,
             ).values_list("action", flat=True)
         )
-    can_register_compras = is_admin or RoleCrudPermission.Action.REGISTRAR in crud_allowed_compras
-    can_modify_compras = is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_compras
-    can_deactivate_compras = is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_compras
+    can_register_compras = (
+        is_admin or RoleCrudPermission.Action.REGISTRAR in crud_allowed_compras
+    )
+    can_modify_compras = (
+        is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_compras
+    )
+    can_deactivate_compras = (
+        is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_compras
+    )
+
+    # CRUD permissions for 'inventario' app (inventory)
+    crud_allowed_inventario = set()
+    if not is_admin:
+        crud_allowed_inventario = set(
+            RoleCrudPermission.objects.filter(
+                role=request.user.role,
+                app_key=RoleCrudPermission.AppKey.INVENTARIO,
+            ).values_list("action", flat=True)
+        )
+    can_adjust_inventory = (
+        is_admin or RoleCrudPermission.Action.AJUSTAR in crud_allowed_inventario
+    )
 
     if not is_admin:
         allowed_keys = set(
@@ -262,7 +301,9 @@ def home(request):
             and request.POST.get("barber_id")
         ):
             if not can_deactivate_personal:
-                messages.error(request, "No tienes permiso para desactivar colaboradores.")
+                messages.error(
+                    request, "No tienes permiso para desactivar colaboradores."
+                )
                 return redirect(f"{request.path}?section=barbers&view=list")
             barber = get_object_or_404(Employee, pk=request.POST.get("barber_id"))
             barber.is_active = False
@@ -290,7 +331,9 @@ def home(request):
             and request.POST.get("barber_id")
         ):
             if not can_modify_personal:
-                messages.error(request, "No tienes permiso para modificar colaboradores.")
+                messages.error(
+                    request, "No tienes permiso para modificar colaboradores."
+                )
                 return redirect(f"{request.path}?section=barbers&view=list")
             barber = get_object_or_404(Employee, pk=request.POST.get("barber_id"))
             form = BarberEditForm(request.POST, instance=barber)
@@ -438,9 +481,12 @@ def home(request):
                 record.performed_by = request.user
                 if record.status == Sale.Status.SCHEDULED:
                     record.status = Sale.Status.DONE
-                old_is_product = original_product_id and CatalogItem.objects.filter(
-                    pk=original_product_id, kind=CatalogItem.Kind.PRODUCT
-                ).exists()
+                old_is_product = (
+                    original_product_id
+                    and CatalogItem.objects.filter(
+                        pk=original_product_id, kind=CatalogItem.Kind.PRODUCT
+                    ).exists()
+                )
                 new_is_product = record.product.kind == CatalogItem.Kind.PRODUCT
                 same_product = (
                     old_is_product
@@ -450,8 +496,9 @@ def home(request):
                 with transaction.atomic():
                     if old_is_product and not same_product:
                         revert_product = sale.product
-                        revert_product.current_stock += original_quantity
-                        revert_product.save(update_fields=["current_stock"])
+                        CatalogItem.objects.filter(pk=revert_product.pk).update(
+                            current_stock=F("current_stock") + original_quantity,
+                        )
                         InventoryMovement.objects.create(
                             product=revert_product,
                             quantity=original_quantity,
@@ -462,35 +509,36 @@ def home(request):
                             notes="Ajuste por modificación de venta",
                         )
                     if new_is_product:
-                        record.product_price = record.product.price * record.quantity
-                        try:
-                            record.employee = request.user.employee
-                        except Exception:
-                            record.employee = None
+                        original_unit_price = (
+                            sale.product_price / original_quantity
+                            if original_quantity
+                            else Decimal("0")
+                        )
+                        record.product_price = original_unit_price * record.quantity
                         if same_product:
                             quantity_diff = record.quantity - original_quantity
                             if quantity_diff != 0:
-                                product = record.product
-                                product.current_stock -= quantity_diff
-                                product.save(update_fields=["current_stock"])
+                                CatalogItem.objects.filter(pk=record.product_id).update(
+                                    current_stock=F("current_stock") - quantity_diff,
+                                )
                                 InventoryMovement.objects.create(
-                                    product=product,
+                                    product=record.product,
                                     quantity=-quantity_diff,
                                     movement_type=InventoryMovement.MovementType.ADJUSTMENT,
-                                    unit_cost=product.price,
+                                    unit_cost=record.product.price,
                                     created_by=request.user,
                                     reference_sale=record,
                                     notes="Ajuste por modificación de venta",
                                 )
                         elif not old_is_product:
-                            product = record.product
-                            product.current_stock -= record.quantity
-                            product.save(update_fields=["current_stock"])
+                            CatalogItem.objects.filter(pk=record.product_id).update(
+                                current_stock=F("current_stock") - record.quantity,
+                            )
                             InventoryMovement.objects.create(
-                                product=product,
+                                product=record.product,
                                 quantity=-record.quantity,
                                 movement_type=InventoryMovement.MovementType.ADJUSTMENT,
-                                unit_cost=product.price,
+                                unit_cost=record.product.price,
                                 created_by=request.user,
                                 reference_sale=record,
                                 notes="Ajuste por modificación de venta",
@@ -514,10 +562,11 @@ def home(request):
                 purchase.created_by = request.user
                 purchase.save()
                 product = purchase.product
-                product.current_stock += purchase.quantity
-                product.save(update_fields=["current_stock"])
+                CatalogItem.objects.filter(pk=product.pk).update(
+                    current_stock=F("current_stock") + purchase.quantity,
+                )
                 InventoryMovement.objects.create(
-                    product=product,
+                    product=purchase.product,
                     quantity=purchase.quantity,
                     movement_type=InventoryMovement.MovementType.PURCHASE,
                     unit_cost=purchase.unit_cost,
@@ -530,6 +579,12 @@ def home(request):
             messages.error(request, "Revisa los campos marcados en rojo.")
 
         elif section == "inventory" and action == "adjust":
+            if not can_adjust_inventory:
+                messages.error(
+                    request,
+                    "No tienes permiso para ajustar el inventario.",
+                )
+                return redirect(f"{request.path}?section=inventory&view=list")
             form = InventoryAdjustForm(request.POST, user=request.user)
             if form.is_valid():
                 movement = form.save(commit=False)
@@ -540,8 +595,9 @@ def home(request):
                 product = movement.product
                 movement.unit_cost = product.price
                 movement.save()
-                product.current_stock += movement.quantity
-                product.save(update_fields=["current_stock"])
+                CatalogItem.objects.filter(pk=product.pk).update(
+                    current_stock=F("current_stock") + movement.quantity,
+                )
                 messages.success(request, "Ajuste de stock registrado correctamente.")
                 return redirect(f"{request.path}?section=inventory&view=list")
             inventory_adjust_form = form
@@ -592,6 +648,19 @@ def home(request):
 
             sale.status = Sale.Status.CANCELED
             sale.save(update_fields=["status"])
+            if sale.product.kind == CatalogItem.Kind.PRODUCT:
+                CatalogItem.objects.filter(pk=sale.product_id).update(
+                    current_stock=F("current_stock") + sale.quantity,
+                )
+                InventoryMovement.objects.create(
+                    product=sale.product,
+                    quantity=sale.quantity,
+                    movement_type=InventoryMovement.MovementType.ADJUSTMENT,
+                    unit_cost=sale.product.price,
+                    created_by=request.user,
+                    reference_sale=sale,
+                    notes="Venta anulada — reversión de stock",
+                )
             messages.success(request, "Servicio anulado correctamente.")
             return redirect(
                 f"{request.path}?section=sales&view=list{filter_params_local}"
@@ -605,24 +674,24 @@ def home(request):
                 Purchase,
                 pk=request.POST.get("purchase_id"),
             )
+            old_quantity = purchase.quantity
             form = PurchaseEditForm(request.POST, instance=purchase)
             if form.is_valid():
-                old_quantity = purchase.quantity
-                record = form.save(commit=False)
-                quantity_diff = record.quantity - old_quantity
+                new_quantity = form.cleaned_data["quantity"]
+                quantity_diff = new_quantity - old_quantity
+                form.save()
                 if quantity_diff != 0:
-                    product = record.product
-                    product.current_stock += quantity_diff
-                    product.save(update_fields=["current_stock"])
+                    CatalogItem.objects.filter(pk=purchase.product_id).update(
+                        current_stock=F("current_stock") + quantity_diff,
+                    )
                     InventoryMovement.objects.create(
-                        product=product,
+                        product=purchase.product,
                         quantity=quantity_diff,
                         movement_type=InventoryMovement.MovementType.ADJUSTMENT,
-                        unit_cost=record.unit_cost,
+                        unit_cost=purchase.unit_cost,
                         created_by=request.user,
                         notes="Ajuste por modificación de compra",
                     )
-                record.save()
                 messages.success(request, "Compra actualizada correctamente.")
                 return redirect(f"{request.path}?section=compras&view=list")
             quick_view = "edit"
@@ -642,11 +711,11 @@ def home(request):
                 return redirect(f"{request.path}?section=compras&view=list")
             purchase.status = Purchase.Status.CANCELED
             purchase.save(update_fields=["status"])
-            product = purchase.product
-            product.current_stock -= purchase.quantity
-            product.save(update_fields=["current_stock"])
+            CatalogItem.objects.filter(pk=purchase.product_id).update(
+                current_stock=F("current_stock") - purchase.quantity,
+            )
             InventoryMovement.objects.create(
-                product=product,
+                product=purchase.product,
                 quantity=-purchase.quantity,
                 movement_type=InventoryMovement.MovementType.ADJUSTMENT,
                 unit_cost=purchase.unit_cost,
@@ -689,16 +758,16 @@ def home(request):
                         record.product_price = record.product.price * record.quantity
                         try:
                             record.employee = request.user.employee
-                        except Exception:
+                        except Employee.DoesNotExist:
                             record.employee = None
                 record.save()
                 if section == "sales" and record_type == "producto":
-                    product = record.product
-                    product.current_stock -= record.quantity
-                    product.save(update_fields=["current_stock"])
+                    CatalogItem.objects.filter(pk=record.product_id).update(
+                        current_stock=F("current_stock") - record.quantity,
+                    )
                     unit_price = record.product_price / record.quantity
                     InventoryMovement.objects.create(
-                        product=product,
+                        product=record.product,
                         quantity=-record.quantity,
                         movement_type=InventoryMovement.MovementType.SALE,
                         unit_cost=unit_price,
@@ -711,7 +780,9 @@ def home(request):
     elif section == "barbers" and quick_view == "edit":
         if barber_to_edit is not None:
             if not can_modify_personal:
-                messages.error(request, "No tienes permiso para modificar colaboradores.")
+                messages.error(
+                    request, "No tienes permiso para modificar colaboradores."
+                )
                 return redirect(f"{request.path}?section=barbers&view=list")
             form = BarberEditForm(instance=barber_to_edit)
         elif client_to_edit is not None:
@@ -784,6 +855,12 @@ def home(request):
             form_class = ProductSaleForm if sale_type == "producto" else SaleForm
             form = form_class(user=request.user)
         elif section == "inventory":
+            if quick_view == "form" and not can_adjust_inventory:
+                messages.error(
+                    request,
+                    "No tienes permiso para ajustar el inventario.",
+                )
+                return redirect(f"{request.path}?section=inventory&view=list")
             if inventory_action == "adjust":
                 form = InventoryAdjustForm(user=request.user)
             else:
@@ -1199,7 +1276,10 @@ def home(request):
 
     sales_period = Sale.objects.filter(date_filter, status=Sale.Status.DONE).aggregate(
         total=Coalesce(
-            Sum("product_price", output_field=DecimalField(max_digits=12, decimal_places=2)),
+            Sum(
+                "product_price",
+                output_field=DecimalField(max_digits=12, decimal_places=2),
+            ),
             Value(Decimal("0.00")),
         ),
         count=Coalesce(Count("id"), Value(0)),
@@ -1466,5 +1546,6 @@ def home(request):
         "can_register_compras": can_register_compras,
         "can_modify_compras": can_modify_compras,
         "can_deactivate_compras": can_deactivate_compras,
+        "can_adjust_inventory": can_adjust_inventory,
     }
     return render(request, "dashboard/home.html", context)

@@ -22,11 +22,13 @@ class RoleCrudPermission(models.Model):
         PRODUCTOS = "productos", "Productos"
         VENTAS = "ventas", "Ventas"
         COMPRAS = "compras", "Compras"
+        INVENTARIO = "inventario", "Inventario"
 
     class Action(models.TextChoices):
         REGISTRAR = "registrar", "Registrar"
         MODIFICAR = "modificar", "Modificar"
         DESACTIVAR = "desactivar", "Desactivar"
+        AJUSTAR = "ajustar", "Ajustar"
 
     role = models.CharField(max_length=20, choices=User.Role.choices)
     app_key = models.CharField(max_length=20, choices=AppKey.choices)
