@@ -527,7 +527,7 @@ def home(request):
                                     movement_type=InventoryMovement.MovementType.ADJUSTMENT,
                                     unit_cost=record.product.price,
                                     created_by=request.user,
-                                    reference_sale=record,
+                                    origen=record.codigo,
                                     notes="Ajuste por modificación de venta",
                                 )
                         elif not old_is_product:
@@ -540,7 +540,7 @@ def home(request):
                                 movement_type=InventoryMovement.MovementType.ADJUSTMENT,
                                 unit_cost=record.product.price,
                                 created_by=request.user,
-                                reference_sale=record,
+                                origen=record.codigo,
                                 notes="Ajuste por modificación de venta",
                             )
                     record.save()
