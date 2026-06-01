@@ -34,7 +34,7 @@ class Command(BaseCommand):
             cfg = settings.DATABASES["default"]
             connections.databases[db_name] = {**cfg, "NAME": db_name}
 
-    def _seed_tenant(self, tenant, **options):
+    def _seed_tenant(self, tenant):
         db_name = f"barber_{tenant}"
 
         self._ensure_database(db_name)
@@ -77,7 +77,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if options["tenant"]:
-            self._seed_tenant(options["tenant"], **options)
+            self._seed_tenant(options["tenant"])
             return
 
         from barberia.tenants.models import Tenant
@@ -88,4 +88,4 @@ class Command(BaseCommand):
             return
 
         for tenant in tenants:
-            self._seed_tenant(tenant.schema_name, **options)
+            self._seed_tenant(tenant.schema_name)
