@@ -787,12 +787,11 @@
                                     <table class="table dashboard-table dashboard-table--sales align-middle table-hover mb-0">
                                         <thead>
                                             <tr>
-                                                <th>Colaborador</th>
-                                                <th>Tipo</th>
-                                                <th>Item</th>
-                                                <th>Cant.</th>
-                                                <th>Valor</th>
-                                                <th>Propina</th>
+                                                <th class="col-code">Código</th>
+                                                <th>Producto</th>
+                                                <th>Cantidad</th>
+                                                <th>Total</th>
+                                                <th>Fecha</th>
                                                 <th>Estado</th>
                                                 <th>Acciones</th>
                                             </tr>
@@ -800,18 +799,7 @@
                                         <tbody>
                                             {% for record in sales %}
                                                 <tr>
-                                                    <td>
-                                                        <div class="dashboard-person">
-                                                            <div class="dashboard-person__avatar" aria-hidden="true">{{ record.employee.full_name|slice:':1'|default:'B' }}</div>
-                                                            <div class="dashboard-person__body">
-                                                                <div class="dashboard-table__primary">{{ record.employee.full_name }}</div>
-                                                                <div class="dashboard-table__meta">{{ record.scheduled_for|date:'d/m/Y H:i' }}</div>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <span class="dashboard-table__chip">{{ record.product.get_kind_display }}</span>
-                                                    </td>
+                                                    <td class="col-code"><span class="dashboard-table__meta">{{ record.codigo }}</span></td>
                                                     <td>
                                                         <div class="dashboard-table__primary">{{ record.product.name }}</div>
                                                         <div class="dashboard-table__meta">
@@ -824,7 +812,7 @@
                                                     </td>
                                                     <td>{{ record.quantity }}</td>
                                                     <td>${{ record.product_price }}</td>
-                                                    <td>${{ record.tip_amount|default_if_none:'0.00' }}</td>
+                                                    <td>{{ record.scheduled_for|date:'d/m/Y H:i' }}</td>
                                                     <td>
                                                         <span class="dashboard-status {% if record.status == 'done' %}is-active{% else %}is-inactive{% endif %}">
                                                             {{ record.get_status_display }}
@@ -859,7 +847,7 @@
                                                 </tr>
                                             {% empty %}
                                                 <tr>
-                                                    <td colspan="8" class="dashboard-empty-state">
+                                                    <td colspan="7" class="dashboard-empty-state">
                                                         <div class="dashboard-empty-state__title">Todavía no hay productos ni servicios registrados.</div>
                                                         <div class="dashboard-empty-state__copy">
                                                             Registra el primero desde el formulario para ver
@@ -926,7 +914,7 @@
                                         <thead>
                                             <tr>
                                                 <th>Producto</th>
-                                                <th>Código</th>
+                                                <th class="col-code">Código</th>
                                                 <th>Stock actual</th>
                                                 <th>Precio unitario</th>
                                                 <th>Acciones</th>
@@ -939,7 +927,7 @@
                                                         <div class="dashboard-table__primary">{{ product.name }}</div>
                                                         <div class="dashboard-table__meta">{{ product.description|truncatechars:60 }}</div>
                                                     </td>
-                                                    <td>{{ product.sku }}</td>
+                                                    <td class="col-code">{{ product.sku }}</td>
                                                     <td>
                                                         <span class="{% if product.current_stock <= 0 %}text-danger fw-bold{% elif product.current_stock <= 5 %}text-warning fw-bold{% endif %}">
                                                             {{ product.current_stock }}
@@ -1017,6 +1005,7 @@
                                     <table class="table dashboard-table align-middle table-hover mb-0">
                                         <thead>
                                             <tr>
+                                                <th class="col-code">Código</th>
                                                 <th>Producto</th>
                                                 <th>Cantidad</th>
                                                 <th>Costo unitario</th>
@@ -1029,6 +1018,7 @@
                                         <tbody>
                                             {% for purchase in purchase_page %}
                                                 <tr>
+                                                    <td class="col-code"><span class="dashboard-table__meta">{{ purchase.codigo }}</span></td>
                                                     <td>{{ purchase.product.name }}</td>
                                                     <td>{{ purchase.quantity }}</td>
                                                     <td>${{ purchase.unit_cost }}</td>
@@ -1070,7 +1060,7 @@
                                                 </tr>
                                             {% empty %}
                                                 <tr>
-                                                    <td colspan="7" class="dashboard-empty-state">No hay compras registradas.</td>
+                                                    <td colspan="8" class="dashboard-empty-state">No hay compras registradas.</td>
                                                 </tr>
                                             {% endfor %}
                                         </tbody>
@@ -1109,6 +1099,7 @@
                                             <thead>
                                                 <tr>
                                                     <th>Fecha</th>
+                                                    <th>Origen</th>
                                                     <th>Tipo</th>
                                                     <th>Cantidad</th>
                                                     <th>Costo unit.</th>
@@ -1119,6 +1110,7 @@
                                                 {% for mov in inventory_movements_page %}
                                                     <tr>
                                                         <td>{{ mov.created_at|date:'d/m/Y H:i' }}</td>
+                                                        <td>{{ mov.origen|default:'—' }}</td>
                                                         <td>
                                                             <span class="dashboard-table__chip">{{ mov.get_movement_type_display }}</span>
                                                         </td>
@@ -1130,7 +1122,7 @@
                                                     </tr>
                                                 {% empty %}
                                                     <tr>
-                                                        <td colspan="5" class="dashboard-empty-state">
+                                                    <td colspan="6" class="dashboard-empty-state">
                                                             <div class="dashboard-empty-state__title">Sin movimientos.</div>
                                                         </td>
                                                     </tr>

@@ -200,21 +200,31 @@ class CrudPersonalPermissionTest(TestCase):
 
     def setUp(self):
         self.admin = User.objects.create_user(
-            username="admin", password="pass1234", role=User.Role.ADMIN,
+            username="admin",
+            password="pass1234",
+            role=User.Role.ADMIN,
         )
         self.barbero = User.objects.create_user(
-            username="barbero", password="pass1234", role=User.Role.BARBERO,
+            username="barbero",
+            password="pass1234",
+            role=User.Role.BARBERO,
         )
         self.estilista = User.objects.create_user(
-            username="estilista", password="pass1234", role=User.Role.ESTILISTA,
+            username="estilista",
+            password="pass1234",
+            role=User.Role.ESTILISTA,
         )
         self.list_url = reverse("dashboard:home")
 
         self.barber = Employee.objects.create(
-            full_name="Test Barber", document_id="DOC001", phone="123456789",
+            full_name="Test Barber",
+            document_id="DOC001",
+            phone="123456789",
         )
         self.client_person = Client.objects.create(
-            full_name="Test Client", document_id="DOC002", phone="987654321",
+            full_name="Test Client",
+            document_id="DOC002",
+            phone="987654321",
         )
 
         RoleMenuPermission.objects.create(role=User.Role.BARBERO, menu_key="barbers")
@@ -238,7 +248,8 @@ class CrudPersonalPermissionTest(TestCase):
     def test_context_with_all_permissions(self):
         for action in ("registrar", "modificar", "desactivar"):
             RoleCrudPermission.objects.create(
-                role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.PERSONAL,
+                role=User.Role.BARBERO,
+                app_key=RoleCrudPermission.AppKey.PERSONAL,
                 action=action,
             )
         self.client.login(username="barbero", password="pass1234")
@@ -258,22 +269,33 @@ class CrudPersonalPermissionTest(TestCase):
 
     def test_deactivate_barber_without_permission(self):
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "barbers", "action": "deactivate", "barber_id": self.barber.pk,
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "barbers",
+                "action": "deactivate",
+                "barber_id": self.barber.pk,
+            },
+        )
         self.assertRedirects(response, self._url("barbers"))
         self.barber.refresh_from_db()
         self.assertTrue(self.barber.is_active)
 
     def test_deactivate_barber_with_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.PERSONAL,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.PERSONAL,
             action="desactivar",
         )
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "barbers", "action": "deactivate", "barber_id": self.barber.pk,
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "barbers",
+                "action": "deactivate",
+                "barber_id": self.barber.pk,
+            },
+        )
         self.assertRedirects(response, self._url("barbers"))
         self.barber.refresh_from_db()
         self.assertFalse(self.barber.is_active)
@@ -284,9 +306,14 @@ class CrudPersonalPermissionTest(TestCase):
         self.barber.is_active = False
         self.barber.save()
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "barbers", "action": "activate", "barber_id": self.barber.pk,
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "barbers",
+                "action": "activate",
+                "barber_id": self.barber.pk,
+            },
+        )
         self.assertRedirects(response, self._url("barbers"))
         self.barber.refresh_from_db()
         self.assertFalse(self.barber.is_active)
@@ -295,13 +322,19 @@ class CrudPersonalPermissionTest(TestCase):
         self.barber.is_active = False
         self.barber.save()
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.PERSONAL,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.PERSONAL,
             action="desactivar",
         )
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "barbers", "action": "activate", "barber_id": self.barber.pk,
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "barbers",
+                "action": "activate",
+                "barber_id": self.barber.pk,
+            },
+        )
         self.assertRedirects(response, self._url("barbers"))
         self.barber.refresh_from_db()
         self.assertTrue(self.barber.is_active)
@@ -310,25 +343,40 @@ class CrudPersonalPermissionTest(TestCase):
 
     def test_update_barber_without_permission(self):
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "barbers", "action": "update", "barber_id": self.barber.pk,
-            "full_name": "Hacked", "document_id": "DOC001", "phone": "000000000",
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "barbers",
+                "action": "update",
+                "barber_id": self.barber.pk,
+                "full_name": "Hacked",
+                "document_id": "DOC001",
+                "phone": "000000000",
+            },
+        )
         self.assertRedirects(response, self._url("barbers"))
         self.barber.refresh_from_db()
         self.assertEqual(self.barber.full_name, "Test Barber")
 
     def test_update_barber_with_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.PERSONAL,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.PERSONAL,
             action="modificar",
         )
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "barbers", "action": "update", "barber_id": self.barber.pk,
-            "full_name": "Updated", "phone": "000000000", "email": "",
-            "role": User.Role.BARBERO,
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "barbers",
+                "action": "update",
+                "barber_id": self.barber.pk,
+                "full_name": "Updated",
+                "phone": "000000000",
+                "email": "",
+                "role": User.Role.BARBERO,
+            },
+        )
         self.assertRedirects(response, self._url("barbers"))
         self.barber.refresh_from_db()
         self.assertEqual(self.barber.full_name, "Updated")
@@ -337,24 +385,33 @@ class CrudPersonalPermissionTest(TestCase):
 
     def test_deactivate_client_without_permission(self):
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "barbers", "action": "deactivate",
-            "client_id": self.client_person.pk,
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "barbers",
+                "action": "deactivate",
+                "client_id": self.client_person.pk,
+            },
+        )
         self.assertRedirects(response, self._url("barbers"))
         self.client_person.refresh_from_db()
         self.assertTrue(self.client_person.is_active)
 
     def test_deactivate_client_with_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.PERSONAL,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.PERSONAL,
             action="desactivar",
         )
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "barbers", "action": "deactivate",
-            "client_id": self.client_person.pk,
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "barbers",
+                "action": "deactivate",
+                "client_id": self.client_person.pk,
+            },
+        )
         self.assertRedirects(response, self._url("barbers"))
         self.client_person.refresh_from_db()
         self.assertFalse(self.client_person.is_active)
@@ -365,10 +422,14 @@ class CrudPersonalPermissionTest(TestCase):
         self.client_person.is_active = False
         self.client_person.save()
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "barbers", "action": "activate",
-            "client_id": self.client_person.pk,
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "barbers",
+                "action": "activate",
+                "client_id": self.client_person.pk,
+            },
+        )
         self.assertRedirects(response, self._url("barbers"))
         self.client_person.refresh_from_db()
         self.assertFalse(self.client_person.is_active)
@@ -377,14 +438,19 @@ class CrudPersonalPermissionTest(TestCase):
         self.client_person.is_active = False
         self.client_person.save()
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.PERSONAL,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.PERSONAL,
             action="desactivar",
         )
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "barbers", "action": "activate",
-            "client_id": self.client_person.pk,
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "barbers",
+                "action": "activate",
+                "client_id": self.client_person.pk,
+            },
+        )
         self.assertRedirects(response, self._url("barbers"))
         self.client_person.refresh_from_db()
         self.assertTrue(self.client_person.is_active)
@@ -393,26 +459,39 @@ class CrudPersonalPermissionTest(TestCase):
 
     def test_update_client_without_permission(self):
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "barbers", "action": "update",
-            "client_id": self.client_person.pk,
-            "full_name": "Hacked", "document_id": "DOC002", "phone": "000000000",
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "barbers",
+                "action": "update",
+                "client_id": self.client_person.pk,
+                "full_name": "Hacked",
+                "document_id": "DOC002",
+                "phone": "000000000",
+            },
+        )
         self.assertRedirects(response, self._url("barbers"))
         self.client_person.refresh_from_db()
         self.assertEqual(self.client_person.full_name, "Test Client")
 
     def test_update_client_with_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.PERSONAL,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.PERSONAL,
             action="modificar",
         )
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "barbers", "action": "update",
-            "client_id": self.client_person.pk,
-            "full_name": "Updated", "document_id": "DOC002", "phone": "000000000",
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "barbers",
+                "action": "update",
+                "client_id": self.client_person.pk,
+                "full_name": "Updated",
+                "document_id": "DOC002",
+                "phone": "000000000",
+            },
+        )
         self.assertRedirects(response, self._url("barbers"))
         self.client_person.refresh_from_db()
         self.assertEqual(self.client_person.full_name, "Updated")
@@ -426,7 +505,8 @@ class CrudPersonalPermissionTest(TestCase):
 
     def test_get_form_with_register_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.PERSONAL,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.PERSONAL,
             action="registrar",
         )
         self.client.login(username="barbero", password="pass1234")
@@ -444,7 +524,8 @@ class CrudPersonalPermissionTest(TestCase):
 
     def test_get_edit_barber_with_modify_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.PERSONAL,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.PERSONAL,
             action="modificar",
         )
         self.client.login(username="barbero", password="pass1234")
@@ -462,7 +543,8 @@ class CrudPersonalPermissionTest(TestCase):
 
     def test_get_edit_client_with_modify_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.PERSONAL,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.PERSONAL,
             action="modificar",
         )
         self.client.login(username="barbero", password="pass1234")
@@ -475,10 +557,14 @@ class CrudPersonalPermissionTest(TestCase):
 
     def test_admin_bypasses_crud_checks(self):
         self.client.login(username="admin", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "barbers", "action": "deactivate",
-            "barber_id": self.barber.pk,
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "barbers",
+                "action": "deactivate",
+                "barber_id": self.barber.pk,
+            },
+        )
         self.assertRedirects(response, self._url("barbers"))
         self.barber.refresh_from_db()
         self.assertFalse(self.barber.is_active)
@@ -499,10 +585,14 @@ class CrudPersonalPermissionTest(TestCase):
 
     def test_estilista_blocked_all_crud_actions(self):
         self.client.login(username="estilista", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "barbers", "action": "deactivate",
-            "barber_id": self.barber.pk,
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "barbers",
+                "action": "deactivate",
+                "barber_id": self.barber.pk,
+            },
+        )
         self.assertRedirects(response, self._url("barbers"))
         self.barber.refresh_from_db()
         self.assertTrue(self.barber.is_active)  # unchanged
@@ -513,18 +603,26 @@ class CrudProductosPermissionTest(TestCase):
 
     def setUp(self):
         self.admin = User.objects.create_user(
-            username="admin", password="pass1234", role=User.Role.ADMIN,
+            username="admin",
+            password="pass1234",
+            role=User.Role.ADMIN,
         )
         self.barbero = User.objects.create_user(
-            username="barbero", password="pass1234", role=User.Role.BARBERO,
+            username="barbero",
+            password="pass1234",
+            role=User.Role.BARBERO,
         )
         self.estilista = User.objects.create_user(
-            username="estilista", password="pass1234", role=User.Role.ESTILISTA,
+            username="estilista",
+            password="pass1234",
+            role=User.Role.ESTILISTA,
         )
         self.list_url = reverse("dashboard:home")
 
         self.catalog_item = CatalogItem.objects.create(
-            name="Test Service", kind="service", price=50000,
+            name="Test Service",
+            kind="service",
+            price=50000,
         )
 
         RoleMenuPermission.objects.create(role=User.Role.BARBERO, menu_key="catalog")
@@ -548,7 +646,8 @@ class CrudProductosPermissionTest(TestCase):
     def test_context_with_all_permissions(self):
         for action in ("registrar", "modificar", "desactivar"):
             RoleCrudPermission.objects.create(
-                role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.PRODUCTOS,
+                role=User.Role.BARBERO,
+                app_key=RoleCrudPermission.AppKey.PRODUCTOS,
                 action=action,
             )
         self.client.login(username="barbero", password="pass1234")
@@ -568,24 +667,33 @@ class CrudProductosPermissionTest(TestCase):
 
     def test_deactivate_catalog_item_without_permission(self):
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "catalog", "action": "deactivate",
-            "catalog_item_id": self.catalog_item.pk,
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "catalog",
+                "action": "deactivate",
+                "catalog_item_id": self.catalog_item.pk,
+            },
+        )
         self.assertRedirects(response, self._url("catalog"))
         self.catalog_item.refresh_from_db()
         self.assertTrue(self.catalog_item.is_active)
 
     def test_deactivate_catalog_item_with_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.PRODUCTOS,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.PRODUCTOS,
             action="desactivar",
         )
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "catalog", "action": "deactivate",
-            "catalog_item_id": self.catalog_item.pk,
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "catalog",
+                "action": "deactivate",
+                "catalog_item_id": self.catalog_item.pk,
+            },
+        )
         self.assertRedirects(response, self._url("catalog"))
         self.catalog_item.refresh_from_db()
         self.assertFalse(self.catalog_item.is_active)
@@ -596,10 +704,14 @@ class CrudProductosPermissionTest(TestCase):
         self.catalog_item.is_active = False
         self.catalog_item.save()
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "catalog", "action": "activate",
-            "catalog_item_id": self.catalog_item.pk,
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "catalog",
+                "action": "activate",
+                "catalog_item_id": self.catalog_item.pk,
+            },
+        )
         self.assertRedirects(response, self._url("catalog"))
         self.catalog_item.refresh_from_db()
         self.assertFalse(self.catalog_item.is_active)
@@ -608,14 +720,19 @@ class CrudProductosPermissionTest(TestCase):
         self.catalog_item.is_active = False
         self.catalog_item.save()
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.PRODUCTOS,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.PRODUCTOS,
             action="desactivar",
         )
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "catalog", "action": "activate",
-            "catalog_item_id": self.catalog_item.pk,
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "catalog",
+                "action": "activate",
+                "catalog_item_id": self.catalog_item.pk,
+            },
+        )
         self.assertRedirects(response, self._url("catalog"))
         self.catalog_item.refresh_from_db()
         self.assertTrue(self.catalog_item.is_active)
@@ -624,27 +741,40 @@ class CrudProductosPermissionTest(TestCase):
 
     def test_update_catalog_item_without_permission(self):
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "catalog", "action": "update",
-            "catalog_item_id": self.catalog_item.pk,
-            "name": "Hacked Name", "kind": "service", "price": "99999",
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "catalog",
+                "action": "update",
+                "catalog_item_id": self.catalog_item.pk,
+                "name": "Hacked Name",
+                "kind": "service",
+                "price": "99999",
+            },
+        )
         self.assertRedirects(response, self._url("catalog"))
         self.catalog_item.refresh_from_db()
         self.assertEqual(self.catalog_item.name, "Test Service")
 
     def test_update_catalog_item_with_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.PRODUCTOS,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.PRODUCTOS,
             action="modificar",
         )
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "catalog", "action": "update",
-            "catalog_item_id": self.catalog_item.pk,
-            "name": "Updated Service", "kind": "service", "price": "60000",
-            "barber_commission_percent": "20.00",
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "catalog",
+                "action": "update",
+                "catalog_item_id": self.catalog_item.pk,
+                "name": "Updated Service",
+                "kind": "service",
+                "price": "60000",
+                "barber_commission_percent": "20.00",
+            },
+        )
         self.assertRedirects(response, self._url("catalog"))
         self.catalog_item.refresh_from_db()
         self.assertEqual(self.catalog_item.name, "Updated Service")
@@ -658,7 +788,8 @@ class CrudProductosPermissionTest(TestCase):
 
     def test_get_form_with_register_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.PRODUCTOS,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.PRODUCTOS,
             action="registrar",
         )
         self.client.login(username="barbero", password="pass1234")
@@ -676,7 +807,8 @@ class CrudProductosPermissionTest(TestCase):
 
     def test_get_edit_with_modify_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.PRODUCTOS,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.PRODUCTOS,
             action="modificar",
         )
         self.client.login(username="barbero", password="pass1234")
@@ -689,10 +821,14 @@ class CrudProductosPermissionTest(TestCase):
 
     def test_admin_bypasses_crud_checks(self):
         self.client.login(username="admin", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "catalog", "action": "deactivate",
-            "catalog_item_id": self.catalog_item.pk,
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "catalog",
+                "action": "deactivate",
+                "catalog_item_id": self.catalog_item.pk,
+            },
+        )
         self.assertRedirects(response, self._url("catalog"))
         self.catalog_item.refresh_from_db()
         self.assertFalse(self.catalog_item.is_active)
@@ -713,10 +849,14 @@ class CrudProductosPermissionTest(TestCase):
 
     def test_estilista_blocked_all_crud_actions(self):
         self.client.login(username="estilista", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "catalog", "action": "deactivate",
-            "catalog_item_id": self.catalog_item.pk,
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "catalog",
+                "action": "deactivate",
+                "catalog_item_id": self.catalog_item.pk,
+            },
+        )
         self.assertRedirects(response, self._url("catalog"))
         self.catalog_item.refresh_from_db()
         self.assertTrue(self.catalog_item.is_active)  # unchanged
@@ -727,13 +867,19 @@ class CrudVentasPermissionTest(TestCase):
 
     def setUp(self):
         self.admin = User.objects.create_user(
-            username="admin", password="pass1234", role=User.Role.ADMIN,
+            username="admin",
+            password="pass1234",
+            role=User.Role.ADMIN,
         )
         self.barbero = User.objects.create_user(
-            username="barbero", password="pass1234", role=User.Role.BARBERO,
+            username="barbero",
+            password="pass1234",
+            role=User.Role.BARBERO,
         )
         self.estilista = User.objects.create_user(
-            username="estilista", password="pass1234", role=User.Role.ESTILISTA,
+            username="estilista",
+            password="pass1234",
+            role=User.Role.ESTILISTA,
         )
         self.list_url = reverse("dashboard:home")
 
@@ -778,7 +924,8 @@ class CrudVentasPermissionTest(TestCase):
     def test_context_with_all_permissions(self):
         for action in ("registrar", "modificar", "desactivar"):
             RoleCrudPermission.objects.create(
-                role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.VENTAS,
+                role=User.Role.BARBERO,
+                app_key=RoleCrudPermission.AppKey.VENTAS,
                 action=action,
             )
         self.client.login(username="barbero", password="pass1234")
@@ -798,56 +945,72 @@ class CrudVentasPermissionTest(TestCase):
 
     def test_create_sale_without_permission(self):
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "sales",
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "sales",
+            },
+        )
         self.assertRedirects(response, self._url("sales"))
 
     def test_create_sale_with_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.VENTAS,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.VENTAS,
             action="registrar",
         )
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "sales",
-            "employee": str(self.employee.pk),
-            "product": str(self.catalog_item.pk),
-            "client": "",
-            "scheduled_for": "2026-05-30T10:00",
-            "notes": "",
-            "tip_amount": "",
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "sales",
+                "employee": str(self.employee.pk),
+                "product": str(self.catalog_item.pk),
+                "client": "",
+                "scheduled_for": "2026-05-30T10:00",
+                "notes": "",
+                "tip_amount": "",
+            },
+        )
         self.assertRedirects(response, f"{self.list_url}?section=sales")
 
     # ── POST: update ──
 
     def test_update_sale_without_permission(self):
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "sales", "action": "update",
-            "sale_id": str(self.sale.pk),
-            "employee": str(self.employee.pk),
-            "product": str(self.catalog_item.pk),
-            "tip_amount": "0",
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "sales",
+                "action": "update",
+                "sale_id": str(self.sale.pk),
+                "employee": str(self.employee.pk),
+                "product": str(self.catalog_item.pk),
+                "tip_amount": "0",
+            },
+        )
         self.assertRedirects(response, self._url("sales"))
         self.sale.refresh_from_db()
         self.assertEqual(self.sale.status, Sale.Status.DONE)
 
     def test_update_sale_with_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.VENTAS,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.VENTAS,
             action="modificar",
         )
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "sales", "action": "update",
-            "sale_id": str(self.sale.pk),
-            "employee": str(self.employee.pk),
-            "product": str(self.catalog_item.pk),
-            "tip_amount": "5000",
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "sales",
+                "action": "update",
+                "sale_id": str(self.sale.pk),
+                "employee": str(self.employee.pk),
+                "product": str(self.catalog_item.pk),
+                "tip_amount": "5000",
+            },
+        )
         self.assertRedirects(response, self._url("sales"))
         self.sale.refresh_from_db()
         self.assertEqual(self.sale.tip_amount, 5000)
@@ -856,24 +1019,33 @@ class CrudVentasPermissionTest(TestCase):
 
     def test_cancel_sale_without_permission(self):
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "sales", "action": "cancel",
-            "sale_id": str(self.sale.pk),
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "sales",
+                "action": "cancel",
+                "sale_id": str(self.sale.pk),
+            },
+        )
         self.assertRedirects(response, self._url("sales"))
         self.sale.refresh_from_db()
         self.assertEqual(self.sale.status, Sale.Status.DONE)
 
     def test_cancel_sale_with_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.VENTAS,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.VENTAS,
             action="desactivar",
         )
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "sales", "action": "cancel",
-            "sale_id": str(self.sale.pk),
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "sales",
+                "action": "cancel",
+                "sale_id": str(self.sale.pk),
+            },
+        )
         self.assertRedirects(response, self._url("sales"))
         self.sale.refresh_from_db()
         self.assertEqual(self.sale.status, Sale.Status.CANCELED)
@@ -887,7 +1059,8 @@ class CrudVentasPermissionTest(TestCase):
 
     def test_get_form_with_register_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.VENTAS,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.VENTAS,
             action="registrar",
         )
         self.client.login(username="barbero", password="pass1234")
@@ -898,30 +1071,31 @@ class CrudVentasPermissionTest(TestCase):
 
     def test_get_edit_without_modify_permission(self):
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.get(
-            self._url("sales", view="edit", sale=self.sale.pk)
-        )
+        response = self.client.get(self._url("sales", view="edit", sale=self.sale.pk))
         self.assertRedirects(response, self._url("sales"))
 
     def test_get_edit_with_modify_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.VENTAS,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.VENTAS,
             action="modificar",
         )
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.get(
-            self._url("sales", view="edit", sale=self.sale.pk)
-        )
+        response = self.client.get(self._url("sales", view="edit", sale=self.sale.pk))
         self.assertEqual(response.status_code, 200)
 
     # ── Admin bypass ──
 
     def test_admin_bypasses_crud_checks(self):
         self.client.login(username="admin", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "sales", "action": "cancel",
-            "sale_id": str(self.sale.pk),
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "sales",
+                "action": "cancel",
+                "sale_id": str(self.sale.pk),
+            },
+        )
         self.assertRedirects(response, self._url("sales"))
         self.sale.refresh_from_db()
         self.assertEqual(self.sale.status, Sale.Status.CANCELED)
@@ -930,10 +1104,14 @@ class CrudVentasPermissionTest(TestCase):
 
     def test_estilista_blocked_all_crud_actions(self):
         self.client.login(username="estilista", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "sales", "action": "cancel",
-            "sale_id": str(self.sale.pk),
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "sales",
+                "action": "cancel",
+                "sale_id": str(self.sale.pk),
+            },
+        )
         self.assertRedirects(response, self._url("sales"))
         self.sale.refresh_from_db()
         self.assertEqual(self.sale.status, Sale.Status.DONE)
@@ -944,13 +1122,19 @@ class CrudComprasPermissionTest(TestCase):
 
     def setUp(self):
         self.admin = User.objects.create_user(
-            username="admin", password="pass1234", role=User.Role.ADMIN,
+            username="admin",
+            password="pass1234",
+            role=User.Role.ADMIN,
         )
         self.barbero = User.objects.create_user(
-            username="barbero", password="pass1234", role=User.Role.BARBERO,
+            username="barbero",
+            password="pass1234",
+            role=User.Role.BARBERO,
         )
         self.estilista = User.objects.create_user(
-            username="estilista", password="pass1234", role=User.Role.ESTILISTA,
+            username="estilista",
+            password="pass1234",
+            role=User.Role.ESTILISTA,
         )
         self.list_url = reverse("dashboard:home")
 
@@ -989,7 +1173,8 @@ class CrudComprasPermissionTest(TestCase):
     def test_context_with_all_permissions(self):
         for action in ("registrar", "modificar", "desactivar"):
             RoleCrudPermission.objects.create(
-                role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.COMPRAS,
+                role=User.Role.BARBERO,
+                app_key=RoleCrudPermission.AppKey.COMPRAS,
                 action=action,
             )
         self.client.login(username="barbero", password="pass1234")
@@ -1009,54 +1194,72 @@ class CrudComprasPermissionTest(TestCase):
 
     def test_create_purchase_without_permission(self):
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "compras", "action": "save",
-            "product": str(self.product.pk),
-            "quantity": "5",
-            "unit_cost": "6000",
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "compras",
+                "action": "save",
+                "product": str(self.product.pk),
+                "quantity": "5",
+                "unit_cost": "6000",
+            },
+        )
         self.assertRedirects(response, f"{self.list_url}?section=compras&view=list")
 
     def test_create_purchase_with_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.COMPRAS,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.COMPRAS,
             action="registrar",
         )
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "compras", "action": "save",
-            "product": str(self.product.pk),
-            "quantity": "5",
-            "unit_cost": "6000",
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "compras",
+                "action": "save",
+                "product": str(self.product.pk),
+                "quantity": "5",
+                "unit_cost": "6000",
+            },
+        )
         self.assertRedirects(response, f"{self.list_url}?section=compras&view=list")
 
     # ── POST: update ──
 
     def test_update_purchase_without_permission(self):
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "compras", "action": "update",
-            "purchase_id": str(self.purchase.pk),
-            "quantity": "20",
-            "unit_cost": "4000",
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "compras",
+                "action": "update",
+                "purchase_id": str(self.purchase.pk),
+                "quantity": "20",
+                "unit_cost": "4000",
+            },
+        )
         self.assertRedirects(response, self._url("compras"))
         self.purchase.refresh_from_db()
         self.assertEqual(self.purchase.quantity, 10)
 
     def test_update_purchase_with_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.COMPRAS,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.COMPRAS,
             action="modificar",
         )
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "compras", "action": "update",
-            "purchase_id": str(self.purchase.pk),
-            "quantity": "20",
-            "unit_cost": "4000",
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "compras",
+                "action": "update",
+                "purchase_id": str(self.purchase.pk),
+                "quantity": "20",
+                "unit_cost": "4000",
+            },
+        )
         self.assertRedirects(response, self._url("compras"))
         self.purchase.refresh_from_db()
         self.assertEqual(self.purchase.quantity, 20)
@@ -1065,24 +1268,33 @@ class CrudComprasPermissionTest(TestCase):
 
     def test_deactivate_purchase_without_permission(self):
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "compras", "action": "deactivate",
-            "purchase_id": str(self.purchase.pk),
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "compras",
+                "action": "deactivate",
+                "purchase_id": str(self.purchase.pk),
+            },
+        )
         self.assertRedirects(response, self._url("compras"))
         self.purchase.refresh_from_db()
         self.assertEqual(self.purchase.status, Purchase.Status.ACTIVE)
 
     def test_deactivate_purchase_with_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.COMPRAS,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.COMPRAS,
             action="desactivar",
         )
         self.client.login(username="barbero", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "compras", "action": "deactivate",
-            "purchase_id": str(self.purchase.pk),
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "compras",
+                "action": "deactivate",
+                "purchase_id": str(self.purchase.pk),
+            },
+        )
         self.assertRedirects(response, self._url("compras"))
         self.purchase.refresh_from_db()
         self.assertEqual(self.purchase.status, Purchase.Status.CANCELED)
@@ -1096,7 +1308,8 @@ class CrudComprasPermissionTest(TestCase):
 
     def test_get_form_with_register_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.COMPRAS,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.COMPRAS,
             action="registrar",
         )
         self.client.login(username="barbero", password="pass1234")
@@ -1114,7 +1327,8 @@ class CrudComprasPermissionTest(TestCase):
 
     def test_get_edit_with_modify_permission(self):
         RoleCrudPermission.objects.create(
-            role=User.Role.BARBERO, app_key=RoleCrudPermission.AppKey.COMPRAS,
+            role=User.Role.BARBERO,
+            app_key=RoleCrudPermission.AppKey.COMPRAS,
             action="modificar",
         )
         self.client.login(username="barbero", password="pass1234")
@@ -1127,10 +1341,14 @@ class CrudComprasPermissionTest(TestCase):
 
     def test_admin_bypasses_crud_checks(self):
         self.client.login(username="admin", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "compras", "action": "deactivate",
-            "purchase_id": str(self.purchase.pk),
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "compras",
+                "action": "deactivate",
+                "purchase_id": str(self.purchase.pk),
+            },
+        )
         self.assertRedirects(response, self._url("compras"))
         self.purchase.refresh_from_db()
         self.assertEqual(self.purchase.status, Purchase.Status.CANCELED)
@@ -1151,10 +1369,14 @@ class CrudComprasPermissionTest(TestCase):
 
     def test_estilista_blocked_all_crud_actions(self):
         self.client.login(username="estilista", password="pass1234")
-        response = self.client.post(self.list_url, {
-            "section": "compras", "action": "deactivate",
-            "purchase_id": str(self.purchase.pk),
-        })
+        response = self.client.post(
+            self.list_url,
+            {
+                "section": "compras",
+                "action": "deactivate",
+                "purchase_id": str(self.purchase.pk),
+            },
+        )
         self.assertRedirects(response, self._url("compras"))
         self.purchase.refresh_from_db()
         self.assertEqual(self.purchase.status, Purchase.Status.ACTIVE)

@@ -405,7 +405,7 @@ class InventoryDashboardViewsTest(TestCase):
         self.assertEqual(movements.count(), 1)
         movement = movements.first()
         self.assertEqual(movement.quantity, -2)
-        self.assertIsNotNone(movement.reference_sale)
+        self.assertNotEqual(movement.origen, "")
         self.assertEqual(movement.created_by, self.user)
 
     def test_product_sale_creates_sale_movement_with_correct_reference(self):
@@ -424,7 +424,7 @@ class InventoryDashboardViewsTest(TestCase):
             movement_type=InventoryMovement.MovementType.SALE,
         )
         movement = movements.first()
-        self.assertEqual(movement.reference_sale, record)
+        self.assertEqual(movement.origen, record.codigo)
 
     def test_service_sale_does_not_affect_stock(self):
         initial_stock = self.product_1.current_stock
@@ -522,7 +522,8 @@ class InventoryDashboardViewsTest(TestCase):
         self.assertEqual(movements.count(), 1)
         movement = movements.first()
         self.assertEqual(movement.quantity, -2)
-        self.assertEqual(movement.reference_sale, record)
+        record.refresh_from_db()
+        self.assertEqual(movement.origen, record.codigo)
         self.assertEqual(movement.notes, "Ajuste por modificación de venta")
 
     def test_product_edit_no_movement_when_quantity_unchanged(self):

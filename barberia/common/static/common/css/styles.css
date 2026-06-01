@@ -960,29 +960,13 @@ a.dashboard-metric-card:hover {
   width: 20%;
 }
 
-.dashboard-table--sales th:nth-child(1) {
-  width: 22%;
-}
-.dashboard-table--sales th:nth-child(2) {
-  width: 22%;
-}
-.dashboard-table--sales th:nth-child(3) {
-  width: 10%;
-}
-.dashboard-table--sales th:nth-child(4) {
-  width: 11%;
-}
-.dashboard-table--sales th:nth-child(5) {
-  width: 10%;
-}
-.dashboard-table--sales th:nth-child(6) {
-  width: 11%;
-}
-.dashboard-table--sales th:nth-child(7) {
-  width: 14%;
+/* Column helpers to avoid inline styles */
+.dashboard-table th.col-code,
+.dashboard-table td.col-code {
+  width: 70px !important;
+  white-space: nowrap !important;
 }
 
-/* Column helpers to avoid inline styles */
 .dashboard-table th.col-state,
 .dashboard-table td.col-state {
   width: 110px !important;

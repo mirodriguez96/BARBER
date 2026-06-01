@@ -16,4 +16,4 @@ class InventoryMovementAdmin(admin.ModelAdmin):
     )
     list_filter = ("movement_type", "created_at")
     search_fields = ("product__name", "notes")
-    autocomplete_fields = ("product", "reference_sale", "created_by")
+    autocomplete_fields = ("product", "created_by")

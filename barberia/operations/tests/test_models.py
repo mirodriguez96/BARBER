@@ -56,7 +56,7 @@ class SaleModelTest(TestCase):
             scheduled_for=timezone.now(),
             product_price=Decimal("50.00"),
         )
-        expected = f"{self.client} - {self.service}"
+        expected = f"{record.codigo} - {self.client} - {self.service}"
         self.assertEqual(str(record), expected)
 
     def test_str_without_client(self):
@@ -67,7 +67,7 @@ class SaleModelTest(TestCase):
             scheduled_for=timezone.now(),
             product_price=Decimal("50.00"),
         )
-        expected = "Cliente no registrado - Corte de cabello"
+        expected = f"{record.codigo} - Cliente no registrado - Corte de cabello"
         self.assertEqual(str(record), expected)
 
     def test_status_scheduled_default(self):
@@ -145,6 +145,48 @@ class SaleModelTest(TestCase):
         )
         self.assertEqual(record.notes, "")
 
+    def test_codigo_auto_generated_on_create(self):
+        record = Sale.objects.create(
+            employee=self.employee,
+            product=self.service,
+            performed_by=self.user,
+            scheduled_for=timezone.now(),
+            product_price=Decimal("50.00"),
+        )
+        record.refresh_from_db()
+        self.assertTrue(record.codigo)
+        self.assertNotEqual(record.codigo, "")
+
+    def test_codigo_format_ven(self):
+        record = Sale.objects.create(
+            employee=self.employee,
+            product=self.service,
+            performed_by=self.user,
+            scheduled_for=timezone.now(),
+            product_price=Decimal("50.00"),
+        )
+        record.refresh_from_db()
+        self.assertEqual(record.codigo, f"VEN-{record.pk}")
+
+    def test_codigo_unique(self):
+        record = Sale.objects.create(
+            employee=self.employee,
+            product=self.service,
+            performed_by=self.user,
+            scheduled_for=timezone.now(),
+            product_price=Decimal("50.00"),
+        )
+        record.refresh_from_db()
+        with self.assertRaises(Exception):
+            Sale.objects.create(
+                codigo=record.codigo,
+                employee=self.employee,
+                product=self.service,
+                performed_by=self.user,
+                scheduled_for=timezone.now(),
+                product_price=Decimal("50.00"),
+            )
+
 
 class PurchaseModelTest(TestCase):
     def setUp(self):
@@ -180,4 +222,42 @@ class PurchaseModelTest(TestCase):
             unit_cost=Decimal("50.00"),
             created_by=self.user,
         )
-        self.assertEqual(str(purchase), "Compra - Shampoo x4")
+        self.assertEqual(str(purchase), f"{purchase.codigo} - Shampoo x4")
+
+    def test_codigo_auto_generated_on_create(self):
+        purchase = Purchase.objects.create(
+            product=self.product,
+            quantity=5,
+            unit_cost=Decimal("80.00"),
+            created_by=self.user,
+        )
+        purchase.refresh_from_db()
+        self.assertTrue(purchase.codigo)
+        self.assertNotEqual(purchase.codigo, "")
+
+    def test_codigo_format_com(self):
+        purchase = Purchase.objects.create(
+            product=self.product,
+            quantity=3,
+            unit_cost=Decimal("80.00"),
+            created_by=self.user,
+        )
+        purchase.refresh_from_db()
+        self.assertEqual(purchase.codigo, f"COM-{purchase.pk}")
+
+    def test_codigo_unique(self):
+        purchase = Purchase.objects.create(
+            product=self.product,
+            quantity=2,
+            unit_cost=Decimal("80.00"),
+            created_by=self.user,
+        )
+        purchase.refresh_from_db()
+        with self.assertRaises(Exception):
+            Purchase.objects.create(
+                codigo=purchase.codigo,
+                product=self.product,
+                quantity=3,
+                unit_cost=Decimal("90.00"),
+                created_by=self.user,
+            )

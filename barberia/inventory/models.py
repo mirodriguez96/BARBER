@@ -26,12 +26,10 @@ class InventoryMovement(models.Model):
         decimal_places=2,
         default=Decimal("0.00"),
     )
-    reference_sale = models.ForeignKey(
-        "operations.Sale",
-        on_delete=models.SET_NULL,
-        null=True,
+    origen = models.CharField(
+        max_length=50,
         blank=True,
-        related_name="inventory_movements",
+        help_text="Código de la venta o compra que originó el movimiento",
     )
     notes = models.TextField(blank=True)
     is_supply = models.BooleanField(default=False)

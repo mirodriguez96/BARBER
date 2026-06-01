@@ -505,7 +505,7 @@ def home(request):
                             movement_type=InventoryMovement.MovementType.ADJUSTMENT,
                             unit_cost=revert_product.price,
                             created_by=request.user,
-                            reference_sale=record,
+                            origen=record.codigo,
                             notes="Ajuste por modificación de venta",
                         )
                     if new_is_product:
@@ -561,6 +561,7 @@ def home(request):
                 purchase = form.save(commit=False)
                 purchase.created_by = request.user
                 purchase.save()
+                purchase.refresh_from_db()
                 product = purchase.product
                 CatalogItem.objects.filter(pk=product.pk).update(
                     current_stock=F("current_stock") + purchase.quantity,
@@ -572,6 +573,7 @@ def home(request):
                     unit_cost=purchase.unit_cost,
                     created_by=request.user,
                     notes=purchase.notes,
+                    origen=purchase.codigo,
                 )
                 messages.success(request, "Compra registrada correctamente.")
                 return redirect(f"{request.path}?section=compras&view=list")
@@ -658,7 +660,7 @@ def home(request):
                     movement_type=InventoryMovement.MovementType.ADJUSTMENT,
                     unit_cost=sale.product.price,
                     created_by=request.user,
-                    reference_sale=sale,
+                    origen=sale.codigo,
                     notes="Venta anulada — reversión de stock",
                 )
             messages.success(request, "Servicio anulado correctamente.")
@@ -691,6 +693,7 @@ def home(request):
                         unit_cost=purchase.unit_cost,
                         created_by=request.user,
                         notes="Ajuste por modificación de compra",
+                        origen=purchase.codigo,
                     )
                 messages.success(request, "Compra actualizada correctamente.")
                 return redirect(f"{request.path}?section=compras&view=list")
@@ -721,6 +724,7 @@ def home(request):
                 unit_cost=purchase.unit_cost,
                 created_by=request.user,
                 notes="Compra anulada",
+                origen=purchase.codigo,
             )
             messages.success(request, "Compra anulada correctamente.")
             return redirect(f"{request.path}?section=compras&view=list")
@@ -762,6 +766,7 @@ def home(request):
                             record.employee = None
                 record.save()
                 if section == "sales" and record_type == "producto":
+                    record.refresh_from_db()
                     CatalogItem.objects.filter(pk=record.product_id).update(
                         current_stock=F("current_stock") - record.quantity,
                     )
@@ -772,7 +777,7 @@ def home(request):
                         movement_type=InventoryMovement.MovementType.SALE,
                         unit_cost=unit_price,
                         created_by=request.user,
-                        reference_sale=record,
+                        origen=record.codigo,
                     )
                 messages.success(request, "Registro guardado correctamente.")
                 return redirect(f"{request.path}?section={section}")

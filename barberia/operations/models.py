@@ -9,6 +9,7 @@ class Sale(models.Model):
         DONE = "done", "Realizado"
         CANCELED = "canceled", "Cancelado"
 
+    codigo = models.CharField("código", max_length=50, unique=True, blank=True)
     client = models.ForeignKey(
         "people.Client",
         on_delete=models.PROTECT,
@@ -62,7 +63,7 @@ class Sale(models.Model):
 
     def __str__(self):
         client_label = self.client or "Cliente no registrado"
-        return f"{client_label} - {self.product}"
+        return f"{self.codigo} - {client_label} - {self.product}"
 
 
 class Purchase(models.Model):
@@ -70,6 +71,7 @@ class Purchase(models.Model):
         ACTIVE = "active", "Activo"
         CANCELED = "canceled", "Anulado"
 
+    codigo = models.CharField("código", max_length=50, unique=True, blank=True)
     product = models.ForeignKey(
         "catalog.CatalogItem",
         on_delete=models.PROTECT,
@@ -95,4 +97,4 @@ class Purchase(models.Model):
         verbose_name_plural = "Compras"
 
     def __str__(self):
-        return f"Compra - {self.product.name} x{self.quantity}"
+        return f"{self.codigo} - {self.product.name} x{self.quantity}"

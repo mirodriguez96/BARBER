@@ -256,12 +256,13 @@ class Command(BaseCommand):
                 sale_count += 1
 
                 if status == Sale.Status.DONE and not is_service:
+                    sale.refresh_from_db()
                     InventoryMovement.objects.create(
                         product=product,
                         quantity=-qty,
                         movement_type=InventoryMovement.MovementType.SALE,
                         unit_cost=product.price,
-                        reference_sale=sale,
+                        origen=sale.codigo,
                         notes=f"Venta #{sale.id}",
                         is_supply=False,
                         created_by=employee.user,
@@ -279,13 +280,14 @@ class Command(BaseCommand):
                 day_offset = random.randint(1, days_back)
                 day = now - timedelta(days=day_offset)
 
-                Purchase.objects.create(
+                purchase = Purchase.objects.create(
                     product=item,
                     quantity=qty,
                     unit_cost=unit_cost,
                     notes="Compra de reposición",
                     created_by=admin_user,
                 )
+                purchase.refresh_from_db()
                 purchase_count += 1
 
                 InventoryMovement.objects.create(
@@ -293,6 +295,7 @@ class Command(BaseCommand):
                     quantity=qty,
                     movement_type=InventoryMovement.MovementType.PURCHASE,
                     unit_cost=unit_cost,
+                    origen=purchase.codigo,
                     notes="Compra de reposición",
                     is_supply=False,
                     created_by=admin_user,
