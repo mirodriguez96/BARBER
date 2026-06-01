@@ -22,7 +22,9 @@ class Command(BaseCommand):
 
             self.stdout.write(f"Migrando {tenant.name} ({db_name})...")
 
-            # Backfill codigo vacío antes de aplicar unique constraint
+            call_command("migrate", database=db_name, verbosity=1)
+
+            # Backfill codigo vacío después de que exista la columna
             with connections[db_name].cursor() as c:
                 c.execute(
                     "UPDATE operations_sale SET codigo = CONCAT('VEN-', id) "
@@ -32,8 +34,6 @@ class Command(BaseCommand):
                     "UPDATE operations_purchase SET codigo = CONCAT('COM-', id) "
                     "WHERE codigo = '' OR codigo IS NULL;"
                 )
-
-            call_command("migrate", database=db_name, verbosity=1)
 
         self.stdout.write(
             self.style.SUCCESS(f"Migración completada para {tenants.count()} tenants")
