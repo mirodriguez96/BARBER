@@ -8,6 +8,9 @@ updates:
     labels:
       - dependencies
       - python
+    ignore:
+      - dependency-name: "Django"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
     directory: /
