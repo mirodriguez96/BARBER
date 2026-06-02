@@ -1,7 +1,6 @@
 import json
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from itertools import chain
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
