@@ -141,12 +141,31 @@ class SaleEditFormTest(TestCase):
         self.record.refresh_from_db()
         self.assertEqual(self.record.tip_amount, Decimal("10.00"))
 
-    def test_client_scheduled_for_and_notes_not_in_fields(self):
+    def test_client_scheduled_for_and_status_not_in_fields(self):
         form = SaleEditForm(instance=self.record)
         self.assertNotIn("client", form.fields)
         self.assertNotIn("scheduled_for", form.fields)
-        self.assertNotIn("notes", form.fields)
         self.assertNotIn("status", form.fields)
+
+    def test_notes_is_editable_in_edit_form(self):
+        form = SaleEditForm(instance=self.record)
+        self.assertIn("notes", form.fields)
+        form = SaleEditForm(
+            data={
+                "employee": self.employee.pk,
+                "product": self.service.pk,
+                "product_price": "70.00",
+                "commission_amount": "17.50",
+                "tip_amount": "10.00",
+                "notes": "Cliente pidió corte específico",
+            },
+            instance=self.record,
+            user=self.user,
+        )
+        self.assertTrue(form.is_valid(), msg=dict(form.errors))
+        form.save()
+        self.record.refresh_from_db()
+        self.assertEqual(self.record.notes, "Cliente pidió corte específico")
 
     def test_barber_queryset_scoped(self):
         form = SaleEditForm(instance=self.record, user=self.user)
