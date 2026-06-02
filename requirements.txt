@@ -1,4 +1,4 @@
-Django>=5.0,<6.0
+Django>=6.0.5,<7.0
 hypothesis>=6.155.1,<7.0
 beautifulsoup4>=4.13,<5.0
 gunicorn>=26.0.0,<27.0
