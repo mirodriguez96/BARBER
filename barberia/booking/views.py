@@ -399,7 +399,9 @@ def _send_confirmation_email(booking_data, service, scheduled_dt):
                 method="POST",
             )
             try:
-                with urlopen(request, timeout=15) as response:
+                with urlopen(
+                    request, timeout=15
+                ) as response:  # nosec B310 - hardcoded HTTPS
                     if response.status >= 400:
                         raise RuntimeError(f"Resend responded with {response.status}")
             except HTTPError as e:
