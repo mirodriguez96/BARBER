@@ -40,9 +40,6 @@ from .models import RoleCrudPermission, RoleMenuPermission
 
 @login_required
 def home(request):
-    from barberia.routers import set_current_db_name as _reset_db
-
-    _reset_db(None)
     section = request.GET.get("section", "overview")
     quick_view = request.GET.get("view", "list")
     record_type = request.GET.get("type", "colaborador")
@@ -979,9 +976,6 @@ def home(request):
         catalog_filter_params += f"&catalog_kind={catalog_kind}"
 
     # --- Combined people list (barbers + clients) ---
-    from barberia.routers import set_current_db_name as _reset_db
-
-    _reset_db(None)
     barber_qs = Employee.objects.order_by("-created_at", "-pk")
     client_qs = Client.objects.order_by("-created_at", "-pk")
     if barber_search:
