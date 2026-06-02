@@ -2,37 +2,58 @@
 {% block title %}Cita confirmada{% endblock %}
 {% block step_indicator %}{% endblock %}
 {% block hero %}
-<div class="booking-hero">
-    <div class="confirmation-icon" style="margin: 0 auto 1rem;">✓</div>
-    <h1 class="booking-hero__title">¡Cita confirmada!</h1>
-    <p class="booking-hero__subtitle">Hemos registrado tu reserva correctamente. Te enviamos los detalles a tu correo.</p>
-</div>
+    <div class="booking-hero">
+        <div class="confirmation-icon" style="margin: 0 auto 1rem;">✓</div>
+        <h1 class="booking-hero__title">¡Cita confirmada!</h1>
+        <p class="booking-hero__subtitle">Hemos registrado tu reserva correctamente. Te enviamos los detalles a tu correo.</p>
+    </div>
 {% endblock %}
 {% block content %}
-<div class="booking-card">
-    <div class="booking-card__head">
-        <div class="booking-card__head-icon">📋</div>
-        <div>
-            <h2 class="booking-card__title">Detalles de tu cita</h2>
-            <p class="booking-card__sub">Guarda esta información o revisa tu email</p>
+    <div class="booking-card">
+        <div class="booking-card__head">
+            <div class="booking-card__head-icon">📋</div>
+            <div>
+                <h2 class="booking-card__title">Detalles de tu cita</h2>
+                <p class="booking-card__sub">Guarda esta información o revisa tu email</p>
+            </div>
         </div>
+        <dl class="detail-list">
+            <dt>
+                <span class="detail-icon">✂</span> Servicio
+            </dt>
+            <dd>
+                {{ sale.product.name }}
+            </dd>
+            <dt>
+                <span class="detail-icon">📅</span> Fecha
+            </dt>
+            <dd>
+                {{ sale.scheduled_for|date:"l j" }} de {{ sale.scheduled_for|date:"F" }} de {{ sale.scheduled_for|date:"Y" }}
+            </dd>
+            <dt>
+                <span class="detail-icon">⏰</span> Hora
+            </dt>
+            <dd>
+                {{ sale.scheduled_for|date:"H:i" }}
+            </dd>
+            {% if sale.employee %}
+                <dt>
+                    <span class="detail-icon">👤</span> Barbero
+                </dt>
+                <dd>
+                    {{ sale.employee.full_name }}
+                </dd>
+            {% endif %}
+            {% if sale.client %}
+                <dt>
+                    <span class="detail-icon">🙋</span> Cliente
+                </dt>
+                <dd>
+                    {{ sale.client.full_name }}
+                </dd>
+            {% endif %}
+        </dl>
     </div>
-    <dl class="detail-list">
-        <dt><span class="detail-icon">✂</span> Servicio</dt>
-        <dd>{{ sale.product.name }}</dd>
-        <dt><span class="detail-icon">📅</span> Fecha</dt>
-        <dd>{{ sale.scheduled_for|date:"l j" }} de {{ sale.scheduled_for|date:"F" }} de {{ sale.scheduled_for|date:"Y" }}</dd>
-        <dt><span class="detail-icon">⏰</span> Hora</dt>
-        <dd>{{ sale.scheduled_for|date:"H:i" }}</dd>
-        {% if sale.employee %}
-        <dt><span class="detail-icon">👤</span> Barbero</dt>
-        <dd>{{ sale.employee.full_name }}</dd>
-        {% endif %}
-        {% if sale.client %}
-        <dt><span class="detail-icon">🙋</span> Cliente</dt>
-        <dd>{{ sale.client.full_name }}</dd>
-        {% endif %}
-    </dl>
-</div>
-<a href="{% url 'booking:service_list' %}" class="btn-outline-booking btn-block">Ir al inicio</a>
+    <a href="{% url 'booking:service_list' %}"
+       class="btn-outline-booking btn-block">Ir al inicio</a>
 {% endblock %}

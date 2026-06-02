@@ -268,11 +268,21 @@
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        <td>{% if service.duration_minutes %}{{ service.duration_minutes }} min{% else %}&mdash;{% endif %}</td>
+                                                        <td>
+                                                            {% if service.duration_minutes %}
+                                                                {{ service.duration_minutes }} min
+                                                            {% else %}
+                                                                &mdash;
+                                                            {% endif %}
+                                                        </td>
                                                         <td>${{ service.price }}</td>
                                                         <td>
                                                             <span class="dashboard-status {% if service.is_active %}is-active{% else %}is-inactive{% endif %}">
-                                                                {% if service.is_active %}Activo{% else %}Inactivo{% endif %}
+                                                                {% if service.is_active %}
+                                                                    Activo
+                                                                {% else %}
+                                                                    Inactivo
+                                                                {% endif %}
                                                             </span>
                                                         </td>
                                                     </tr>
@@ -773,7 +783,13 @@
                                                         <span class="dashboard-table__chip">{{ item.get_kind_display }}</span>
                                                     </td>
                                                     <td>${{ item.price }}</td>
-                                                    <td>{% if item.duration_minutes %}{{ item.duration_minutes }} min{% else %}&mdash;{% endif %}</td>
+                                                    <td>
+                                                        {% if item.duration_minutes %}
+                                                            {{ item.duration_minutes }} min
+                                                        {% else %}
+                                                            &mdash;
+                                                        {% endif %}
+                                                    </td>
                                                     <td>{{ item.barber_commission_percent }}%</td>
                                                     <td class="col-state">
                                                         <span class="dashboard-status {% if item.is_active %}is-active{% else %}is-inactive{% endif %}">
@@ -1258,7 +1274,7 @@
                                                     </tr>
                                                 {% empty %}
                                                     <tr>
-                                                    <td colspan="8" class="dashboard-empty-state">
+                                                        <td colspan="8" class="dashboard-empty-state">
                                                             <div class="dashboard-empty-state__title">Sin movimientos.</div>
                                                         </td>
                                                     </tr>
@@ -1510,8 +1526,14 @@
                                             </div>
                                             <div class="dashboard-field-card__body">
                                                 <select id="id_status_inline" name="status" class="form-select">
-                                                    <option value="scheduled" {% if sale_to_edit.status == 'scheduled' %}selected{% endif %}>Programado</option>
-                                                    <option value="done" {% if sale_to_edit.status == 'done' %}selected{% endif %}>Realizado</option>
+                                                    <option value="scheduled"
+                                                            {% if sale_to_edit.status == 'scheduled' %}selected{% endif %}>
+                                                        Programado
+                                                    </option>
+                                                    <option value="done"
+                                                            {% if sale_to_edit.status == 'done' %}selected{% endif %}>
+                                                        Realizado
+                                                    </option>
                                                 </select>
                                             </div>
                                         </div>

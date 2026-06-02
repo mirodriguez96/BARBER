@@ -1,12 +1,18 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>{% block title %}Reservar cita{% endblock %} | Barbería</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous"/>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-    <style>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>
+            {% block title %}Reservar cita{% endblock %}
+        | Barbería</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+              rel="stylesheet"
+              integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+              crossorigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+              rel="stylesheet" />
+        <style>
         :root {
             --bg-app: #f1f3f7;
             --bg-card: #ffffff;
@@ -474,61 +480,74 @@
             .service-summary { flex-wrap: wrap; }
             .service-summary__price { width: 100%; text-align: right; }
         }
-    </style>
-</head>
-<body>
-    <div class="booking-shell">
-        <header class="booking-topbar">
-            <div class="booking-topbar__brand">
-                <div class="booking-topbar__brand-mark">✂</div>
-                <div>
-                    <div>Barbería</div>
-                    <div class="booking-topbar__sub">Reservas en línea</div>
+        </style>
+    </head>
+    <body>
+        <div class="booking-shell">
+            <header class="booking-topbar">
+                <div class="booking-topbar__brand">
+                    <div class="booking-topbar__brand-mark">✂</div>
+                    <div>
+                        <div>Barbería</div>
+                        <div class="booking-topbar__sub">Reservas en línea</div>
+                    </div>
                 </div>
-            </div>
-            <div class="d-none d-sm-block text-end">
-                <div style="font-size: .8rem; opacity: .65;">Agenda fácil</div>
-                <div style="font-size: .9rem; font-weight: 500;">Sin llamadas, sin esperas</div>
-            </div>
-        </header>
-        <main class="booking-main">
-            <div class="booking-container">
-                {% block hero %}
-                <div class="booking-hero">
-                    <span class="booking-hero__eyebrow">Agenda en 3 pasos</span>
-                    <h1 class="booking-hero__title">{% block hero_title %}Reserva tu cita{% endblock %}</h1>
-                    <p class="booking-hero__subtitle">{% block hero_subtitle %}Elige tu servicio, fecha y barbero. Te confirmamos al instante.{% endblock %}</p>
+                <div class="d-none d-sm-block text-end">
+                    <div style="font-size: .8rem; opacity: .65;">Agenda fácil</div>
+                    <div style="font-size: .9rem; font-weight: 500;">Sin llamadas, sin esperas</div>
                 </div>
-                {% endblock %}
-                {% block step_indicator %}
-                <div class="step-indicator">
-                    <a href="{% url 'booking:service_list' %}">
-                        <div class="step {% if step >= 1 %}done{% endif %} {% if step == 1 %}active{% endif %}">1</div>
-                    </a>
-                    <div class="step-line {% if step >= 2 %}done{% endif %}"></div>
-                    {% if service %}<a href="{% url 'booking:booking_form' service.id %}">{% endif %}
-                        <div class="step {% if step >= 2 %}done{% endif %} {% if step == 2 %}active{% endif %}">2</div>
-                    {% if service %}</a>{% endif %}
-                    <div class="step-line {% if step >= 3 %}done{% endif %}"></div>
-                    {% if service %}<a href="{% url 'booking:booking_confirm' service.id %}">{% endif %}
-                        <div class="step {% if step >= 3 %}done{% endif %} {% if step == 3 %}active{% endif %}">3</div>
-                    {% if service %}</a>{% endif %}
-                    <div class="step-line {% if step >= 4 %}done{% endif %}"></div>
-                    <div class="step {% if step >= 4 %}done{% endif %} {% if step == 4 %}active{% endif %}">4</div>
+            </header>
+            <main class="booking-main">
+                <div class="booking-container">
+                    {% block hero %}
+                        <div class="booking-hero">
+                            <span class="booking-hero__eyebrow">Agenda en 3 pasos</span>
+                            <h1 class="booking-hero__title">
+                                {% block hero_title %}Reserva tu cita{% endblock %}
+                            </h1>
+                            <p class="booking-hero__subtitle">
+                                {% block hero_subtitle %}Elige tu servicio, fecha y barbero. Te confirmamos al instante.{% endblock %}
+                            </p>
+                        </div>
+                    {% endblock %}
+                    {% block step_indicator %}
+                        <div class="step-indicator">
+                            <a href="{% url 'booking:service_list' %}">
+                                <div class="step {% if step >= 1 %}done{% endif %} {% if step == 1 %}active{% endif %}">1</div>
+                            </a>
+                            <div class="step-line {% if step >= 2 %}done{% endif %}"></div>
+                            {% if service %}
+                                <a href="{% url 'booking:booking_form' service.id %}">
+                                {% endif %}
+                                <div class="step {% if step >= 2 %}done{% endif %} {% if step == 2 %}active{% endif %}">2</div>
+                                {% if service %}</a>{% endif %}
+                            <div class="step-line {% if step >= 3 %}done{% endif %}"></div>
+                            {% if service %}
+                                <a href="{% url 'booking:booking_confirm' service.id %}">
+                                {% endif %}
+                                <div class="step {% if step >= 3 %}done{% endif %} {% if step == 3 %}active{% endif %}">3</div>
+                                {% if service %}</a>{% endif %}
+                            <div class="step-line {% if step >= 4 %}done{% endif %}"></div>
+                            <div class="step {% if step >= 4 %}done{% endif %} {% if step == 4 %}active{% endif %}">4</div>
+                        </div>
+                    {% endblock %}
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    {% block content %}{% endblock %}
                 </div>
-                {% endblock %}
-                {% if messages %}
-                {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-                {% endfor %}
-                {% endif %}
-                {% block content %}{% endblock %}
-            </div>
-        </main>
-        <footer class="booking-footer">
-            &copy; {% now "Y" %} Barbería · Sistema de reservas en línea
-        </footer>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-</body>
+            </main>
+            <footer class="booking-footer">
+                &copy; {% now "Y" %} Barbería · Sistema de reservas en línea
+            </footer>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+                integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+                crossorigin="anonymous"></script>
+    </body>
 </html>

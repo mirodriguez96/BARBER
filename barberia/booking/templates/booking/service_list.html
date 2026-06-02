@@ -3,32 +3,35 @@
 {% block hero_title %}Elige tu servicio{% endblock %}
 {% block hero_subtitle %}Selecciona uno de nuestros servicios para continuar con tu reserva.{% endblock %}
 {% block content %}
-<div class="booking-card">
-    <div class="booking-card__head">
-        <div class="booking-card__head-icon">✂</div>
-        <div>
-            <h2 class="booking-card__title">Servicios disponibles</h2>
-            <p class="booking-card__sub">Elige el que mejor se ajuste a lo que necesitas</p>
-        </div>
-    </div>
-    {% if services %}
-    <div class="service-grid">
-        {% for service in services %}
-        <a href="{% url 'booking:booking_form' service.id %}" class="service-card">
-            <h3 class="service-card__name">{{ service.name }}</h3>
-            {% if service.description %}<p class="service-card__desc">{{ service.description|truncatewords:18 }}</p>{% endif %}
-            <div class="service-card__meta">
-                <span class="service-card__price">${{ service.price }}</span>
-                {% if service.duration_minutes %}<span class="service-card__duration">⏱ {{ service.duration_minutes }} min</span>{% endif %}
+    <div class="booking-card">
+        <div class="booking-card__head">
+            <div class="booking-card__head-icon">✂</div>
+            <div>
+                <h2 class="booking-card__title">Servicios disponibles</h2>
+                <p class="booking-card__sub">Elige el que mejor se ajuste a lo que necesitas</p>
             </div>
-        </a>
-        {% endfor %}
+        </div>
+        {% if services %}
+            <div class="service-grid">
+                {% for service in services %}
+                    <a href="{% url 'booking:booking_form' service.id %}"
+                       class="service-card">
+                        <h3 class="service-card__name">{{ service.name }}</h3>
+                        {% if service.description %}<p class="service-card__desc">{{ service.description|truncatewords:18 }}</p>{% endif %}
+                        <div class="service-card__meta">
+                            <span class="service-card__price">${{ service.price }}</span>
+                            {% if service.duration_minutes %}
+                                <span class="service-card__duration">⏱ {{ service.duration_minutes }} min</span>
+                            {% endif %}
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state__icon">📅</div>
+                <p>No hay servicios disponibles en este momento.</p>
+            </div>
+        {% endif %}
     </div>
-    {% else %}
-    <div class="empty-state">
-        <div class="empty-state__icon">📅</div>
-        <p>No hay servicios disponibles en este momento.</p>
-    </div>
-    {% endif %}
-</div>
 {% endblock %}
