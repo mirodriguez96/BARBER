@@ -5,11 +5,11 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from barberia.booking.views import _generate_time_slots
 from barberia.catalog.models import CatalogItem
 from barberia.common.models import Company
 from barberia.operations.models import Sale
 from barberia.people.models import Client, Employee
-from barberia.booking.views import _generate_time_slots
 
 
 def _future_date(days=1):
@@ -70,9 +70,7 @@ class BookingViewTests(TestCase):
         self.assertEqual(len(resp.context["services"]), 2)
 
     def test_booking_form_get(self):
-        resp = self.client.get(
-            reverse("booking:booking_form", args=[self.service.id])
-        )
+        resp = self.client.get(reverse("booking:booking_form", args=[self.service.id]))
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Corte de cabello")
         self.assertEqual(resp.context["step"], 2)
@@ -80,9 +78,7 @@ class BookingViewTests(TestCase):
 
     def test_booking_form_get_inactive_service_404(self):
         inactive = CatalogItem.objects.get(name="Inactivo")
-        resp = self.client.get(
-            reverse("booking:booking_form", args=[inactive.id])
-        )
+        resp = self.client.get(reverse("booking:booking_form", args=[inactive.id]))
         self.assertEqual(resp.status_code, 404)
 
     def test_booking_form_post_valid_redirects(self):
@@ -176,13 +172,9 @@ class BookingViewTests(TestCase):
             reverse("booking:booking_confirm", args=[self.service.id]),
             {"confirm": "1"},
         )
-        sale = Sale.objects.filter(
-            client__email__iexact="pedro@example.com"
-        ).first()
+        sale = Sale.objects.filter(client__email__iexact="pedro@example.com").first()
         self.assertIsNotNone(sale)
-        self.assertRedirects(
-            resp, reverse("booking:booking_done", args=[sale.id])
-        )
+        self.assertRedirects(resp, reverse("booking:booking_done", args=[sale.id]))
         self.assertEqual(sale.status, Sale.Status.SCHEDULED)
         self.assertEqual(sale.product, self.service)
         self.assertEqual(sale.product_price, self.service.price)
@@ -232,9 +224,7 @@ class BookingViewTests(TestCase):
             status=Sale.Status.SCHEDULED,
             product_price=self.service.price,
         )
-        resp = self.client.get(
-            reverse("booking:booking_done", args=[sale.id])
-        )
+        resp = self.client.get(reverse("booking:booking_done", args=[sale.id]))
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Done Test")
         self.assertContains(resp, "Corte de cabello")
@@ -245,9 +235,7 @@ class BookingViewTests(TestCase):
         resp = self.client.get(reverse("booking:service_list"))
         self.assertEqual(resp.status_code, 200)
 
-        resp = self.client.get(
-            reverse("booking:booking_form", args=[self.service.id])
-        )
+        resp = self.client.get(reverse("booking:booking_form", args=[self.service.id]))
         self.assertEqual(resp.status_code, 200)
 
         resp = self.client.post(
@@ -275,13 +263,9 @@ class BookingViewTests(TestCase):
             {"confirm": "1"},
         )
         sale = Sale.objects.get(client__email__iexact="flow@example.com")
-        self.assertRedirects(
-            resp, reverse("booking:booking_done", args=[sale.id])
-        )
+        self.assertRedirects(resp, reverse("booking:booking_done", args=[sale.id]))
 
-        resp = self.client.get(
-            reverse("booking:booking_done", args=[sale.id])
-        )
+        resp = self.client.get(reverse("booking:booking_done", args=[sale.id]))
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Flow Test")
 
@@ -310,9 +294,7 @@ class BookingViewTests(TestCase):
         self.assertEqual(data["slots"][0]["value"], "09:00")
 
     def test_api_slots_404_for_invalid_service(self):
-        resp = self.client.get(
-            reverse("booking:api_slots", args=[9999, "2026-06-01"])
-        )
+        resp = self.client.get(reverse("booking:api_slots", args=[9999, "2026-06-01"]))
         self.assertEqual(resp.status_code, 404)
 
     def test_api_slots_404_for_inactive_service(self):
@@ -377,7 +359,9 @@ class BookingViewTests(TestCase):
     def test_api_slots_respects_barber_occupancy(self):
         future = _future_date()
         at9 = timezone.make_aware(
-            timezone.datetime.combine(future, timezone.datetime.min.time().replace(hour=9))
+            timezone.datetime.combine(
+                future, timezone.datetime.min.time().replace(hour=9)
+            )
         )
         Sale.objects.create(
             client=None,
@@ -389,7 +373,9 @@ class BookingViewTests(TestCase):
             product_price=self.service.price,
         )
         at10 = timezone.make_aware(
-            timezone.datetime.combine(future, timezone.datetime.min.time().replace(hour=10))
+            timezone.datetime.combine(
+                future, timezone.datetime.min.time().replace(hour=10)
+            )
         )
         Sale.objects.create(
             client=None,
@@ -468,9 +454,7 @@ class BookingViewTests(TestCase):
         self.assertNotIn(self.barber.id, barber_ids)
 
     def test_api_barbers_400_bad_date(self):
-        resp = self.client.get(
-            reverse("booking:api_barbers", args=["not-a-date"])
-        )
+        resp = self.client.get(reverse("booking:api_barbers", args=["not-a-date"]))
         self.assertEqual(resp.status_code, 400)
         self.assertIn("error", resp.json())
 

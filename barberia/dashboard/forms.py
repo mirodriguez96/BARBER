@@ -118,7 +118,15 @@ class BarberForm(DashboardModelForm):
 
     class Meta:
         model = Employee
-        fields = ["user", "full_name", "document_id", "phone", "email", "day_off", "is_active"]
+        fields = [
+            "user",
+            "full_name",
+            "document_id",
+            "phone",
+            "email",
+            "day_off",
+            "is_active",
+        ]
         labels = {
             "user": "Usuario",
             "full_name": "Nombre completo",
@@ -352,7 +360,9 @@ class CatalogCommissionMixin:
             self.fields["barber_commission_percent"].initial = Decimal("0.00")
             if "duration_minutes" in self.fields:
                 self.fields["duration_minutes"].disabled = True
-                self.fields["duration_minutes"].widget.attrs["placeholder"] = "Solo para servicios"
+                self.fields["duration_minutes"].widget.attrs[
+                    "placeholder"
+                ] = "Solo para servicios"
 
     def clean(self):
         cleaned_data = super().clean()

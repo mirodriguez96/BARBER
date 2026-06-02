@@ -19,7 +19,9 @@ class CatalogItem(models.Model):
         default=0,
     )
     duration_minutes = models.PositiveIntegerField(
-        "duración (minutos)", blank=True, null=True,
+        "duración (minutos)",
+        blank=True,
+        null=True,
         help_text="Solo para servicios. Define el bloque de tiempo en la agenda.",
     )
     current_stock = models.IntegerField(default=0)

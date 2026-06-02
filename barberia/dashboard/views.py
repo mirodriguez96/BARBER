@@ -42,6 +42,7 @@ from .models import RoleCrudPermission, RoleMenuPermission
 @login_required
 def home(request):
     from barberia.routers import set_current_db_name as _reset_db
+
     _reset_db(None)
     section = request.GET.get("section", "overview")
     quick_view = request.GET.get("view", "list")
@@ -259,9 +260,7 @@ def home(request):
                     messages.success(
                         request, "Horario de reservas actualizado correctamente."
                     )
-                    return redirect(
-                        f"{request.path}?section=config&config_tab=booking"
-                    )
+                    return redirect(f"{request.path}?section=config&config_tab=booking")
             else:
                 booking_form = BookingConfigForm(instance=company)
         else:
@@ -982,6 +981,7 @@ def home(request):
 
     # --- Combined people list (barbers + clients) ---
     from barberia.routers import set_current_db_name as _reset_db
+
     _reset_db(None)
     barber_qs = Employee.objects.order_by("-created_at", "-pk")
     client_qs = Client.objects.order_by("-created_at", "-pk")

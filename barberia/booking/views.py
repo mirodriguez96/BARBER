@@ -1,7 +1,9 @@
-import logging
 import json
+import logging
 import sys
-from datetime import date, datetime, time as time_type, timedelta
+from datetime import date, datetime
+from datetime import time as time_type
+from datetime import timedelta
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -31,10 +33,7 @@ def api_barbers(request, date_str):
 
     weekday = parsed_date.weekday()
     barbers = Employee.objects.filter(is_active=True).exclude(day_off=weekday)
-    data = [
-        {"id": b.id, "full_name": b.full_name}
-        for b in barbers
-    ]
+    data = [{"id": b.id, "full_name": b.full_name} for b in barbers]
     return JsonResponse({"barbers": data})
 
 
@@ -60,9 +59,7 @@ def api_client_lookup(request):
 
 
 def service_list(request):
-    services = CatalogItem.objects.filter(
-        kind=CatalogItem.Kind.SERVICE, is_active=True
-    )
+    services = CatalogItem.objects.filter(kind=CatalogItem.Kind.SERVICE, is_active=True)
     return render(
         request,
         "booking/service_list.html",
@@ -93,13 +90,15 @@ def api_slots(request, service_id, date_str):
         except Employee.DoesNotExist:
             pass
 
-    if barber is not None and barber.day_off is not None and barber.day_off == parsed_date.weekday():
+    if (
+        barber is not None
+        and barber.day_off is not None
+        and barber.day_off == parsed_date.weekday()
+    ):
         return JsonResponse({"slots": []})
 
     slots = _generate_time_slots(service, parsed_date, barber=barber)
-    return JsonResponse({
-        "slots": [{"label": s[0], "value": s[1]} for s in slots]
-    })
+    return JsonResponse({"slots": [{"label": s[0], "value": s[1]} for s in slots]})
 
 
 def _generate_time_slots(service, selected_date, barber=None):
@@ -107,7 +106,11 @@ def _generate_time_slots(service, selected_date, barber=None):
     if not company:
         return []
 
-    if barber is not None and barber.day_off is not None and barber.day_off == selected_date.weekday():
+    if (
+        barber is not None
+        and barber.day_off is not None
+        and barber.day_off == selected_date.weekday()
+    ):
         return []
 
     opening = company.opening_time
@@ -138,7 +141,9 @@ def _generate_time_slots(service, selected_date, barber=None):
     while current + timedelta(minutes=duration) <= end_dt:
         if selected_date == today:
             now = timezone.localtime(timezone.now())
-            current_aware = timezone.make_aware(current, timezone.get_current_timezone())
+            current_aware = timezone.make_aware(
+                current, timezone.get_current_timezone()
+            )
             if current_aware <= now:
                 current += timedelta(minutes=duration)
                 continue
@@ -192,9 +197,7 @@ def booking_form(request, service_id):
                 parsed_date = None
 
         if time_slots:
-            form.fields["time"].choices = [
-                ("", "Elige un horario")
-            ] + time_slots
+            form.fields["time"].choices = [("", "Elige un horario")] + time_slots
         else:
             form.fields["time"].choices = [
                 ("", "No hay horarios disponibles para esta fecha")
@@ -245,11 +248,17 @@ def booking_form(request, service_id):
                             barber = Employee.objects.get(id=barber_id, is_active=True)
                         except Employee.DoesNotExist:
                             pass
-                    time_slots = _generate_time_slots(service, parsed_date, barber=barber)
+                    time_slots = _generate_time_slots(
+                        service, parsed_date, barber=barber
+                    )
                     if time_slots:
-                        form.fields["time"].choices = [("", "Elige un horario")] + time_slots
+                        form.fields["time"].choices = [
+                            ("", "Elige un horario")
+                        ] + time_slots
                     else:
-                        form.fields["time"].choices = [("", "No hay horarios disponibles para esta fecha")]
+                        form.fields["time"].choices = [
+                            ("", "No hay horarios disponibles para esta fecha")
+                        ]
                 except (ValueError, TypeError):
                     form.fields["time"].choices = [("", "Selecciona una fecha primero")]
         else:
@@ -257,9 +266,7 @@ def booking_form(request, service_id):
 
         form.fields["time"].required = False
         if not restored_booking_data:
-            form.fields["time"].choices = [
-                ("", "Selecciona una fecha primero")
-            ]
+            form.fields["time"].choices = [("", "Selecciona una fecha primero")]
 
     return render(
         request,
@@ -373,7 +380,9 @@ def _send_confirmation_email(booking_data, service, scheduled_dt):
         if use_resend:
             payload = json.dumps(
                 {
-                    "from": getattr(settings, "RESEND_FROM_EMAIL", settings.DEFAULT_FROM_EMAIL),
+                    "from": getattr(
+                        settings, "RESEND_FROM_EMAIL", settings.DEFAULT_FROM_EMAIL
+                    ),
                     "to": [booking_data["email"]],
                     "subject": subject,
                     "html": html_message,
@@ -407,6 +416,7 @@ def _send_confirmation_email(booking_data, service, scheduled_dt):
             )
         else:
             logger.error(
-                "Confirmation email skipped: RESEND_API_KEY is not configured in production.")
+                "Confirmation email skipped: RESEND_API_KEY is not configured in production."
+            )
     except (URLError, Exception) as e:
         logger.error("Error sending confirmation email: %s", e)

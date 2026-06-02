@@ -42,7 +42,11 @@ class Employee(TimeStampedModel):
 class Client(TimeStampedModel):
     full_name = models.CharField(max_length=160)
     document_id = models.CharField(
-        "documento / cédula", max_length=30, unique=True, blank=True, null=True,
+        "documento / cédula",
+        max_length=30,
+        unique=True,
+        blank=True,
+        null=True,
         help_text="Opcional para reservas en línea. Si se llena, debe ser único.",
     )
     phone = models.CharField(max_length=20)
