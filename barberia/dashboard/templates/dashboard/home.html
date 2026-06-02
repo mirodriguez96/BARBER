@@ -21,6 +21,11 @@
         <div class="dashboard-shell">
             <aside class="dashboard-sidebar" id="dashboardSidebar">
                 <div class="dashboard-sidebar-header">
+                    {% if company.logo %}
+                        <img src="{{ company.logo.url }}"
+                             alt="Logo {{ company.name }}"
+                             class="dashboard-sidebar-logo mb-2" />
+                    {% endif %}
                     <h1 class="dashboard-page-title dashboard-page-title--inverse mb-3">{{ company.name|default:"Barbería Admin" }}</h1>
                     <button class="dashboard-nav-close"
                             id="navClose"
@@ -305,7 +310,9 @@
                                     <p class="mb-4 text-muted">
                                         Estos datos se usan como información principal del negocio. Solo se permite registrar una empresa.
                                     </p>
-                                    <form method="post" class="dashboard-form dashboard-config-form">
+                                    <form method="post"
+                                          enctype="multipart/form-data"
+                                          class="dashboard-form dashboard-config-form">
                                         {% csrf_token %}
                                         <div class="dashboard-form-grid">
                                             {% for field in company_form %}
