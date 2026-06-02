@@ -5,6 +5,7 @@ multiple lines. This script joins any such tag that spans lines into a
 single line so that djlint can format the template without breaking
 template syntax.
 """
+
 import re
 import sys
 from pathlib import Path
