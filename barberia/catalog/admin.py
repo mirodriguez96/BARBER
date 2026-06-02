@@ -11,6 +11,7 @@ class CatalogItemAdmin(admin.ModelAdmin):
         "name",
         "kind",
         "price",
+        "duration_minutes",
         "barber_commission_percent",
         "is_active",
     )

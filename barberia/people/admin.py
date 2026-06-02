@@ -11,6 +11,7 @@ class EmployeeAdmin(admin.ModelAdmin):
         "document_id",
         "phone",
         "email",
+        "day_off",
         "is_active",
         "created_at",
     )
@@ -25,9 +26,10 @@ class ClientAdmin(admin.ModelAdmin):
         "full_name",
         "document_id",
         "phone",
+        "email",
         "birth_date",
         "is_active",
         "created_at",
     )
     list_filter = ("is_active", "created_at")
-    search_fields = ("full_name", "document_id", "phone")
+    search_fields = ("full_name", "document_id", "phone", "email")

@@ -234,7 +234,7 @@ class ClientFormTest(TestCase):
         data = self.valid_data.copy()
         data["document_id"] = ""
         form = ClientForm(data=data)
-        self.assertFalse(form.is_valid())
+        self.assertIn("document_id", form.errors)
 
     def test_missing_full_name_rejected(self):
         data = self.valid_data.copy()

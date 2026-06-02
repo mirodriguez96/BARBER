@@ -15,5 +15,6 @@ urlpatterns = [
     path("dashboard/", include("barberia.dashboard.urls")),
     path("accounts/", include("barberia.accounts.urls")),
     path("tenants/", include("barberia.tenants.urls")),
+    path("reservar/", include("barberia.booking.urls")),
     path("health/", common_views.health, name="health"),
 ]

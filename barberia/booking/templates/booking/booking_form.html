@@ -1,0 +1,200 @@
+{% extends "booking/base_public.html" %}
+{% block title %}Agendar cita{% endblock %}
+{% block hero_title %}Completa tus datos{% endblock %}
+{% block hero_subtitle %}Elige la fecha, tu barbero y el horario que mejor te quede.{% endblock %}
+{% block content %}
+    <div class="booking-card">
+        <a href="{% url 'booking:service_list' %}" class="back-link">← Cambiar servicio</a>
+        <div class="service-summary">
+            <div class="service-summary__icon">✂</div>
+            <div class="service-summary__body">
+                <h3 class="service-summary__name">{{ service.name }}</h3>
+                <div class="service-summary__meta">
+                    {% if service.duration_minutes %}
+                        {{ service.duration_minutes }} min
+                    {% else %}
+                        Duración variable
+                    {% endif %}
+                </div>
+            </div>
+            <div class="service-summary__price">${{ service.price }}</div>
+        </div>
+    </div>
+    <div class="booking-card">
+        <div class="booking-card__head">
+            <div class="booking-card__head-icon">📋</div>
+            <div>
+                <h2 class="booking-card__title">Tus datos y horario</h2>
+                <p class="booking-card__sub">Selecciona cuándo quieres venir y déjanos tu información de contacto</p>
+            </div>
+        </div>
+        <form method="post" id="bookingForm">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-12 col-lg-6">
+                    <div class="form-row">
+                        <label for="{{ form.date.id_for_label }}" class="form-label">{{ form.date.label }}</label>
+                        {{ form.date }}
+                        {% if form.date.help_text %}<div class="form-text">{{ form.date.help_text }}</div>{% endif %}
+                        {% for error in form.date.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                </div>
+                <div class="col-12 col-lg-6">
+                    <div class="form-row">
+                        <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
+                        {{ form.email }}
+                        <div class="form-text">Escribe tu correo para completar tus datos si ya estás registrado.</div>
+                        {% if form.email.help_text %}<div class="form-text">{{ form.email.help_text }}</div>{% endif %}
+                        {% for error in form.email.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                </div>
+                <div class="col-12 col-lg-6">
+                    <div class="form-row">
+                        <label for="{{ form.full_name.id_for_label }}" class="form-label">{{ form.full_name.label }}</label>
+                        {{ form.full_name }}
+                        {% if form.full_name.help_text %}<div class="form-text">{{ form.full_name.help_text }}</div>{% endif %}
+                        {% for error in form.full_name.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                </div>
+                <div class="col-12 col-lg-6">
+                    <div class="form-row">
+                        <label for="{{ form.phone.id_for_label }}" class="form-label">{{ form.phone.label }}</label>
+                        {{ form.phone }}
+                        {% if form.phone.help_text %}<div class="form-text">{{ form.phone.help_text }}</div>{% endif %}
+                        {% for error in form.phone.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                </div>
+                <div class="col-12 col-lg-6">
+                    <div class="form-row">
+                        <label for="{{ form.barber.id_for_label }}" class="form-label">{{ form.barber.label }}</label>
+                        {{ form.barber }}
+                        {% if form.barber.help_text %}<div class="form-text">{{ form.barber.help_text }}</div>{% endif %}
+                        {% for error in form.barber.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                </div>
+                <div class="col-12 col-lg-6">
+                    <div class="form-row">
+                        <label for="{{ form.time.id_for_label }}" class="form-label">{{ form.time.label }}</label>
+                        {{ form.time }}
+                        {% if form.time.help_text %}<div class="form-text">{{ form.time.help_text }}</div>{% endif %}
+                        {% for error in form.time.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="form-row">
+                        <label for="{{ form.notes.id_for_label }}" class="form-label">{{ form.notes.label }}</label>
+                        {{ form.notes }}
+                        {% if form.notes.help_text %}<div class="form-text">{{ form.notes.help_text }}</div>{% endif %}
+                        {% for error in form.notes.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn-primary-booking btn-block">
+                {% if time_slots %}
+                    Continuar →
+                {% else %}
+                    Buscar disponibilidad
+                {% endif %}
+            </button>
+        </form>
+    </div>
+    <script>
+(function() {
+    var dateInput = document.getElementById('id_date');
+    var emailInput = document.getElementById('id_email');
+    var fullNameInput = document.getElementById('id_full_name');
+    var phoneInput = document.getElementById('id_phone');
+    var timeSelect = document.getElementById('id_time');
+    var barberSelect = document.getElementById('id_barber');
+    var serviceId = {{ service.id }};
+    if (!dateInput || !emailInput || !fullNameInput || !phoneInput || !timeSelect || !barberSelect) return;
+
+    barberSelect.disabled = true;
+
+    var clientLookupUrl = '{% url "booking:api_client_lookup" %}';
+
+    function lookupClientByEmail() {
+        var emailVal = emailInput.value.trim();
+        if (!emailVal) return;
+        var url = clientLookupUrl + '?email=' + encodeURIComponent(emailVal);
+        fetch(url)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.found && data.client) {
+                    if (!fullNameInput.value) fullNameInput.value = data.client.full_name || '';
+                    if (!phoneInput.value) phoneInput.value = data.client.phone || '';
+                }
+            })
+            .catch(function() {});
+    }
+
+    function loadBarbers() {
+        var dateVal = dateInput.value;
+        if (!dateVal) {
+            barberSelect.disabled = true;
+            barberSelect.innerHTML = '<option value="">Selecciona una fecha primero</option>';
+            timeSelect.disabled = true;
+            timeSelect.innerHTML = '<option value="">Selecciona una fecha primero</option>';
+            return;
+        }
+        var url = '/reservar/api/barbers/' + dateVal + '/';
+        fetch(url)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                barberSelect.innerHTML = '<option value="">Selecciona un barbero</option>';
+                if (data.barbers && data.barbers.length > 0) {
+                    data.barbers.forEach(function(b) {
+                        var opt = document.createElement('option');
+                        opt.value = b.id;
+                        opt.textContent = b.full_name;
+                        barberSelect.appendChild(opt);
+                    });
+                    barberSelect.disabled = false;
+                } else {
+                    barberSelect.innerHTML = '<option value="">No hay barberos disponibles esta fecha</option>';
+                    barberSelect.disabled = true;
+                }
+            })
+            .catch(function() {
+                barberSelect.innerHTML = '<option value="">Error al cargar barberos</option>';
+            });
+        timeSelect.disabled = true;
+        timeSelect.innerHTML = '<option value="">Selecciona un barbero primero</option>';
+    }
+
+    function loadSlots() {
+        var dateVal = dateInput.value;
+        var barberVal = barberSelect.value;
+        if (!dateVal || !barberVal) return;
+        timeSelect.disabled = true;
+        timeSelect.innerHTML = '<option value="">Cargando horarios...</option>';
+        var url = '/reservar/api/slots/' + serviceId + '/' + dateVal + '/?barber=' + barberVal;
+        fetch(url)
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                timeSelect.innerHTML = '<option value="">Elige un horario</option>';
+                if (data.slots && data.slots.length > 0) {
+                    data.slots.forEach(function(slot) {
+                        var opt = document.createElement('option');
+                        opt.value = slot.value;
+                        opt.textContent = slot.label;
+                        timeSelect.appendChild(opt);
+                    });
+                    timeSelect.disabled = false;
+                } else {
+                    timeSelect.innerHTML = '<option value="">No hay horarios disponibles para esta fecha</option>';
+                }
+            })
+            .catch(function() {
+                timeSelect.innerHTML = '<option value="">Error al cargar horarios</option>';
+            });
+    }
+
+    dateInput.addEventListener('change', loadBarbers);
+    emailInput.addEventListener('blur', lookupClientByEmail);
+    emailInput.addEventListener('change', lookupClientByEmail);
+    barberSelect.addEventListener('change', loadSlots);
+    if (dateInput.value) loadBarbers();
+})();
+    </script>
+{% endblock %}

@@ -1,7 +1,6 @@
 import json
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from itertools import chain
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -22,6 +21,7 @@ from barberia.people.models import Client, Employee
 from .forms import (
     BarberEditForm,
     BarberForm,
+    BookingConfigForm,
     CatalogItemEditForm,
     CatalogItemForm,
     ClientEditForm,
@@ -40,6 +40,9 @@ from .models import RoleCrudPermission, RoleMenuPermission
 
 @login_required
 def home(request):
+    from barberia.routers import set_current_db_name as _reset_db
+
+    _reset_db(None)
     section = request.GET.get("section", "overview")
     quick_view = request.GET.get("view", "list")
     record_type = request.GET.get("type", "colaborador")
@@ -201,6 +204,8 @@ def home(request):
 
     company = Company.objects.first()
     company_form = None
+    booking_form = None
+    booking_services = []
     if section == "config":
         if config_tab == "permissions":
             if not is_admin:
@@ -243,6 +248,20 @@ def home(request):
                 return redirect(
                     f"{request.path}?section=config&config_tab=crud_permissions&crud_section={crud_section}"
                 )
+        elif config_tab == "booking":
+            booking_services = CatalogItem.objects.filter(
+                kind=CatalogItem.Kind.SERVICE,
+            ).order_by("name")
+            if request.method == "POST":
+                booking_form = BookingConfigForm(request.POST, instance=company)
+                if booking_form.is_valid():
+                    booking_form.save()
+                    messages.success(
+                        request, "Horario de reservas actualizado correctamente."
+                    )
+                    return redirect(f"{request.path}?section=config&config_tab=booking")
+            else:
+                booking_form = BookingConfigForm(instance=company)
         else:
             if request.method == "POST":
                 company_form = CompanyForm(request.POST, instance=company)
@@ -479,7 +498,13 @@ def home(request):
             if form.is_valid():
                 record = form.save(commit=False)
                 record.performed_by = request.user
-                if record.status == Sale.Status.SCHEDULED:
+                posted_status = request.POST.get("status")
+                if posted_status in (
+                    Sale.Status.SCHEDULED,
+                    Sale.Status.DONE,
+                ):
+                    record.status = posted_status
+                else:
                     record.status = Sale.Status.DONE
                 old_is_product = (
                     original_product_id
@@ -954,8 +979,11 @@ def home(request):
         catalog_filter_params += f"&catalog_kind={catalog_kind}"
 
     # --- Combined people list (barbers + clients) ---
-    barber_qs = Employee.objects.all()
-    client_qs = Client.objects.all()
+    from barberia.routers import set_current_db_name as _reset_db
+
+    _reset_db(None)
+    barber_qs = Employee.objects.order_by("-created_at", "-pk")
+    client_qs = Client.objects.order_by("-created_at", "-pk")
     if barber_search:
         barber_qs = barber_qs.filter(
             Q(full_name__icontains=barber_search)
@@ -995,15 +1023,12 @@ def home(request):
         for c in client_qs
     ]
     if barber_type == "colaborador":
-        combined = sorted(barber_data, key=lambda x: x["created_at"], reverse=True)
+        combined = barber_data
     elif barber_type == "cliente":
-        combined = sorted(client_data, key=lambda x: x["created_at"], reverse=True)
+        combined = client_data
     else:
-        combined = sorted(
-            chain(barber_data, client_data),
-            key=lambda x: x["created_at"],
-            reverse=True,
-        )
+        combined = list(barber_data) + list(client_data)
+        combined.sort(key=lambda x: (x["created_at"], x["pk"]), reverse=True)
     people_paginator = Paginator(combined, 10)
     people_page_number = request.GET.get("page")
     people_page = people_paginator.get_page(people_page_number)
@@ -1503,6 +1528,8 @@ def home(request):
         "inventory_movements_page": inventory_movements_page,
         "company": company,
         "company_form": company_form,
+        "booking_form": booking_form,
+        "booking_services": booking_services,
         "menu_items": (
             [
                 {"key": "overview", "label": "INICIO", "hint": ""},

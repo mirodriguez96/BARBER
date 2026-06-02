@@ -9,12 +9,19 @@ from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
 from barberia.operations.models import Sale
 from barberia.people.models import Client, Employee
+from barberia.routers import set_current_db_name
 
 
 class PaginationIntegrationTest(TestCase):
     PAGE_SIZE = 10
 
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        set_current_db_name(None)
+
     def setUp(self):
+        set_current_db_name(None)
         self.user = User.objects.create_user(
             username="admin",
             password="pass1234",
@@ -42,6 +49,9 @@ class PaginationIntegrationTest(TestCase):
         self.http_client = self.client
         self.http_client.login(username="admin", password="pass1234")
         self.list_url = reverse("dashboard:home")
+
+    def tearDown(self):
+        set_current_db_name(None)
 
     @staticmethod
     def _url_with(section, **params):
@@ -106,10 +116,17 @@ class PaginationIntegrationTest(TestCase):
 
     def test_barber_pagination_no_duplicates_across_pages(self):
         self._barbers(14)  # +1 from setUp = 15 total
+        set_current_db_name(None)
         page1 = self.http_client.get(self._url_with("barbers", page="1"))
+        set_current_db_name(None)
         page2 = self.http_client.get(self._url_with("barbers", page="2"))
-        ids_p1 = {e["pk"] for e in page1.context["barbers"].object_list}
-        ids_p2 = {e["pk"] for e in page2.context["barbers"].object_list}
+        set_current_db_name(None)
+        # Employee and Client share the same auto-increment sequence, so
+        # the same pk value can refer to two different records (one of each
+        # model). Assert uniqueness on (type, pk) tuples to catch real
+        # duplicates from the paginator while tolerating that collision.
+        ids_p1 = {(e["type"], e["pk"]) for e in page1.context["barbers"].object_list}
+        ids_p2 = {(e["type"], e["pk"]) for e in page2.context["barbers"].object_list}
         self.assertFalse(ids_p1 & ids_p2)
 
     # --- Catalog pagination ---

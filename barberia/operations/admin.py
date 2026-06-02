@@ -21,11 +21,13 @@ class SaleAdmin(admin.ModelAdmin):
     search_fields = (
         "codigo",
         "client__full_name",
+        "client__email",
         "employee__full_name",
         "product__name",
         "notes",
     )
     autocomplete_fields = ("client", "employee", "product", "performed_by")
+    date_hierarchy = "scheduled_for"
 
 
 @admin.register(Purchase)

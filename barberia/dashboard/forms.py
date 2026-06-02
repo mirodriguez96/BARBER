@@ -62,6 +62,20 @@ class CompanyForm(DashboardModelForm):
         }
 
 
+class BookingConfigForm(DashboardModelForm):
+    class Meta:
+        model = Company
+        fields = ["opening_time", "closing_time"]
+        labels = {
+            "opening_time": "Hora de apertura",
+            "closing_time": "Hora de cierre",
+        }
+        widgets = {
+            "opening_time": forms.TimeInput(attrs={"type": "time"}),
+            "closing_time": forms.TimeInput(attrs={"type": "time"}),
+        }
+
+
 class ServiceCatalogSelect(forms.Select):
     queryset = None
 
@@ -104,13 +118,22 @@ class BarberForm(DashboardModelForm):
 
     class Meta:
         model = Employee
-        fields = ["user", "full_name", "document_id", "phone", "email", "is_active"]
+        fields = [
+            "user",
+            "full_name",
+            "document_id",
+            "phone",
+            "email",
+            "day_off",
+            "is_active",
+        ]
         labels = {
             "user": "Usuario",
             "full_name": "Nombre completo",
             "document_id": "Documento / cédula",
             "phone": "Teléfono",
             "email": "Correo electrónico",
+            "day_off": "Día de descanso",
             "is_active": "Activo",
         }
         widgets = {
@@ -127,6 +150,7 @@ class BarberForm(DashboardModelForm):
             "email": forms.EmailInput(
                 attrs={"class": "form-control", "placeholder": "correo@ejemplo.com"},
             ),
+            "day_off": forms.Select(attrs={"class": "form-select"}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 
@@ -184,11 +208,12 @@ class BarberEditForm(DashboardModelForm):
 
     class Meta:
         model = Employee
-        fields = ["full_name", "phone", "email"]
+        fields = ["full_name", "phone", "email", "day_off"]
         labels = {
             "full_name": "Nombre completo",
             "phone": "Teléfono",
             "email": "Correo electrónico",
+            "day_off": "Día de descanso",
         }
         widgets = {
             "full_name": forms.TextInput(
@@ -200,6 +225,7 @@ class BarberEditForm(DashboardModelForm):
             "email": forms.EmailInput(
                 attrs={"class": "form-control", "placeholder": "correo@ejemplo.com"},
             ),
+            "day_off": forms.Select(attrs={"class": "form-select"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -252,7 +278,10 @@ class ClientForm(DashboardModelForm):
         }
 
     def clean_document_id(self):
-        document_id = self.cleaned_data["document_id"].strip()
+        document_id = self.cleaned_data.get("document_id")
+        if not document_id or not document_id.strip():
+            raise forms.ValidationError("El documento / cédula es obligatorio.")
+        document_id = document_id.strip()
         existing = Client.objects.filter(document_id=document_id)
         if self.instance.pk:
             existing = existing.exclude(pk=self.instance.pk)
@@ -270,11 +299,12 @@ class ClientForm(DashboardModelForm):
 class ClientEditForm(DashboardModelForm):
     class Meta:
         model = Client
-        fields = ["full_name", "document_id", "phone", "birth_date"]
+        fields = ["full_name", "document_id", "phone", "email", "birth_date"]
         labels = {
             "full_name": "Nombre completo",
             "document_id": "Documento / cédula",
             "phone": "Teléfono",
+            "email": "Correo electrónico",
             "birth_date": "Fecha de nacimiento",
         }
         widgets = {
@@ -287,13 +317,19 @@ class ClientEditForm(DashboardModelForm):
             "phone": forms.TextInput(
                 attrs={"class": "form-control", "placeholder": "Ej. 300 123 4567"},
             ),
+            "email": forms.EmailInput(
+                attrs={"class": "form-control", "placeholder": "correo@ejemplo.com"},
+            ),
             "birth_date": forms.DateInput(
                 attrs={"class": "form-control", "type": "date"},
             ),
         }
 
     def clean_document_id(self):
-        document_id = self.cleaned_data["document_id"].strip()
+        document_id = self.cleaned_data.get("document_id")
+        if not document_id or not document_id.strip():
+            raise forms.ValidationError("El documento / cédula es obligatorio.")
+        document_id = document_id.strip()
         existing = Client.objects.filter(document_id=document_id)
         if self.instance.pk:
             existing = existing.exclude(pk=self.instance.pk)
@@ -311,9 +347,9 @@ class ClientEditForm(DashboardModelForm):
 class CatalogCommissionMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._adjust_commission_for_kind()
+        self._adjust_fields_for_kind()
 
-    def _adjust_commission_for_kind(self):
+    def _adjust_fields_for_kind(self):
         kind_value = None
         if self.is_bound:
             kind_value = self.data.get(self.add_prefix("kind"))
@@ -322,12 +358,18 @@ class CatalogCommissionMixin:
         if kind_value == CatalogItem.Kind.PRODUCT:
             self.fields["barber_commission_percent"].disabled = True
             self.fields["barber_commission_percent"].initial = Decimal("0.00")
+            if "duration_minutes" in self.fields:
+                self.fields["duration_minutes"].disabled = True
+                self.fields["duration_minutes"].widget.attrs[
+                    "placeholder"
+                ] = "Solo para servicios"
 
     def clean(self):
         cleaned_data = super().clean()
         kind = cleaned_data.get("kind")
         if kind == CatalogItem.Kind.PRODUCT:
             cleaned_data["barber_commission_percent"] = Decimal("0.00")
+            cleaned_data["duration_minutes"] = None
         return cleaned_data
 
 
@@ -338,6 +380,7 @@ class CatalogItemForm(CatalogCommissionMixin, DashboardModelForm):
             "name",
             "kind",
             "price",
+            "duration_minutes",
             "barber_commission_percent",
             "is_active",
             "description",
@@ -346,6 +389,7 @@ class CatalogItemForm(CatalogCommissionMixin, DashboardModelForm):
             "kind": "Tipo",
             "name": "Nombre",
             "price": "Precio",
+            "duration_minutes": "Duración (min)",
             "barber_commission_percent": "Comisión del colaborador (%)",
             "is_active": "Activo",
         }
@@ -364,6 +408,9 @@ class CatalogItemForm(CatalogCommissionMixin, DashboardModelForm):
             "price": forms.NumberInput(
                 attrs={"class": "form-control", "step": "0.01", "min": "0"},
             ),
+            "duration_minutes": forms.NumberInput(
+                attrs={"class": "form-control", "min": "0", "placeholder": "Ej. 30"},
+            ),
             "barber_commission_percent": forms.NumberInput(
                 attrs={"class": "form-control", "step": "0.01", "min": "0"},
             ),
@@ -378,6 +425,7 @@ class CatalogItemEditForm(CatalogCommissionMixin, DashboardModelForm):
             "name",
             "kind",
             "price",
+            "duration_minutes",
             "barber_commission_percent",
             "description",
         ]
@@ -386,6 +434,7 @@ class CatalogItemEditForm(CatalogCommissionMixin, DashboardModelForm):
             "name": "Nombre",
             "description": "Descripción",
             "price": "Precio",
+            "duration_minutes": "Duración (min)",
             "barber_commission_percent": "Comisión del colaborador (%)",
         }
         widgets = {
@@ -402,6 +451,9 @@ class CatalogItemEditForm(CatalogCommissionMixin, DashboardModelForm):
             ),
             "price": forms.NumberInput(
                 attrs={"class": "form-control", "step": "0.01", "min": "0"},
+            ),
+            "duration_minutes": forms.NumberInput(
+                attrs={"class": "form-control", "min": "0", "placeholder": "Ej. 30"},
             ),
             "barber_commission_percent": forms.NumberInput(
                 attrs={"class": "form-control", "step": "0.01", "min": "0"},

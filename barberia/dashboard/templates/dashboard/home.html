@@ -115,6 +115,8 @@
                                        href="?section=config&config_tab=permissions">Permisos de Menú</a>
                                     <a class="dashboard-quick-switch__item {% if config_tab == 'crud_permissions' %}is-active{% endif %}"
                                        href="?section=config&config_tab=crud_permissions">Permisos de Acciones</a>
+                                    <a class="dashboard-quick-switch__item {% if config_tab == 'booking' %}is-active{% endif %}"
+                                       href="?section=config&config_tab=booking">Reservas</a>
                                 </div>
                             {% endif %}
                             {% if config_tab == 'permissions' %}
@@ -211,6 +213,92 @@
                                             </button>
                                         </div>
                                     </form>
+                                </div>
+                            {% elif config_tab == 'booking' %}
+                                <div class="dashboard-config-card">
+                                    <p class="mb-4 text-muted">
+                                        Configura el horario de atención para las reservas en línea y revisa la duración de cada servicio.
+                                    </p>
+                                    <form method="post" class="dashboard-form dashboard-config-form mb-5">
+                                        {% csrf_token %}
+                                        <div class="dashboard-form-grid">
+                                            {% for field in booking_form %}
+                                                <div class="dashboard-field-card">
+                                                    <div class="dashboard-field-card__head">
+                                                        <label class="form-label mb-0" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                                        {% if field.field.required %}<span class="dashboard-field-card__required">Obligatorio</span>{% endif %}
+                                                    </div>
+                                                    <div class="dashboard-field-card__body">
+                                                        {{ field }}
+                                                        {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+                                                        {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>{% endif %}
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="dashboard-form-gap" aria-hidden="true"></div>
+                                        <div class="dashboard-form__actions mt-4">
+                                            <button type="submit"
+                                                    class="btn btn-dashboard-primary btn-lg rounded-pill px-5">
+                                                Guardar horario
+                                            </button>
+                                        </div>
+                                    </form>
+                                    <hr class="my-4">
+                                    <h5 class="mb-3">Duración de servicios</h5>
+                                    <div class="table-responsive">
+                                        <table class="dashboard-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Servicio</th>
+                                                    <th>Duración</th>
+                                                    <th>Precio</th>
+                                                    <th>Estado</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for service in booking_services %}
+                                                    <tr>
+                                                        <td>
+                                                            <div class="dashboard-person">
+                                                                <div class="dashboard-person__avatar" aria-hidden="true">{{ service.name|slice:":1" }}</div>
+                                                                <div class="dashboard-person__body">
+                                                                    <div class="dashboard-table__primary">{{ service.name }}</div>
+                                                                    <div class="dashboard-table__meta">{{ service.sku }}</div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            {% if service.duration_minutes %}
+                                                                {{ service.duration_minutes }} min
+                                                            {% else %}
+                                                                &mdash;
+                                                            {% endif %}
+                                                        </td>
+                                                        <td>${{ service.price }}</td>
+                                                        <td>
+                                                            <span class="dashboard-status {% if service.is_active %}is-active{% else %}is-inactive{% endif %}">
+                                                                {% if service.is_active %}
+                                                                    Activo
+                                                                {% else %}
+                                                                    Inactivo
+                                                                {% endif %}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                {% empty %}
+                                                    <tr>
+                                                        <td colspan="4" class="dashboard-empty-state">
+                                                            <div class="dashboard-empty-state__title">No hay servicios registrados.</div>
+                                                            <div class="dashboard-empty-state__copy">
+                                                                Crea servicios desde la sección Productos y Servicios para que aparezcan aquí.
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             {% else %}
                                 <div class="dashboard-config-card">
@@ -673,6 +761,7 @@
                                                 <th>Nombre</th>
                                                 <th>Tipo</th>
                                                 <th>Precio</th>
+                                                <th>Duración</th>
                                                 <th>Comisión</th>
                                                 <th class="col-state">Estado</th>
                                                 <th class="col-actions">Acciones</th>
@@ -694,6 +783,13 @@
                                                         <span class="dashboard-table__chip">{{ item.get_kind_display }}</span>
                                                     </td>
                                                     <td>${{ item.price }}</td>
+                                                    <td>
+                                                        {% if item.duration_minutes %}
+                                                            {{ item.duration_minutes }} min
+                                                        {% else %}
+                                                            &mdash;
+                                                        {% endif %}
+                                                    </td>
                                                     <td>{{ item.barber_commission_percent }}%</td>
                                                     <td class="col-state">
                                                         <span class="dashboard-status {% if item.is_active %}is-active{% else %}is-inactive{% endif %}">
@@ -839,6 +935,7 @@
                                             <tr>
                                                 <th class="col-code">Código</th>
                                                 <th>Producto</th>
+                                                <th>Colaborador</th>
                                                 <th>Cantidad</th>
                                                 <th>Total</th>
                                                 <th>Fecha</th>
@@ -862,6 +959,7 @@
                                                             {% endif %}
                                                         </div>
                                                     </td>
+                                                    <td>{{ record.employee.full_name|default:"-" }}</td>
                                                     <td>{{ record.quantity }}</td>
                                                     <td>${{ record.product_price }}</td>
                                                     <td>{{ record.scheduled_for|date:'d/m/Y H:i' }}</td>
@@ -1176,7 +1274,7 @@
                                                     </tr>
                                                 {% empty %}
                                                     <tr>
-                                                        <td colspan="6" class="dashboard-empty-state">
+                                                        <td colspan="8" class="dashboard-empty-state">
                                                             <div class="dashboard-empty-state__title">Sin movimientos.</div>
                                                         </td>
                                                     </tr>
@@ -1421,6 +1519,25 @@
                                     <input type="hidden" name="action" value="adjust" />
                                 {% endif %}
                                 <div class="dashboard-form-grid">
+                                    {% if active_section == 'sales' and quick_view == 'edit' and sale_to_edit %}
+                                        <div class="dashboard-field-card">
+                                            <div class="dashboard-field-card__head">
+                                                <label class="form-label mb-0" for="id_status_inline">Estado</label>
+                                            </div>
+                                            <div class="dashboard-field-card__body">
+                                                <select id="id_status_inline" name="status" class="form-select">
+                                                    <option value="scheduled"
+                                                            {% if sale_to_edit.status == 'scheduled' %}selected{% endif %}>
+                                                        Programado
+                                                    </option>
+                                                    <option value="done"
+                                                            {% if sale_to_edit.status == 'done' %}selected{% endif %}>
+                                                        Realizado
+                                                    </option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    {% endif %}
                                     {% if form %}
                                         {% for field in form %}
                                             {% if field.name == 'is_supply' %}

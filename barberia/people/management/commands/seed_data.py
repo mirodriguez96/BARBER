@@ -69,6 +69,8 @@ class Command(BaseCommand):
             name=f"Barbería {tenant.title()}",
             address="Calle Principal #123",
             phone="+591 70000000",
+            opening_time="09:00",
+            closing_time="19:00",
         )
         self.stdout.write("  ✓ Company creada")
 
@@ -152,12 +154,12 @@ class Command(BaseCommand):
 
         # --- Catalog ---
         services = [
-            ("Corte de cabello", Decimal("50.00"), Decimal("40")),
-            ("Corte + Barba", Decimal("70.00"), Decimal("40")),
-            ("Barba completa", Decimal("30.00"), Decimal("50")),
-            ("Corte infantil", Decimal("40.00"), Decimal("40")),
-            ("Tinte completo", Decimal("150.00"), Decimal("30")),
-            ("Corte degradado", Decimal("60.00"), Decimal("40")),
+            ("Corte de cabello", Decimal("50.00"), Decimal("40"), 30),
+            ("Corte + Barba", Decimal("70.00"), Decimal("40"), 45),
+            ("Barba completa", Decimal("30.00"), Decimal("50"), 20),
+            ("Corte infantil", Decimal("40.00"), Decimal("40"), 30),
+            ("Tinte completo", Decimal("150.00"), Decimal("30"), 90),
+            ("Corte degradado", Decimal("60.00"), Decimal("40"), 40),
         ]
         products = [
             ("Gel fijador", Decimal("25.00"), 20),
@@ -167,13 +169,14 @@ class Command(BaseCommand):
         ]
 
         catalog_items = {}
-        for name, price, comm in services:
+        for name, price, comm, dur in services:
             item = CatalogItem.objects.create(
                 kind=CatalogItem.Kind.SERVICE,
                 name=name,
                 description=name,
                 price=price,
                 barber_commission_percent=comm,
+                duration_minutes=dur,
                 current_stock=0,
                 is_active=True,
             )

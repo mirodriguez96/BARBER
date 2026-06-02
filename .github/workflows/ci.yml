@@ -22,14 +22,12 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install black isort flake8 djlint
-      - name: Check formatting with Black
-        run: black --check .
-      - name: Check imports with isort
-        run: isort --check-only .
-      - name: Lint with Flake8
-        run: flake8 .
-      - name: Check Django templates with djlint
-        run: djlint barberia/**/templates --check
+      - name: Run all linters
+        run: |
+          black --check .
+          isort --check-only .
+          flake8 .
+          djlint barberia/**/templates --check
 
   security:
     runs-on: ubuntu-latest
