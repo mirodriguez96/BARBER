@@ -603,6 +603,7 @@ class SaleEditForm(DashboardModelForm):
             "product_price",
             "commission_amount",
             "tip_amount",
+            "notes",
         ]
         labels = {
             "employee": "Colaborador",
@@ -610,6 +611,7 @@ class SaleEditForm(DashboardModelForm):
             "product_price": "Valor del servicio",
             "commission_amount": "Comisión del colaborador",
             "tip_amount": "Propina",
+            "notes": "Observaciones",
         }
         widgets = {
             "employee": forms.Select(attrs={"class": "form-select"}),
@@ -622,6 +624,13 @@ class SaleEditForm(DashboardModelForm):
                     "step": "0.01",
                     "min": "0",
                     "placeholder": "Opcional",
+                },
+            ),
+            "notes": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 4,
+                    "placeholder": "Observaciones del servicio",
                 },
             ),
         }
@@ -746,11 +755,13 @@ class ProductSaleEditForm(DashboardModelForm):
             "product",
             "quantity",
             "product_price",
+            "notes",
         ]
         labels = {
             "product": "Producto",
             "quantity": "Cantidad",
             "product_price": "Valor total",
+            "notes": "Observaciones",
         }
         widgets = {
             "product": ServiceCatalogSelect(
@@ -761,6 +772,13 @@ class ProductSaleEditForm(DashboardModelForm):
                     "class": "form-control",
                     "min": "1",
                     "step": "1",
+                },
+            ),
+            "notes": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 4,
+                    "placeholder": "Observaciones del producto",
                 },
             ),
         }
