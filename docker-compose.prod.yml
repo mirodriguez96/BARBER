@@ -38,6 +38,8 @@ services:
       DJANGO_SECURE_HSTS_SECONDS: "31536000"
       DJANGO_HSTS_INCLUDE_SUBDOMAINS: "True"
       DJANGO_HSTS_PRELOAD: "True"
+      RESEND_API_KEY: ${RESEND_API_KEY:?Debe definir RESEND_API_KEY en .env}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:?Debe definir RESEND_FROM_EMAIL en .env}
     ports:
       - "127.0.0.1:8000:8000"
     volumes:
