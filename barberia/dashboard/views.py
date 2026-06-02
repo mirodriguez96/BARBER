@@ -261,7 +261,9 @@ def home(request):
                 booking_form = BookingConfigForm(instance=company)
         else:
             if request.method == "POST":
-                company_form = CompanyForm(request.POST, instance=company)
+                company_form = CompanyForm(
+                    request.POST, request.FILES, instance=company
+                )
                 if company_form.is_valid():
                     company = company_form.save()
                     message = (

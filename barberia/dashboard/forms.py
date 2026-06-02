@@ -47,10 +47,11 @@ class DashboardModelForm(forms.ModelForm):
 class CompanyForm(DashboardModelForm):
     class Meta:
         model = Company
-        fields = ["nit", "name"]
+        fields = ["nit", "name", "logo"]
         labels = {
             "nit": "NIT",
             "name": "Nombre de la empresa",
+            "logo": "Logo de la empresa",
         }
         widgets = {
             "nit": forms.TextInput(
@@ -58,6 +59,9 @@ class CompanyForm(DashboardModelForm):
             ),
             "name": forms.TextInput(
                 attrs={"class": "form-control", "placeholder": "Ej. Barbería Central"}
+            ),
+            "logo": forms.ClearableFileInput(
+                attrs={"class": "form-control", "accept": "image/*"}
             ),
         }
 

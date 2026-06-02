@@ -1,15 +1,19 @@
+import re
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.template import Context, Template
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from barberia.booking.views import _generate_time_slots
 from barberia.catalog.models import CatalogItem
+from barberia.common.context_processors import tenant_context
 from barberia.common.models import Company
 from barberia.operations.models import Sale
 from barberia.people.models import Client, Employee
+from barberia.tenants.models import Domain, Tenant
 
 
 def _future_date(days=1):
@@ -476,3 +480,106 @@ class BookingViewTests(TestCase):
         self.barber.save(update_fields=["day_off"])
         slots = _generate_time_slots(self.service, monday, barber=self.barber)
         self.assertEqual(slots, [])
+
+
+@override_settings(ALLOWED_HOSTS=["*"])
+class BasePublicOgTagsTest(TestCase):
+    """Render the base_public template in isolation and assert OG tags."""
+
+    BASE_TEMPLATE = """
+        {% load static %}
+        <html>
+        <head>
+            {% include "booking/base_public.html" %}
+        </head>
+        <body>{% block content %}{% endblock %}</body>
+        </html>
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(
+            schema_name="luxor",
+            db_name="barber_luxor",
+            name="Luxor",
+        )
+        Domain.objects.create(domain="luxor.colstyle.com", tenant=self.tenant)
+
+    def _render(self, host="luxor.colstyle.com"):
+        tpl = Template(self.BASE_TEMPLATE)
+        request = _FakeRequest(host)
+        ctx = Context({"request": request, **tenant_context(request)})
+        return tpl.render(ctx)
+
+    def _title_text(self, html):
+        m = re.search(r"<title>(.*?)</title>", html, re.DOTALL)
+        return re.sub(r"\s+", " ", m.group(1)).strip() if m else ""
+
+    def _og_attr(self, html, attr):
+        m = re.search(
+            rf'property="{re.escape(attr)}"\s+content="([^"]*)"',
+            html,
+        )
+        return m.group(1) if m else ""
+
+    def test_title_uses_tenant_name(self):
+        self.assertEqual(self._title_text(self._render()), "Reservar cita | Luxor")
+
+    def test_og_title_uses_tenant_name(self):
+        self.assertEqual(
+            self._og_attr(self._render(), "og:title"), "Luxor - Reservar cita"
+        )
+
+    def test_og_site_name_uses_tenant_name(self):
+        html = self._render()
+        self.assertIn('property="og:site_name" content="Luxor"', html)
+
+    def test_og_type_is_website(self):
+        html = self._render()
+        self.assertIn('property="og:type" content="website"', html)
+
+    def test_og_description_present(self):
+        html = self._render()
+        self.assertIn('property="og:description"', html)
+        self.assertIn("Luxor", html)
+
+    def test_og_url_is_absolute(self):
+        html = self._render()
+        self.assertIn('property="og:url"', html)
+        self.assertIn("luxor.colstyle.com", html)
+
+    def test_twitter_card_present(self):
+        html = self._render()
+        self.assertIn('name="twitter:card"', html)
+        self.assertIn('name="twitter:title"', html)
+        self.assertIn("Luxor", html)
+
+    def test_meta_description_present(self):
+        html = self._render()
+        self.assertIn('name="description"', html)
+
+    def test_falls_back_to_default_when_no_tenant(self):
+        html = self._render(host="ghost.example.com")
+        self.assertEqual(self._title_text(html), "Reservar cita | Barbería")
+        self.assertIn('property="og:site_name" content="Barbería"', html)
+
+
+class _FakeRequest:
+    """Minimal request stand-in: only what the context processor and the
+    ``base_public.html`` template touch (host + scheme + path)."""
+
+    def __init__(self, host, scheme="https", path="/reservar/"):
+        self._host = host
+        self._scheme = scheme
+        self._path = path
+        self.tenant = None
+
+    def get_host(self):
+        return self._host
+
+    @property
+    def scheme(self):
+        return self._scheme
+
+    @property
+    def path(self):
+        return self._path
