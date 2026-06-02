@@ -14,6 +14,10 @@ POBLAR UNA BD EN VENV Y docker
     python manage.py seed_data --tenant=luxor
 
 
+REALIZAR MIGRACIONES
+    docker compose exec web python manage.py migrate_all_tenants
+    python manage.py migrate_all_tenants
+
 ---------------------------------------------------BLOQUEO POR INTENTOS EXCESIVOS------------------------
 
     HABILITAR BD ESPECIFICA
@@ -52,9 +56,6 @@ Crear superusuario en DB default (admin.colstyle.com)
 
 Crear superusuario en DB de un tenant específico
     docker compose exec web python manage.py register_tenant <schema_name> --domain "<schema>.colstyle.com" --superuser-only
-
-Migrar todas las DBs de tenants - Actualizar las BD cuando se hagan cambios en vistas
-    docker compose exec web python manage.py migrate_all_tenants
 
 Reconstruir imágenes sin caché
     docker compose build --no-cache

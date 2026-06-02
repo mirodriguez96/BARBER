@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: sans-serif; padding: 2rem;">
+    <h2>¡Cita confirmada!</h2>
+    <p>Hola <strong>{{ client_name }}</strong>,</p>
+    <p>Tu cita ha sido registrada exitosamente.</p>
+    <table style="border-collapse: collapse; margin: 1.5rem 0;">
+        <tr><td style="padding: .5rem 1rem; font-weight: 600;">Servicio</td><td style="padding: .5rem 1rem;">{{ service_name }}</td></tr>
+        <tr><td style="padding: .5rem 1rem; font-weight: 600;">Fecha</td><td style="padding: .5rem 1rem;">{{ date }}</td></tr>
+        <tr><td style="padding: .5rem 1rem; font-weight: 600;">Hora</td><td style="padding: .5rem 1rem;">{{ time }}</td></tr>
+        <tr><td style="padding: .5rem 1rem; font-weight: 600;">Precio</td><td style="padding: .5rem 1rem;">${{ price }}</td></tr>
+        {% if barber_name %}<tr><td style="padding: .5rem 1rem; font-weight: 600;">Barbero</td><td style="padding: .5rem 1rem;">{{ barber_name }}</td></tr>{% endif %}
+        {% if notes %}<tr><td style="padding: .5rem 1rem; font-weight: 600;">Notas</td><td style="padding: .5rem 1rem;">{{ notes }}</td></tr>{% endif %}
+    </table>
+    <p>¡Te esperamos!</p>
+</body>
+</html>

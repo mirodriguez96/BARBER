@@ -1,6 +1,22 @@
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+
+def _load_dotenv_file():
+    env_path = BASE_DIR / ".env"
+    if not env_path.exists():
+        return
+    for raw_line in env_path.read_text().splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip())
+
+
+_load_dotenv_file()
 
 SECRET_KEY = "django-insecure-change-me"
 DEBUG = False
@@ -22,6 +38,7 @@ INSTALLED_APPS = [
     "barberia.operations",
     "barberia.dashboard",
     "barberia.inventory",
+    "barberia.booking",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
@@ -155,5 +172,14 @@ LOGGING = {
         },
     },
 }
+
+# Email (development: console backend)
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "reservas@barberia.com"
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+RESEND_FROM_EMAIL = os.environ.get(
+    "RESEND_FROM_EMAIL",
+    "Barbería <reservas@mail.colstyle.com>",
+)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

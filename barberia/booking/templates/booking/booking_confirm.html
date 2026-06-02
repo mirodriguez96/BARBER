@@ -1,0 +1,50 @@
+{% extends "booking/base_public.html" %}
+{% block title %}Confirmar cita{% endblock %}
+{% block hero_title %}Revisa y confirma{% endblock %}
+{% block hero_subtitle %}Verifica que los datos de tu reserva sean correctos antes de finalizar.{% endblock %}
+{% block content %}
+<div class="booking-card">
+    <div class="booking-card__head">
+        <div class="booking-card__head-icon">📝</div>
+        <div>
+            <h2 class="booking-card__title">Resumen de tu reserva</h2>
+            <p class="booking-card__sub">Estos son los datos de tu cita</p>
+        </div>
+    </div>
+    <dl class="detail-list">
+        <dt><span class="detail-icon">✂</span> Servicio</dt>
+        <dd>{{ service.name }}</dd>
+        <dt><span class="detail-icon">📅</span> Fecha</dt>
+        <dd>{{ date|date:"l j" }} de {{ date|date:"F" }} de {{ date|date:"Y" }}</dd>
+        <dt><span class="detail-icon">⏰</span> Hora</dt>
+        <dd>{{ time }}</dd>
+        {% if data.barber_name %}
+        <dt><span class="detail-icon">👤</span> Barbero</dt>
+        <dd>{{ data.barber_name }}</dd>
+        {% endif %}
+        <dt><span class="detail-icon">🙋</span> Nombre</dt>
+        <dd>{{ full_name }}</dd>
+        <dt><span class="detail-icon">✉️</span> Email</dt>
+        <dd>{{ email }}</dd>
+        <dt><span class="detail-icon">📞</span> Teléfono</dt>
+        <dd>{{ phone }}</dd>
+        {% if notes %}
+        <dt><span class="detail-icon">📝</span> Notas</dt>
+        <dd>{{ notes }}</dd>
+        {% endif %}
+        <dt><span class="detail-icon">💵</span> Precio</dt>
+        <dd><strong>${{ service.price }}</strong></dd>
+    </dl>
+</div>
+<form method="post" action="{% url 'booking:booking_confirm' service.id %}">
+    {% csrf_token %}
+    {% for key, value in data.items %}
+    <input type="hidden" name="{{ key }}" value="{{ value }}">
+    {% endfor %}
+    <input type="hidden" name="confirm" value="1">
+    <div class="btn-pair">
+        <a href="{% url 'booking:booking_form' service.id %}" class="btn-outline-booking">← Modificar</a>
+        <button type="submit" class="btn-primary-booking">Confirmar reserva ✓</button>
+    </div>
+</form>
+{% endblock %}

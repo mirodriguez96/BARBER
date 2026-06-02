@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import RegexValidator
 
 
 class Company(models.Model):
@@ -7,6 +8,12 @@ class Company(models.Model):
     address = models.TextField(blank=True, default="")
     phone = models.CharField(max_length=20, blank=True, default="")
     logo = models.ImageField(upload_to="logos/", blank=True)
+    opening_time = models.TimeField(
+        "hora de apertura", default="09:00",
+    )
+    closing_time = models.TimeField(
+        "hora de cierre", default="19:00",
+    )
 
     class Meta:
         verbose_name = "Empresa"
