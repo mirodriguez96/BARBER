@@ -19,14 +19,11 @@ from barberia.catalog.views import catalog_process
 from barberia.common.models import Company
 from barberia.inventory.models import InventoryMovement
 from barberia.operations.models import Purchase, Sale
-from barberia.people.models import Client, Employee
+from barberia.people.models import Employee
+from barberia.people.views import people_process
 
 from .forms import (
-    BarberEditForm,
-    BarberForm,
     BookingConfigForm,
-    ClientEditForm,
-    ClientForm,
     CompanyForm,
     InventoryAdjustForm,
     ProductSaleEditForm,
@@ -45,8 +42,6 @@ def home(request):
     quick_view = request.GET.get("view", "list")
     record_type = request.GET.get("type", "colaborador")
     sale_type = request.GET.get("sale_type", "servicio")
-    barber_id = request.GET.get("barber")
-    client_id = request.GET.get("client")
     inventory_action = request.GET.get("inventory_action", "adjust")
     sale_id = request.GET.get("sale")
     purchase_id = request.GET.get("purchase")
@@ -98,25 +93,6 @@ def home(request):
         {"key": "ajustar", "label": "Ajustar"},
     ]
     is_admin = request.user.role == User.Role.ADMIN
-
-    # CRUD permissions for 'personal' app (colaboradores-clientes)
-    crud_allowed_personal = set()
-    if not is_admin:
-        crud_allowed_personal = set(
-            RoleCrudPermission.objects.filter(
-                role=request.user.role,
-                app_key=RoleCrudPermission.AppKey.PERSONAL,
-            ).values_list("action", flat=True)
-        )
-    can_register_personal = (
-        is_admin or RoleCrudPermission.Action.REGISTRAR in crud_allowed_personal
-    )
-    can_modify_personal = (
-        is_admin or RoleCrudPermission.Action.MODIFICAR in crud_allowed_personal
-    )
-    can_deactivate_personal = (
-        is_admin or RoleCrudPermission.Action.DESACTIVAR in crud_allowed_personal
-    )
 
     # CRUD permissions for 'ventas' app (sales)
     crud_allowed_ventas = set()
@@ -276,14 +252,6 @@ def home(request):
             else:
                 company_form = CompanyForm(instance=company)
 
-    barber_to_edit = None
-    if section == "barbers" and quick_view == "edit" and barber_id:
-        barber_to_edit = get_object_or_404(Employee, pk=barber_id)
-
-    client_to_edit = None
-    if section == "barbers" and quick_view == "edit" and client_id:
-        client_to_edit = get_object_or_404(Client, pk=client_id)
-
     sale_to_edit = None
     if section == "sales" and quick_view == "edit" and sale_id:
         sale_to_edit = get_object_or_404(Sale, pk=sale_id)
@@ -291,10 +259,6 @@ def home(request):
     purchase_to_edit = None
     if section == "compras" and quick_view == "edit" and purchase_id:
         purchase_to_edit = get_object_or_404(Purchase, pk=purchase_id)
-
-    forms_map = {
-        "barbers": BarberForm,
-    }
 
     purchase_form = None
     inventory_adjust_form = None
@@ -308,102 +272,9 @@ def home(request):
         action = request.POST.get("action", "save")
         record_type = request.POST.get("type", "colaborador")
 
-        # --- Employee (barber) actions ---
-        if (
-            section == "barbers"
-            and action == "deactivate"
-            and request.POST.get("barber_id")
-        ):
-            if not can_deactivate_personal:
-                messages.error(
-                    request, "No tienes permiso para desactivar colaboradores."
-                )
-                return redirect(f"{request.path}?section=barbers&view=list")
-            barber = get_object_or_404(Employee, pk=request.POST.get("barber_id"))
-            barber.is_active = False
-            barber.save(update_fields=["is_active", "updated_at"])
-            messages.success(request, f"{barber.full_name} fue desactivado.")
-            return redirect(f"{request.path}?section=barbers&view=list")
-
-        if (
-            section == "barbers"
-            and action == "activate"
-            and request.POST.get("barber_id")
-        ):
-            if not can_deactivate_personal:
-                messages.error(request, "No tienes permiso para activar colaboradores.")
-                return redirect(f"{request.path}?section=barbers&view=list")
-            barber = get_object_or_404(Employee, pk=request.POST.get("barber_id"))
-            barber.is_active = True
-            barber.save(update_fields=["is_active", "updated_at"])
-            messages.success(request, f"{barber.full_name} fue activado.")
-            return redirect(f"{request.path}?section=barbers&view=list")
-
-        if (
-            section == "barbers"
-            and action == "update"
-            and request.POST.get("barber_id")
-        ):
-            if not can_modify_personal:
-                messages.error(
-                    request, "No tienes permiso para modificar colaboradores."
-                )
-                return redirect(f"{request.path}?section=barbers&view=list")
-            barber = get_object_or_404(Employee, pk=request.POST.get("barber_id"))
-            form = BarberEditForm(request.POST, instance=barber)
-            if form.is_valid():
-                form.save()
-                messages.success(request, "Colaborador actualizado correctamente.")
-                return redirect(f"{request.path}?section=barbers&view=list")
-            quick_view = "edit"
-            barber_to_edit = barber
-            messages.error(request, "Revisa los campos marcados en rojo.")
-        # --- Client actions ---
-        elif (
-            section == "barbers"
-            and action == "deactivate"
-            and request.POST.get("client_id")
-        ):
-            if not can_deactivate_personal:
-                messages.error(request, "No tienes permiso para desactivar clientes.")
-                return redirect(f"{request.path}?section=barbers&view=list")
-            client = get_object_or_404(Client, pk=request.POST.get("client_id"))
-            client.is_active = False
-            client.save(update_fields=["is_active", "updated_at"])
-            messages.success(request, f"{client.full_name} fue desactivado.")
-            return redirect(f"{request.path}?section=barbers&view=list")
-
-        elif (
-            section == "barbers"
-            and action == "activate"
-            and request.POST.get("client_id")
-        ):
-            if not can_deactivate_personal:
-                messages.error(request, "No tienes permiso para activar clientes.")
-                return redirect(f"{request.path}?section=barbers&view=list")
-            client = get_object_or_404(Client, pk=request.POST.get("client_id"))
-            client.is_active = True
-            client.save(update_fields=["is_active", "updated_at"])
-            messages.success(request, f"{client.full_name} fue activado.")
-            return redirect(f"{request.path}?section=barbers&view=list")
-
-        elif (
-            section == "barbers"
-            and action == "update"
-            and request.POST.get("client_id")
-        ):
-            if not can_modify_personal:
-                messages.error(request, "No tienes permiso para modificar clientes.")
-                return redirect(f"{request.path}?section=barbers&view=list")
-            client = get_object_or_404(Client, pk=request.POST.get("client_id"))
-            form = ClientEditForm(request.POST, instance=client)
-            if form.is_valid():
-                form.save()
-                messages.success(request, "Cliente actualizado correctamente.")
-                return redirect(f"{request.path}?section=barbers&view=list")
-            quick_view = "edit"
-            client_to_edit = client
-            messages.error(request, "Revisa los campos marcados en rojo.")
+        # --- Barbers section (handled by people_process) ---
+        if section == "barbers" and action in ("deactivate", "activate", "update"):
+            form = None
         elif section == "sales" and action == "update":
             if not can_modify_ventas:
                 messages.error(
@@ -699,13 +570,7 @@ def home(request):
 
         else:
             if section == "barbers":
-                if not can_register_personal:
-                    messages.error(
-                        request,
-                        "No tienes permiso para registrar nuevos colaboradores o clientes.",
-                    )
-                    return redirect(f"{request.path}?section=barbers&view=list")
-                form_class = ClientForm if record_type == "cliente" else BarberForm
+                form = None
             elif section == "sales":
                 if not can_register_ventas:
                     messages.error(
@@ -733,8 +598,8 @@ def home(request):
                         return redirect(f"{request.path}?section=catalog&view=list")
                     messages.error(request, "Revisa los campos marcados en rojo.")
             else:
-                form_class = forms_map.get(section, BarberForm)
-            if section != "catalog":
+                form_class = None
+            if section not in ("catalog", "barbers") and form_class is not None:
                 form = form_class(request.POST, user=request.user)
                 if form.is_valid():
                     record = form.save(commit=False)
@@ -771,21 +636,6 @@ def home(request):
                     messages.success(request, "Registro guardado correctamente.")
                     return redirect(f"{request.path}?section={section}")
                 messages.error(request, "Revisa los campos marcados en rojo.")
-    elif section == "barbers" and quick_view == "edit":
-        if barber_to_edit is not None:
-            if not can_modify_personal:
-                messages.error(
-                    request, "No tienes permiso para modificar colaboradores."
-                )
-                return redirect(f"{request.path}?section=barbers&view=list")
-            form = BarberEditForm(instance=barber_to_edit)
-        elif client_to_edit is not None:
-            if not can_modify_personal:
-                messages.error(request, "No tienes permiso para modificar clientes.")
-                return redirect(f"{request.path}?section=barbers&view=list")
-            form = ClientEditForm(instance=client_to_edit)
-        else:
-            form = BarberForm(user=request.user)
     elif section == "sales" and quick_view == "edit" and sale_to_edit is not None:
         if not can_modify_ventas:
             messages.error(
@@ -818,16 +668,7 @@ def home(request):
             return redirect(f"{request.path}?section=compras&view=list")
         form = PurchaseEditForm(instance=purchase_to_edit, user=request.user)
     else:
-        if section == "barbers":
-            if quick_view == "form" and not can_register_personal:
-                messages.error(
-                    request,
-                    "No tienes permiso para registrar nuevos colaboradores o clientes.",
-                )
-                return redirect(f"{request.path}?section=barbers&view=list")
-            form_class = ClientForm if record_type == "cliente" else BarberForm
-            form = form_class(user=request.user)
-        elif section == "sales":
+        if section == "sales":
             if quick_view == "form" and not can_register_ventas:
                 messages.error(
                     request,
@@ -858,8 +699,7 @@ def home(request):
         elif section == "catalog":
             pass
         else:
-            form_class = forms_map.get(section, BarberForm)
-            form = form_class(user=request.user)
+            form = None
 
     catalog_items = None
     catalog_stats = None
@@ -884,13 +724,55 @@ def home(request):
         catalog_filter_params = catalog_ctx.get("catalog_filter_params", "")
         catalog_item_to_edit = catalog_ctx.get("catalog_item_to_edit")
 
+    barber_to_edit = None
+    client_to_edit = None
+    people_page = None
+    barber_search = ""
+    barber_type = ""
+    barber_filter_params = ""
+    barber_stats = {}
+    can_register_personal = False
+    can_modify_personal = False
+    can_deactivate_personal = False
+
+    if section == "barbers":
+        people_ctx = {
+            "quick_view": quick_view,
+            "section": section,
+            "record_type": record_type,
+        }
+        result = people_process(request, people_ctx)
+        if isinstance(result, HttpResponseRedirect):
+            return result
+        can_register_personal = people_ctx.get("can_register_personal", False)
+        can_modify_personal = people_ctx.get("can_modify_personal", False)
+        can_deactivate_personal = people_ctx.get("can_deactivate_personal", False)
+        form = people_ctx.get("form", form)
+        barber_to_edit = people_ctx.get("barber_to_edit")
+        client_to_edit = people_ctx.get("client_to_edit")
+        people_page = people_ctx.get("people_page")
+        barber_search = people_ctx.get("barber_search", "")
+        barber_type = people_ctx.get("barber_type", "")
+        barber_filter_params = people_ctx.get("barber_filter_params", "")
+        barber_stats = people_ctx.get("barber_stats", {})
+
     filter_date = request.GET.get("filter_date", "")
     filter_barber = request.GET.get("filter_barber", "")
     filter_kind = request.GET.get("filter_kind", "")
-    barber_search = request.GET.get("barber_search", "").strip()
-    barber_type = request.GET.get("barber_type", "")
+    if section != "barbers":
+        barber_search = request.GET.get("barber_search", "").strip()
+        barber_type = request.GET.get("barber_type", "")
     purchase_filter_date = request.GET.get("purchase_filter_date", "")
     purchase_filter_product = request.GET.get("purchase_filter_product", "").strip()
+
+    filter_parts = []
+    if filter_date:
+        filter_parts.append(f"filter_date={filter_date}")
+    if filter_barber:
+        filter_parts.append(f"filter_barber={filter_barber}")
+    if filter_kind:
+        filter_parts.append(f"filter_kind={filter_kind}")
+    filter_params = "&" + "&".join(filter_parts) if filter_parts else ""
 
     sale_list = Sale.objects.select_related(
         "client",
@@ -935,76 +817,10 @@ def home(request):
         filter_parts.append(f"filter_barber={filter_barber}")
     if filter_kind:
         filter_parts.append(f"filter_kind={filter_kind}")
-    filter_params = "&" + "&".join(filter_parts) if filter_parts else ""
-    barber_filter_params = f"&barber_search={barber_search}" if barber_search else ""
-    if barber_type:
-        barber_filter_params += f"&barber_type={barber_type}"
-
-    # --- Combined people list (barbers + clients) ---
-    barber_qs = Employee.objects.order_by("-created_at", "-pk")
-    client_qs = Client.objects.order_by("-created_at", "-pk")
-    if barber_search:
-        barber_qs = barber_qs.filter(
-            Q(full_name__icontains=barber_search)
-            | Q(document_id__icontains=barber_search)
-        )
-        client_qs = client_qs.filter(
-            Q(full_name__icontains=barber_search)
-            | Q(document_id__icontains=barber_search)
-        )
-
-    barber_data = [
-        {
-            "pk": e.pk,
-            "full_name": e.full_name,
-            "document_id": e.document_id,
-            "phone": e.phone,
-            "email": e.email,
-            "is_active": e.is_active,
-            "created_at": e.created_at,
-            "type": "colaborador",
-            "type_label": "Colaborador",
-        }
-        for e in barber_qs
-    ]
-    client_data = [
-        {
-            "pk": c.pk,
-            "full_name": c.full_name,
-            "document_id": c.document_id,
-            "phone": c.phone,
-            "email": "",
-            "is_active": c.is_active,
-            "created_at": c.created_at,
-            "type": "cliente",
-            "type_label": "Cliente",
-        }
-        for c in client_qs
-    ]
-    if barber_type == "colaborador":
-        combined = barber_data
-    elif barber_type == "cliente":
-        combined = client_data
-    else:
-        combined = list(barber_data) + list(client_data)
-        combined.sort(key=lambda x: (x["created_at"], x["pk"]), reverse=True)
-    people_paginator = Paginator(combined, 10)
-    people_page_number = request.GET.get("page")
-    people_page = people_paginator.get_page(people_page_number)
-
     service_paginator = Paginator(filtered_sale_list, 10)
     service_page_number = request.GET.get("page")
     sales = service_paginator.get_page(service_page_number)
 
-    barber_stats = {
-        "total": barber_qs.count() + client_qs.count(),
-        "barbers": barber_qs.count(),
-        "clients": client_qs.count(),
-        "active": barber_qs.filter(is_active=True).count()
-        + client_qs.filter(is_active=True).count(),
-        "inactive": barber_qs.filter(is_active=False).count()
-        + client_qs.filter(is_active=False).count(),
-    }
     sale_stats = {
         "total": sale_list.count(),
         "done": sale_list.filter(status=Sale.Status.DONE).count(),

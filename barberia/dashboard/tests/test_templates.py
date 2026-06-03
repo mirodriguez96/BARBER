@@ -50,71 +50,12 @@ class DashboardTemplateRenderingTest(TestCase):
         response = self.http_client.get(self._url_with(section, **params))
         return BeautifulSoup(response.content, "html.parser")
 
-    # --- Pagination links ---
-
-    def test_pagination_links_rendered_when_multipage(self):
-        for i in range(10):
-            u = User.objects.create_user(
-                username=f"bpag{i}",
-                password="pass1234",
-                role=User.Role.BARBERO,
-            )
-            Employee.objects.create(
-                user=u,
-                full_name=f"B Pag {i}",
-                document_id=f"DOCP{i:04d}",
-                phone=f"700{i:05d}",
-            )
-        soup = self._soup("barbers")
-        pag_links = soup.select("a.dashboard-pagination__link")
-        self.assertGreater(len(pag_links), 0)
-
-    def test_pagination_links_use_page_param(self):
-        for i in range(10):
-            u = User.objects.create_user(
-                username=f"bpp{i}",
-                password="pass1234",
-                role=User.Role.BARBERO,
-            )
-            Employee.objects.create(
-                user=u,
-                full_name=f"B Page {i}",
-                document_id=f"DOCQ{i:04d}",
-                phone=f"700{i:05d}",
-            )
-        soup = self._soup("barbers")
-        for link in soup.select("a.dashboard-pagination__link"):
-            href = link.get("href", "")
-            self.assertIn("page=", href, msg=f"Missing page= in {href}")
-
-    # --- Empty state ---
-
-    def test_empty_barbers_shows_message(self):
-        soup = self._soup("barbers")
-        body = soup.get_text()
-        self.assertTrue(
-            "no hay" in body.lower()
-            or "sin" in body.lower()
-            or "barberos" in body
-            or "colaborador" in body.lower()
-        )
-
     def test_empty_services_shows_message(self):
         soup = self._soup("sales")
         body = soup.get_text()
         self.assertTrue(
             "no hay" in body.lower() or "sin" in body.lower() or "servicios" in body,
         )
-
-    # --- Bootstrap form classes ---
-
-    def test_barber_form_has_bootstrap_classes(self):
-        soup = self._soup("barbers", view="form")
-        all_form_controls = soup.select(
-            "input.form-control, input.form-control-lg, "
-            "select.form-select, select.form-select-lg",
-        )
-        self.assertGreater(len(all_form_controls), 0)
 
     def test_services_form_has_bootstrap_classes(self):
         soup = self._soup("sales", view="form")
