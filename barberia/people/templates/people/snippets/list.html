@@ -1,0 +1,220 @@
+<div class="dashboard-table-shell mt-4">
+    <div class="dashboard-table-shell__header">
+        <form method="get"
+              class="dashboard-filters__form dashboard-filters__form--compact">
+            <input type="hidden" name="section" value="barbers" />
+            <input type="hidden" name="view" value="list" />
+            <div class="dashboard-filters__group">
+                <label class="dashboard-filters__label" for="barber_search">Nombre / Documento</label>
+                <input type="search"
+                       id="barber_search"
+                       name="barber_search"
+                       value="{{ barber_search }}"
+                       class="dashboard-filters__input"
+                       placeholder="Buscar"
+                       autocomplete="off" />
+            </div>
+            <div class="dashboard-filters__group">
+                <label class="dashboard-filters__label" for="barber_type">Tipo</label>
+                <select id="barber_type" name="barber_type" class="dashboard-filters__input">
+                    <option value="">Todos</option>
+                    <option value="colaborador"
+                            {% if barber_type == 'colaborador' %}selected{% endif %}>Colaborador</option>
+                    <option value="cliente" {% if barber_type == 'cliente' %}selected{% endif %}>Cliente</option>
+                </select>
+            </div>
+            {% if barber_search or barber_type %}
+                <a href="?section=barbers&view=list" class="dashboard-filters__clear">Limpiar</a>
+            {% endif %}
+        </form>
+        {% if can_register_personal %}
+            <div class="dashboard-table-shell__actions">
+                <a class="dashboard-action-btn dashboard-action-btn--primary"
+                   href="?section=barbers&view=form&type=colaborador">+ Colaborador</a>
+                <a class="dashboard-action-btn dashboard-action-btn--primary"
+                   href="?section=barbers&view=form&type=cliente">+ Cliente</a>
+            </div>
+        {% endif %}
+    </div>
+    <div class="dashboard-table-wrap">
+        <div class="table-responsive">
+            <table class="table dashboard-table dashboard-table--people align-middle table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Tipo</th>
+                        <th>Documento</th>
+                        <th>Teléfono</th>
+                        <th>Email</th>
+                        <th class="col-state">Estado</th>
+                        <th class="col-actions">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for person in barbers %}
+                        <tr>
+                            <td>
+                                <div class="dashboard-person">
+                                    <div class="dashboard-person__avatar" aria-hidden="true">{{ person.full_name|slice:":1"|default:"?" }}</div>
+                                    <div class="dashboard-person__body">
+                                        <div class="dashboard-table__primary">{{ person.full_name }}</div>
+                                        <div class="dashboard-table__meta">{{ person.document_id }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="dashboard-table__chip">{{ person.type_label }}</span>
+                            </td>
+                            <td>{{ person.document_id|default:"—" }}</td>
+                            <td>{{ person.phone|default:"—" }}</td>
+                            <td>{{ person.email|default:"—" }}</td>
+                            <td class="col-state">
+                                <span class="dashboard-status {% if person.is_active %}is-active{% else %}is-inactive{% endif %}">
+                                    {% if person.is_active %}
+                                        Activo
+                                    {% else %}
+                                        Inactivo
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td class="col-actions">
+                                <div class="dashboard-row-actions dashboard-row-actions--controls">
+                                    {% if person.type == "colaborador" %}
+                                        {% if can_modify_personal %}
+                                            <form method="get" class="dashboard-inline-form">
+                                                <input type="hidden" name="section" value="barbers" />
+                                                <input type="hidden" name="view" value="edit" />
+                                                <input type="hidden" name="barber" value="{{ person.pk }}" />
+                                                <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">Modificar</button>
+                                            </form>
+                                        {% endif %}
+                                        {% if can_deactivate_personal %}
+                                            {% if person.is_active %}
+                                                <form method="post" class="dashboard-inline-form">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="section" value="barbers" />
+                                                    <input type="hidden" name="action" value="deactivate" />
+                                                    <input type="hidden" name="barber_id" value="{{ person.pk }}" />
+                                                    <button type="submit"
+                                                            class="dashboard-action-btn dashboard-action-btn--danger">
+                                                        Desactivar
+                                                    </button>
+                                                </form>
+                                            {% else %}
+                                                <form method="post" class="dashboard-inline-form">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="section" value="barbers" />
+                                                    <input type="hidden" name="action" value="activate" />
+                                                    <input type="hidden" name="barber_id" value="{{ person.pk }}" />
+                                                    <button type="submit"
+                                                            class="dashboard-action-btn dashboard-action-btn--success">
+                                                        Activar
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% else %}
+                                        {% if can_modify_personal %}
+                                            <form method="get" class="dashboard-inline-form">
+                                                <input type="hidden" name="section" value="barbers" />
+                                                <input type="hidden" name="view" value="edit" />
+                                                <input type="hidden" name="client" value="{{ person.pk }}" />
+                                                <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">Modificar</button>
+                                            </form>
+                                        {% endif %}
+                                        {% if can_deactivate_personal %}
+                                            {% if person.is_active %}
+                                                <form method="post" class="dashboard-inline-form">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="section" value="barbers" />
+                                                    <input type="hidden" name="action" value="deactivate" />
+                                                    <input type="hidden" name="client_id" value="{{ person.pk }}" />
+                                                    <button type="submit"
+                                                            class="dashboard-action-btn dashboard-action-btn--danger">
+                                                        Desactivar
+                                                    </button>
+                                                </form>
+                                            {% else %}
+                                                <form method="post" class="dashboard-inline-form">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="section" value="barbers" />
+                                                    <input type="hidden" name="action" value="activate" />
+                                                    <input type="hidden" name="client_id" value="{{ person.pk }}" />
+                                                    <button type="submit"
+                                                            class="dashboard-action-btn dashboard-action-btn--success">
+                                                        Activar
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="dashboard-empty-state">
+                                <div class="dashboard-empty-state__title">
+                                    {% if barber_search or barber_type %}
+                                        No se encontraron resultados para la búsqueda.
+                                    {% else %}
+                                        No hay colaboradores ni clientes registrados todavía.
+                                    {% endif %}
+                                </div>
+                                <div class="dashboard-empty-state__copy">
+                                    {% if barber_search or barber_type %}
+                                        Intenta con otros términos de búsqueda.
+                                    {% else %}
+                                        Agrega el primero desde el formulario para empezar a gestionar el personal.
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if barbers.paginator.num_pages > 1 %}
+        <div class="dashboard-pagination">
+            {% if barbers.has_previous %}
+                <a class="dashboard-pagination__link"
+                   href="?section=barbers&view=list{{ barber_filter_params }}&page=1">Primera</a>
+                <a class="dashboard-pagination__link"
+                   href="?section=barbers&view=list{{ barber_filter_params }}&page={{ barbers.previous_page_number }}">Anterior</a>
+            {% endif %}
+            <span class="dashboard-pagination__info">Página {{ barbers.number }} de {{ barbers.paginator.num_pages }}</span>
+            {% if barbers.has_next %}
+                <a class="dashboard-pagination__link"
+                   href="?section=barbers&view=list{{ barber_filter_params }}&page={{ barbers.next_page_number }}">Siguiente</a>
+                <a class="dashboard-pagination__link"
+                   href="?section=barbers&view=list{{ barber_filter_params }}&page={{ barbers.paginator.num_pages }}">Última</a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+<script>
+(function(){
+    var searchInput = document.getElementById('barber_search');
+    var searchTimer = null;
+    var typeInput = document.getElementById('barber_type');
+
+    function searchHandler(){
+        window.clearTimeout(searchTimer);
+        searchTimer = window.setTimeout(function(){
+            searchInput.form.submit();
+        }, 350);
+    }
+
+    function typeHandler(){
+        typeInput.form.submit();
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', searchHandler);
+    }
+    if (typeInput) {
+        typeInput.addEventListener('change', typeHandler);
+    }
+})();
+</script>
