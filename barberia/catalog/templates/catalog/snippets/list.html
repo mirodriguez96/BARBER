@@ -1,0 +1,174 @@
+<div class="dashboard-table-shell mt-4">
+    <div class="dashboard-table-shell__header">
+        <form method="get"
+              class="dashboard-filters__form dashboard-filters__form--compact">
+            <input type="hidden" name="section" value="catalog" />
+            <input type="hidden" name="view" value="list" />
+            <div class="dashboard-filters__group">
+                <label class="dashboard-filters__label" for="catalog_search">Nombre</label>
+                <input type="search"
+                       id="catalog_search"
+                       name="catalog_search"
+                       value="{{ catalog_search }}"
+                       class="dashboard-filters__input"
+                       placeholder="Buscar producto"
+                       autocomplete="off" />
+            </div>
+            <div class="dashboard-filters__group">
+                <label class="dashboard-filters__label" for="catalog_kind">Tipo</label>
+                <select id="catalog_kind"
+                        name="catalog_kind"
+                        class="dashboard-filters__input">
+                    <option value="">Todos</option>
+                    <option value="product" {% if catalog_kind == 'product' %}selected{% endif %}>Producto</option>
+                    <option value="service" {% if catalog_kind == 'service' %}selected{% endif %}>Servicio</option>
+                </select>
+            </div>
+            {% if catalog_search or catalog_kind %}
+                <a href="?section=catalog&view=list" class="dashboard-filters__clear">Limpiar</a>
+            {% endif %}
+        </form>
+    </div>
+    <div class="dashboard-table-wrap">
+        <div class="table-responsive">
+            <table class="table dashboard-table dashboard-table--catalog align-middle table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Tipo</th>
+                        <th>Precio</th>
+                        <th>Duración</th>
+                        <th>Comisión</th>
+                        <th class="col-state">Estado</th>
+                        <th class="col-actions">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in catalog_items %}
+                        <tr>
+                            <td>
+                                <div class="dashboard-person">
+                                    <div class="dashboard-person__avatar" aria-hidden="true">{{ item.name|slice:":1"|default:"I" }}</div>
+                                    <div class="dashboard-person__body">
+                                        <div class="dashboard-table__primary">{{ item.name }}</div>
+                                        <div class="dashboard-table__meta">{{ item.sku }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="dashboard-table__chip">{{ item.get_kind_display }}</span>
+                            </td>
+                            <td>${{ item.price }}</td>
+                            <td>
+                                {% if item.duration_minutes %}
+                                    {{ item.duration_minutes }} min
+                                {% else %}
+                                    &mdash;
+                                {% endif %}
+                            </td>
+                            <td>{{ item.barber_commission_percent }}%</td>
+                            <td class="col-state">
+                                <span class="dashboard-status {% if item.is_active %}is-active{% else %}is-inactive{% endif %}">
+                                    {% if item.is_active %}
+                                        Activo
+                                    {% else %}
+                                        Inactivo
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td class="col-actions">
+                                <div class="dashboard-row-actions dashboard-row-actions--controls">
+                                    <form method="get" class="dashboard-inline-form">
+                                        <input type="hidden" name="section" value="catalog" />
+                                        <input type="hidden" name="view" value="edit" />
+                                        <input type="hidden" name="catalog_item" value="{{ item.pk }}" />
+                                        {% if can_modify_productos %}
+                                            <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">Modificar</button>
+                                        {% endif %}
+                                    </form>
+                                    {% if can_deactivate_productos %}
+                                        {% if item.is_active %}
+                                            <form method="post" class="dashboard-inline-form">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="section" value="catalog" />
+                                                <input type="hidden" name="action" value="deactivate" />
+                                                <input type="hidden" name="catalog_item_id" value="{{ item.pk }}" />
+                                                <button type="submit"
+                                                        class="dashboard-action-btn dashboard-action-btn--danger">
+                                                    Desactivar
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <form method="post" class="dashboard-inline-form">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="section" value="catalog" />
+                                                <input type="hidden" name="action" value="activate" />
+                                                <input type="hidden" name="catalog_item_id" value="{{ item.pk }}" />
+                                                <button type="submit"
+                                                        class="dashboard-action-btn dashboard-action-btn--success">
+                                                    Activar
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="dashboard-empty-state">
+                                <div class="dashboard-empty-state__title">No hay catálogo de productos ni servicios registrado todavía.</div>
+                                <div class="dashboard-empty-state__copy">
+                                    Agrega el primero desde el formulario para empezar
+                                    a gestionar el catálogo.
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if catalog_items.paginator.num_pages > 1 %}
+        <div class="dashboard-pagination">
+            {% if catalog_items.has_previous %}
+                <a class="dashboard-pagination__link"
+                   href="?section=catalog&view=list{{ catalog_filter_params }}&page=1">Primera</a>
+                <a class="dashboard-pagination__link"
+                   href="?section=catalog&view=list{{ catalog_filter_params }}&page={{ catalog_items.previous_page_number }}">Anterior</a>
+            {% endif %}
+            <span class="dashboard-pagination__info">Página {{ catalog_items.number }} de {{ catalog_items.paginator.num_pages }}</span>
+            {% if catalog_items.has_next %}
+                <a class="dashboard-pagination__link"
+                   href="?section=catalog&view=list{{ catalog_filter_params }}&page={{ catalog_items.next_page_number }}">Siguiente</a>
+                <a class="dashboard-pagination__link"
+                   href="?section=catalog&view=list{{ catalog_filter_params }}&page={{ catalog_items.paginator.num_pages }}">Última</a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+<script>
+(function(){
+    var catalogSearchInput = document.getElementById('catalog_search');
+    var catalogSearchTimer = null;
+    var catalogKindInput = document.getElementById('catalog_kind');
+
+    function catalogSearchHandler(){
+        window.clearTimeout(catalogSearchTimer);
+        catalogSearchTimer = window.setTimeout(function(){
+            catalogSearchInput.form.submit();
+        }, 350);
+    }
+
+    function catalogKindHandler(){
+        catalogKindInput.form.submit();
+    }
+
+    if (catalogSearchInput) {
+        catalogSearchInput.addEventListener('input', catalogSearchHandler);
+    }
+    if (catalogKindInput) {
+        catalogKindInput.addEventListener('change', catalogKindHandler);
+    }
+})();
+</script>

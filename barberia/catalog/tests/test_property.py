@@ -4,8 +4,8 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from hypothesis.extra.django import TestCase
 
+from barberia.catalog.forms import CatalogItemEditForm, CatalogItemForm
 from barberia.catalog.models import CatalogItem
-from barberia.dashboard.forms import CatalogItemEditForm, CatalogItemForm
 
 
 class CatalogCommissionPropertyTest(TestCase):

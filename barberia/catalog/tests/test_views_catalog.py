@@ -1,4 +1,5 @@
 from decimal import Decimal
+from urllib.parse import quote
 
 from django.test import TestCase
 from django.urls import reverse
@@ -7,7 +8,7 @@ from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
 
 
-class CatalogDashboardViewsTest(TestCase):
+class CatalogViewsTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             username="admin",
@@ -15,21 +16,36 @@ class CatalogDashboardViewsTest(TestCase):
             role=User.Role.ADMIN,
         )
         self.client.login(username="admin", password="pass1234")
-        self.list_url = reverse("dashboard:home")
+        self.base_url = reverse("dashboard:home")
 
-    def _catalog_url(self, **params):
-        params.setdefault("section", "catalog")
-        params.setdefault("view", "list")
-        qs = "&".join(f"{k}={v}" for k, v in params.items())
-        return f"{self.list_url}?{qs}"
+    def _list_url(self):
+        return self.base_url + "?section=catalog&view=list"
+
+    def _form_url(self):
+        return self.base_url + "?section=catalog&view=form"
+
+    def _edit_url(self, pk):
+        return self.base_url + f"?section=catalog&view=edit&catalog_item={pk}"
 
     # --- Authentication ---
     def test_redirect_if_not_logged_in(self):
         self.client.logout()
-        response = self.client.get(self.list_url)
-        self.assertRedirects(response, f"{reverse('login')}?next={self.list_url}")
+        response = self.client.get(self._list_url())
+        expected = f"{reverse('login')}?next={quote(self._list_url())}"
+        self.assertRedirects(response, expected, fetch_redirect_response=False)
 
     # --- List ---
+    def _catalog(self, count: int):
+        for i in range(count):
+            CatalogItem.objects.create(
+                kind=(
+                    CatalogItem.Kind.SERVICE if i % 2 == 0 else CatalogItem.Kind.PRODUCT
+                ),
+                name=f"Item {i}",
+                price=Decimal(f"{i + 10}.00"),
+                sku=f"ITM{i:04d}",
+            )
+
     def test_catalog_list_view(self):
         CatalogItem.objects.create(
             kind=CatalogItem.Kind.SERVICE,
@@ -43,15 +59,32 @@ class CatalogDashboardViewsTest(TestCase):
             price=Decimal("80.00"),
             sku="PRD080",
         )
-        response = self.client.get(self._catalog_url(section="catalog", view="list"))
+        response = self.client.get(self._list_url())
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "dashboard/home.html")
         self.assertContains(response, "Corte")
         self.assertContains(response, "Gel")
 
+    # --- Pagination ---
+
+    def test_catalog_pagination_page_2_shows_remaining(self):
+        self._catalog(12)
+        response = self.client.get(self.base_url + "?section=catalog&page=2")
+        self.assertEqual(response.status_code, 200)
+        items = response.context["catalog_items"]
+        self.assertEqual(len(list(items.object_list)), 2)
+
+    def test_catalog_pagination_no_duplicates_across_pages(self):
+        self._catalog(14)
+        page1 = self.client.get(self.base_url + "?section=catalog&page=1")
+        page2 = self.client.get(self.base_url + "?section=catalog&page=2")
+        ids_p1 = {e.pk for e in page1.context["catalog_items"].object_list}
+        ids_p2 = {e.pk for e in page2.context["catalog_items"].object_list}
+        self.assertFalse(ids_p1 & ids_p2)
+
     # --- Create GET ---
     def test_catalog_form_get(self):
-        response = self.client.get(self._catalog_url(section="catalog", view="form"))
+        response = self.client.get(self._form_url())
         self.assertEqual(response.status_code, 200)
         self.assertIn("form", response.context)
 
@@ -66,8 +99,8 @@ class CatalogDashboardViewsTest(TestCase):
             "is_active": True,
             "description": "Nuevo servicio",
         }
-        response = self.client.post(self.list_url, data)
-        self.assertRedirects(response, f"{self.list_url}?section=catalog")
+        response = self.client.post(self.base_url, data)
+        self.assertRedirects(response, self._list_url())
         self.assertTrue(CatalogItem.objects.filter(name="Corte nuevo").exists())
 
     def test_catalog_create_post_invalid(self):
@@ -77,7 +110,7 @@ class CatalogDashboardViewsTest(TestCase):
             "kind": "",
             "price": "",
         }
-        response = self.client.post(self.list_url, data)
+        response = self.client.post(self.base_url, data)
         self.assertEqual(response.status_code, 200)
         self.assertIn("form", response.context)
 
@@ -88,16 +121,12 @@ class CatalogDashboardViewsTest(TestCase):
             name="Corte editable",
             price=Decimal("50.00"),
         )
-        response = self.client.get(
-            self._catalog_url(section="catalog", view="edit", catalog_item=item.pk),
-        )
+        response = self.client.get(self._edit_url(item.pk))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["catalog_item_to_edit"].pk, item.pk)
 
     def test_catalog_edit_get_404_for_nonexistent(self):
-        response = self.client.get(
-            self._catalog_url(section="catalog", view="edit", catalog_item=999),
-        )
+        response = self.client.get(self._edit_url(999))
         self.assertEqual(response.status_code, 404)
 
     # --- Edit POST ---
@@ -108,17 +137,17 @@ class CatalogDashboardViewsTest(TestCase):
             price=Decimal("50.00"),
         )
         data = {
-            "action": "update",
             "section": "catalog",
-            "catalog_item_id": item.pk,
+            "action": "update",
+            "catalog_item_id": str(item.pk),
             "name": "Actualizado",
             "kind": CatalogItem.Kind.SERVICE,
             "price": "75.00",
             "barber_commission_percent": "20.00",
             "description": "",
         }
-        response = self.client.post(self.list_url, data)
-        self.assertRedirects(response, f"{self.list_url}?section=catalog&view=list")
+        response = self.client.post(self.base_url, data)
+        self.assertRedirects(response, self._list_url())
         item.refresh_from_db()
         self.assertEqual(item.name, "Actualizado")
         self.assertEqual(item.price, Decimal("75.00"))
@@ -130,14 +159,14 @@ class CatalogDashboardViewsTest(TestCase):
             price=Decimal("50.00"),
         )
         data = {
-            "action": "update",
             "section": "catalog",
-            "catalog_item_id": item.pk,
+            "action": "update",
+            "catalog_item_id": str(item.pk),
             "name": "",
             "kind": "",
             "price": "",
         }
-        response = self.client.post(self.list_url, data)
+        response = self.client.post(self.base_url, data)
         self.assertEqual(response.status_code, 200)
 
     # --- Deactivate / Activate ---
@@ -149,12 +178,12 @@ class CatalogDashboardViewsTest(TestCase):
             is_active=True,
         )
         data = {
-            "action": "deactivate",
             "section": "catalog",
-            "catalog_item_id": item.pk,
+            "action": "deactivate",
+            "catalog_item_id": str(item.pk),
         }
-        response = self.client.post(self.list_url, data)
-        self.assertRedirects(response, f"{self.list_url}?section=catalog&view=list")
+        response = self.client.post(self.base_url, data)
+        self.assertRedirects(response, self._list_url())
         item.refresh_from_db()
         self.assertFalse(item.is_active)
 
@@ -166,31 +195,31 @@ class CatalogDashboardViewsTest(TestCase):
             is_active=False,
         )
         data = {
-            "action": "activate",
             "section": "catalog",
-            "catalog_item_id": item.pk,
+            "action": "activate",
+            "catalog_item_id": str(item.pk),
         }
-        response = self.client.post(self.list_url, data)
-        self.assertRedirects(response, f"{self.list_url}?section=catalog&view=list")
+        response = self.client.post(self.base_url, data)
+        self.assertRedirects(response, self._list_url())
         item.refresh_from_db()
         self.assertTrue(item.is_active)
 
     def test_catalog_deactivate_404(self):
         data = {
-            "action": "deactivate",
             "section": "catalog",
-            "catalog_item_id": 999,
+            "action": "deactivate",
+            "catalog_item_id": "999",
         }
-        response = self.client.post(self.list_url, data)
+        response = self.client.post(self.base_url, data)
         self.assertEqual(response.status_code, 404)
 
     def test_catalog_activate_404(self):
         data = {
-            "action": "activate",
             "section": "catalog",
-            "catalog_item_id": 999,
+            "action": "activate",
+            "catalog_item_id": "999",
         }
-        response = self.client.post(self.list_url, data)
+        response = self.client.post(self.base_url, data)
         self.assertEqual(response.status_code, 404)
 
     # --- Product commission zeroed ---
@@ -202,7 +231,7 @@ class CatalogDashboardViewsTest(TestCase):
             "price": "100.00",
             "barber_commission_percent": "50.00",
         }
-        response = self.client.post(self.list_url, data)
-        self.assertRedirects(response, f"{self.list_url}?section=catalog")
+        response = self.client.post(self.base_url, data)
+        self.assertRedirects(response, self._list_url())
         item = CatalogItem.objects.get(name="Pomada")
         self.assertEqual(item.barber_commission_percent, Decimal("0.00"))

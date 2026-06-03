@@ -75,17 +75,6 @@ class PaginationIntegrationTest(TestCase):
                 phone=f"700{i:05d}",
             )
 
-    def _catalog(self, count: int):
-        for i in range(count):
-            CatalogItem.objects.create(
-                kind=(
-                    CatalogItem.Kind.SERVICE if i % 2 == 0 else CatalogItem.Kind.PRODUCT
-                ),
-                name=f"Item {i}",
-                price=Decimal(f"{i + 10}.00"),
-                sku=f"ITM{i:04d}",
-            )
-
     def _sales(self, count: int):
         for i in range(count):
             Sale.objects.create(
@@ -127,23 +116,6 @@ class PaginationIntegrationTest(TestCase):
         # duplicates from the paginator while tolerating that collision.
         ids_p1 = {(e["type"], e["pk"]) for e in page1.context["barbers"].object_list}
         ids_p2 = {(e["type"], e["pk"]) for e in page2.context["barbers"].object_list}
-        self.assertFalse(ids_p1 & ids_p2)
-
-    # --- Catalog pagination ---
-
-    def test_catalog_pagination_page_2_shows_remaining(self):
-        self._catalog(11)  # +1 from setUp = 12 total, page 2 = 2
-        response = self.http_client.get(self._url_with("catalog", page="2"))
-        self.assertEqual(response.status_code, 200)
-        items = response.context["catalog_items"]
-        self.assertEqual(len(list(items.object_list)), 2)
-
-    def test_catalog_pagination_no_duplicates_across_pages(self):
-        self._catalog(14)  # +1 from setUp = 15 total
-        page1 = self.http_client.get(self._url_with("catalog", page="1"))
-        page2 = self.http_client.get(self._url_with("catalog", page="2"))
-        ids_p1 = {e.pk for e in page1.context["catalog_items"].object_list}
-        ids_p2 = {e.pk for e in page2.context["catalog_items"].object_list}
         self.assertFalse(ids_p1 & ids_p2)
 
     # --- Services pagination ---

@@ -99,13 +99,6 @@ class DashboardTemplateRenderingTest(TestCase):
             or "colaborador" in body.lower()
         )
 
-    def test_empty_catalog_shows_message(self):
-        soup = self._soup("catalog")
-        body = soup.get_text()
-        self.assertTrue(
-            "no hay" in body.lower() or "sin" in body.lower() or "catálogo" in body,
-        )
-
     def test_empty_services_shows_message(self):
         soup = self._soup("sales")
         body = soup.get_text()
@@ -122,14 +115,6 @@ class DashboardTemplateRenderingTest(TestCase):
             "select.form-select, select.form-select-lg",
         )
         self.assertGreater(len(all_form_controls), 0)
-
-    def test_catalog_form_has_bootstrap_classes(self):
-        soup = self._soup("catalog", view="form")
-        all_styled = soup.select(
-            "input.form-control, input.form-control-lg, "
-            "select.form-select, select.form-select-lg",
-        )
-        self.assertGreater(len(all_styled), 0)
 
     def test_services_form_has_bootstrap_classes(self):
         soup = self._soup("sales", view="form")
