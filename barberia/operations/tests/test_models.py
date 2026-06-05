@@ -34,6 +34,7 @@ class SaleModelTest(TestCase):
         )
 
     def test_create_service_record(self):
+        """Verifica que se pueda crear una venta de servicio con todos los campos requeridos."""
         record = Sale.objects.create(
             client=self.client,
             employee=self.employee,
@@ -48,6 +49,7 @@ class SaleModelTest(TestCase):
         self.assertEqual(record.commission_amount, Decimal("10.00"))
 
     def test_str_with_client(self):
+        """Verifica que la representación en cadena incluya el código, cliente y servicio."""
         record = Sale.objects.create(
             client=self.client,
             employee=self.employee,
@@ -60,6 +62,7 @@ class SaleModelTest(TestCase):
         self.assertEqual(str(record), expected)
 
     def test_str_without_client(self):
+        """Verifica que la representación en cadena muestre 'Cliente no registrado' cuando no hay cliente."""
         record = Sale.objects.create(
             employee=self.employee,
             product=self.service,
@@ -71,6 +74,7 @@ class SaleModelTest(TestCase):
         self.assertEqual(str(record), expected)
 
     def test_status_scheduled_default(self):
+        """Verifica que el estado predeterminado de una venta sea SCHEDULED."""
         record = Sale.objects.create(
             employee=self.employee,
             product=self.service,
@@ -81,6 +85,7 @@ class SaleModelTest(TestCase):
         self.assertEqual(record.status, Sale.Status.SCHEDULED)
 
     def test_status_choices(self):
+        """Verifica que se pueda asignar un estado diferente a SCHEDULED, como DONE."""
         record = Sale.objects.create(
             employee=self.employee,
             product=self.service,
@@ -93,6 +98,7 @@ class SaleModelTest(TestCase):
         self.assertEqual(record.status, Sale.Status.DONE)
 
     def test_tip_amount_nullable(self):
+        """Verifica que el campo tip_amount sea nulo por defecto."""
         record = Sale.objects.create(
             employee=self.employee,
             product=self.service,
@@ -103,6 +109,7 @@ class SaleModelTest(TestCase):
         self.assertIsNone(record.tip_amount)
 
     def test_commission_amount_default_zero(self):
+        """Verifica que el campo commission_amount sea nulo por defecto."""
         record = Sale.objects.create(
             employee=self.employee,
             product=self.service,
@@ -113,6 +120,7 @@ class SaleModelTest(TestCase):
         self.assertIsNone(record.commission_amount)
 
     def test_fk_protect_on_delete(self):
+        """Verifica que no se pueda eliminar un empleado asociado a una venta (PROTECT)."""
         record = Sale.objects.create(
             employee=self.employee,
             product=self.service,
@@ -126,6 +134,7 @@ class SaleModelTest(TestCase):
         self.assertTrue(Sale.objects.filter(pk=record_pk).exists())
 
     def test_completed_at_null_when_scheduled(self):
+        """Verifica que completed_at sea nulo cuando la venta está en estado SCHEDULED."""
         record = Sale.objects.create(
             employee=self.employee,
             product=self.service,
@@ -136,6 +145,7 @@ class SaleModelTest(TestCase):
         self.assertIsNone(record.completed_at)
 
     def test_notes_blank_by_default(self):
+        """Verifica que el campo notes esté vacío por defecto."""
         record = Sale.objects.create(
             employee=self.employee,
             product=self.service,
@@ -146,6 +156,7 @@ class SaleModelTest(TestCase):
         self.assertEqual(record.notes, "")
 
     def test_codigo_auto_generated_on_create(self):
+        """Verifica que el código se genere automáticamente al crear una venta."""
         record = Sale.objects.create(
             employee=self.employee,
             product=self.service,
@@ -158,6 +169,7 @@ class SaleModelTest(TestCase):
         self.assertNotEqual(record.codigo, "")
 
     def test_codigo_format_ven(self):
+        """Verifica que el código de venta tenga el formato 'VEN-{pk}'."""
         record = Sale.objects.create(
             employee=self.employee,
             product=self.service,
@@ -169,6 +181,7 @@ class SaleModelTest(TestCase):
         self.assertEqual(record.codigo, f"VEN-{record.pk}")
 
     def test_codigo_unique(self):
+        """Verifica que el código de venta sea único y no se pueda duplicar."""
         record = Sale.objects.create(
             employee=self.employee,
             product=self.service,
@@ -202,6 +215,7 @@ class PurchaseModelTest(TestCase):
         )
 
     def test_create_purchase(self):
+        """Verifica que se pueda crear una compra con todos los campos requeridos."""
         purchase = Purchase.objects.create(
             product=self.product,
             quantity=10,
@@ -216,6 +230,7 @@ class PurchaseModelTest(TestCase):
         self.assertEqual(purchase.created_by, self.user)
 
     def test_str_representation(self):
+        """Verifica que la representación en cadena incluya el código, producto y cantidad."""
         purchase = Purchase.objects.create(
             product=self.product,
             quantity=4,
@@ -225,6 +240,7 @@ class PurchaseModelTest(TestCase):
         self.assertEqual(str(purchase), f"{purchase.codigo} - Shampoo x4")
 
     def test_codigo_auto_generated_on_create(self):
+        """Verifica que el código de compra se genere automáticamente al crearla."""
         purchase = Purchase.objects.create(
             product=self.product,
             quantity=5,
@@ -236,6 +252,7 @@ class PurchaseModelTest(TestCase):
         self.assertNotEqual(purchase.codigo, "")
 
     def test_codigo_format_com(self):
+        """Verifica que el código de compra tenga el formato 'COM-{pk}'."""
         purchase = Purchase.objects.create(
             product=self.product,
             quantity=3,
@@ -246,6 +263,7 @@ class PurchaseModelTest(TestCase):
         self.assertEqual(purchase.codigo, f"COM-{purchase.pk}")
 
     def test_codigo_unique(self):
+        """Verifica que el código de compra sea único y no se pueda duplicar."""
         purchase = Purchase.objects.create(
             product=self.product,
             quantity=2,

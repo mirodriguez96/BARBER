@@ -1,13 +1,10 @@
-from datetime import datetime
 from decimal import Decimal
 
 from django.test import TestCase
 from django.urls import reverse
-from django.utils import timezone
 
 from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
-from barberia.operations.models import Sale
 from barberia.people.models import Client, Employee
 from barberia.routers import set_current_db_name
 
@@ -75,18 +72,6 @@ class PaginationIntegrationTest(TestCase):
                 phone=f"700{i:05d}",
             )
 
-    def _sales(self, count: int):
-        for i in range(count):
-            Sale.objects.create(
-                employee=self.employee,
-                client=self.client_web if i % 2 == 0 else None,
-                product=self.service,
-                performed_by=self.user,
-                scheduled_for=timezone.make_aware(datetime(2025, 1, 1, i, 0, 0)),
-                product_price=Decimal("50.00"),
-                commission_amount=Decimal("10.00"),
-            )
-
     # --- Barbers pagination ---
 
     def test_barber_pagination_page_1_shows_10(self):
@@ -117,24 +102,6 @@ class PaginationIntegrationTest(TestCase):
         ids_p1 = {(e["type"], e["pk"]) for e in page1.context["barbers"].object_list}
         ids_p2 = {(e["type"], e["pk"]) for e in page2.context["barbers"].object_list}
         self.assertFalse(ids_p1 & ids_p2)
-
-    # --- Services pagination ---
-
-    def test_services_pagination_page_2_shows_remaining(self):
-        self._sales(12)
-        response = self.http_client.get(self._url_with("sales", page="2"))
-        self.assertEqual(response.status_code, 200)
-        sales = response.context["sales"]
-        self.assertEqual(len(list(sales.object_list)), 2)
-
-    def test_services_pagination_filter_plus_pagination(self):
-        self._sales(15)
-        response = self.http_client.get(
-            self._url_with("sales", filter_barber=self.employee.pk, page="2"),
-        )
-        self.assertEqual(response.status_code, 200)
-        sales = response.context["sales"]
-        self.assertEqual(len(list(sales.object_list)), 5)
 
     # --- Edge cases ---
 

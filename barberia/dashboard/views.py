@@ -5,12 +5,10 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db import transaction
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum, Value
 from django.db.models.functions import Coalesce, TruncDate
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
 
 from barberia.accounts.models import User
 from barberia.catalog.forms import CatalogItemForm
@@ -19,6 +17,7 @@ from barberia.catalog.views import catalog_process
 from barberia.common.models import Company
 from barberia.inventory.models import InventoryMovement
 from barberia.operations.models import Purchase, Sale
+from barberia.operations.views import sales_process
 from barberia.people.models import Client, Employee
 
 from .forms import (
@@ -29,12 +28,8 @@ from .forms import (
     ClientForm,
     CompanyForm,
     InventoryAdjustForm,
-    ProductSaleEditForm,
-    ProductSaleForm,
     PurchaseEditForm,
     PurchaseForm,
-    SaleEditForm,
-    SaleForm,
 )
 from .models import RoleCrudPermission, RoleMenuPermission
 
@@ -404,119 +399,6 @@ def home(request):
             quick_view = "edit"
             client_to_edit = client
             messages.error(request, "Revisa los campos marcados en rojo.")
-        elif section == "sales" and action == "update":
-            if not can_modify_ventas:
-                messages.error(
-                    request,
-                    "No tienes permiso para modificar servicios.",
-                )
-                return redirect(f"{request.path}?section=sales&view=list")
-            sale = get_object_or_404(
-                Sale,
-                pk=request.POST.get("sale_id"),
-            )
-            if not is_admin and sale.employee.user_id != request.user.pk:
-                messages.error(
-                    request,
-                    "No puedes modificar un servicio de otro colaborador.",
-                )
-                return redirect(f"{request.path}?section=sales&view=list")
-            if sale.status == Sale.Status.CANCELED:
-                messages.error(
-                    request,
-                    "No se puede modificar un servicio anulado.",
-                )
-                return redirect(f"{request.path}?section=sales&view=list")
-            original_quantity = sale.quantity
-            original_product_id = sale.product_id
-            if sale.product.kind == CatalogItem.Kind.PRODUCT:
-                form_class = ProductSaleEditForm
-            else:
-                form_class = SaleEditForm
-            form = form_class(
-                request.POST,
-                instance=sale,
-                user=request.user,
-            )
-            if form.is_valid():
-                record = form.save(commit=False)
-                record.performed_by = request.user
-                posted_status = request.POST.get("status")
-                if posted_status in (
-                    Sale.Status.SCHEDULED,
-                    Sale.Status.DONE,
-                ):
-                    record.status = posted_status
-                else:
-                    record.status = Sale.Status.DONE
-                old_is_product = (
-                    original_product_id
-                    and CatalogItem.objects.filter(
-                        pk=original_product_id, kind=CatalogItem.Kind.PRODUCT
-                    ).exists()
-                )
-                new_is_product = record.product.kind == CatalogItem.Kind.PRODUCT
-                same_product = (
-                    old_is_product
-                    and new_is_product
-                    and original_product_id == record.product_id
-                )
-                with transaction.atomic():
-                    if old_is_product and not same_product:
-                        revert_product = sale.product
-                        CatalogItem.objects.filter(pk=revert_product.pk).update(
-                            current_stock=F("current_stock") + original_quantity,
-                        )
-                        InventoryMovement.objects.create(
-                            product=revert_product,
-                            quantity=original_quantity,
-                            movement_type=InventoryMovement.MovementType.ADJUSTMENT,
-                            unit_cost=revert_product.price,
-                            created_by=request.user,
-                            origen=record.codigo,
-                            notes="Ajuste por modificación de venta",
-                        )
-                    if new_is_product:
-                        original_unit_price = (
-                            sale.product_price / original_quantity
-                            if original_quantity
-                            else Decimal("0")
-                        )
-                        record.product_price = original_unit_price * record.quantity
-                        if same_product:
-                            quantity_diff = record.quantity - original_quantity
-                            if quantity_diff != 0:
-                                CatalogItem.objects.filter(pk=record.product_id).update(
-                                    current_stock=F("current_stock") - quantity_diff,
-                                )
-                                InventoryMovement.objects.create(
-                                    product=record.product,
-                                    quantity=-quantity_diff,
-                                    movement_type=InventoryMovement.MovementType.ADJUSTMENT,
-                                    unit_cost=record.product.price,
-                                    created_by=request.user,
-                                    origen=record.codigo,
-                                    notes="Ajuste por modificación de venta",
-                                )
-                        elif not old_is_product:
-                            CatalogItem.objects.filter(pk=record.product_id).update(
-                                current_stock=F("current_stock") - record.quantity,
-                            )
-                            InventoryMovement.objects.create(
-                                product=record.product,
-                                quantity=-record.quantity,
-                                movement_type=InventoryMovement.MovementType.ADJUSTMENT,
-                                unit_cost=record.product.price,
-                                created_by=request.user,
-                                origen=record.codigo,
-                                notes="Ajuste por modificación de venta",
-                            )
-                    record.save()
-                messages.success(request, "Servicio actualizado correctamente.")
-                return redirect(f"{request.path}?section=sales&view=list")
-            quick_view = "edit"
-            sale_to_edit = sale
-            messages.error(request, "Revisa los campos marcados en rojo.")
         elif section == "compras" and action == "save":
             if not can_register_compras:
                 messages.error(
@@ -572,69 +454,6 @@ def home(request):
                 return redirect(f"{request.path}?section=inventory&view=list")
             inventory_adjust_form = form
             messages.error(request, "Revisa los campos marcados en rojo.")
-
-        elif section == "sales" and action == "cancel":
-            cancel_sale_id = request.POST.get("sale_id")
-            _filter_date = request.POST.get(
-                "filter_date", request.GET.get("filter_date", "")
-            )
-            _filter_barber = request.POST.get(
-                "filter_barber", request.GET.get("filter_barber", "")
-            )
-            _parts = []
-            if _filter_date:
-                _parts.append(f"filter_date={_filter_date}")
-            if _filter_barber:
-                _parts.append(f"filter_barber={_filter_barber}")
-            filter_params_local = "&" + "&".join(_parts) if _parts else ""
-            try:
-                sale = Sale.objects.get(pk=cancel_sale_id)
-            except Sale.DoesNotExist:
-                messages.error(request, "Servicio no encontrado.")
-                return redirect(
-                    f"{request.path}?section=sales&view=list{filter_params_local}"
-                )
-
-            if not can_deactivate_ventas:
-                messages.error(request, "No tienes permiso para anular servicios.")
-                return redirect(
-                    f"{request.path}?section=sales&view=list{filter_params_local}"
-                )
-
-            if not is_admin and sale.employee.user_id != request.user.pk:
-                messages.error(
-                    request,
-                    "No puedes anular un servicio de otro colaborador.",
-                )
-                return redirect(
-                    f"{request.path}?section=sales&view=list{filter_params_local}"
-                )
-
-            if sale.status == Sale.Status.CANCELED:
-                messages.info(request, "El servicio ya está anulado.")
-                return redirect(
-                    f"{request.path}?section=sales&view=list{filter_params_local}"
-                )
-
-            sale.status = Sale.Status.CANCELED
-            sale.save(update_fields=["status"])
-            if sale.product.kind == CatalogItem.Kind.PRODUCT:
-                CatalogItem.objects.filter(pk=sale.product_id).update(
-                    current_stock=F("current_stock") + sale.quantity,
-                )
-                InventoryMovement.objects.create(
-                    product=sale.product,
-                    quantity=sale.quantity,
-                    movement_type=InventoryMovement.MovementType.ADJUSTMENT,
-                    unit_cost=sale.product.price,
-                    created_by=request.user,
-                    origen=sale.codigo,
-                    notes="Venta anulada — reversión de stock",
-                )
-            messages.success(request, "Servicio anulado correctamente.")
-            return redirect(
-                f"{request.path}?section=sales&view=list{filter_params_local}"
-            )
 
         elif section == "compras" and action == "update":
             if not can_modify_compras:
@@ -707,13 +526,7 @@ def home(request):
                     return redirect(f"{request.path}?section=barbers&view=list")
                 form_class = ClientForm if record_type == "cliente" else BarberForm
             elif section == "sales":
-                if not can_register_ventas:
-                    messages.error(
-                        request,
-                        "No tienes permiso para registrar servicios.",
-                    )
-                    return redirect(f"{request.path}?section=sales&view=list")
-                form_class = ProductSaleForm if record_type == "producto" else SaleForm
+                form = None
             elif section == "catalog":
                 if action in ("deactivate", "activate", "update"):
                     form = None
@@ -734,40 +547,11 @@ def home(request):
                     messages.error(request, "Revisa los campos marcados en rojo.")
             else:
                 form_class = forms_map.get(section, BarberForm)
-            if section != "catalog":
+            if section not in ("catalog", "sales"):
                 form = form_class(request.POST, user=request.user)
                 if form.is_valid():
                     record = form.save(commit=False)
-                    if section == "sales":
-                        record.performed_by = request.user
-                        if not record.scheduled_for:
-                            record.scheduled_for = timezone.now()
-                        record.status = Sale.Status.DONE
-                        if record.product and record.product_price is None:
-                            record.product_price = record.product.price
-                        if record_type == "producto":
-                            record.product_price = (
-                                record.product.price * record.quantity
-                            )
-                            try:
-                                record.employee = request.user.employee
-                            except Employee.DoesNotExist:
-                                record.employee = None
                     record.save()
-                    if section == "sales" and record_type == "producto":
-                        record.refresh_from_db()
-                        CatalogItem.objects.filter(pk=record.product_id).update(
-                            current_stock=F("current_stock") - record.quantity,
-                        )
-                        unit_price = record.product_price / record.quantity
-                        InventoryMovement.objects.create(
-                            product=record.product,
-                            quantity=-record.quantity,
-                            movement_type=InventoryMovement.MovementType.SALE,
-                            unit_cost=unit_price,
-                            created_by=request.user,
-                            origen=record.codigo,
-                        )
                     messages.success(request, "Registro guardado correctamente.")
                     return redirect(f"{request.path}?section={section}")
                 messages.error(request, "Revisa los campos marcados en rojo.")
@@ -786,29 +570,6 @@ def home(request):
             form = ClientEditForm(instance=client_to_edit)
         else:
             form = BarberForm(user=request.user)
-    elif section == "sales" and quick_view == "edit" and sale_to_edit is not None:
-        if not can_modify_ventas:
-            messages.error(
-                request,
-                "No tienes permiso para modificar servicios.",
-            )
-            return redirect(f"{request.path}?section=sales&view=list")
-        if not is_admin and sale_to_edit.employee.user_id != request.user.pk:
-            messages.error(
-                request,
-                "No puedes modificar un servicio de otro colaborador.",
-            )
-            return redirect(f"{request.path}?section=sales&view=list")
-        if sale_to_edit.product.kind == CatalogItem.Kind.PRODUCT:
-            form = ProductSaleEditForm(
-                instance=sale_to_edit,
-                user=request.user,
-            )
-        else:
-            form = SaleEditForm(
-                instance=sale_to_edit,
-                user=request.user,
-            )
     elif section == "compras" and quick_view == "edit" and purchase_to_edit is not None:
         if not can_modify_compras:
             messages.error(
@@ -828,14 +589,7 @@ def home(request):
             form_class = ClientForm if record_type == "cliente" else BarberForm
             form = form_class(user=request.user)
         elif section == "sales":
-            if quick_view == "form" and not can_register_ventas:
-                messages.error(
-                    request,
-                    "No tienes permiso para registrar servicios.",
-                )
-                return redirect(f"{request.path}?section=sales&view=list")
-            form_class = ProductSaleForm if sale_type == "producto" else SaleForm
-            form = form_class(user=request.user)
+            pass
         elif section == "inventory":
             if quick_view == "form" and not can_adjust_inventory:
                 messages.error(
@@ -884,6 +638,27 @@ def home(request):
         catalog_filter_params = catalog_ctx.get("catalog_filter_params", "")
         catalog_item_to_edit = catalog_ctx.get("catalog_item_to_edit")
 
+    sales = None
+    sale_stats = None
+    filter_params = ""
+
+    if section == "sales":
+        sales_ctx = {
+            "quick_view": quick_view,
+            "section": section,
+            "sale_to_edit": sale_to_edit,
+        }
+        result = sales_process(request, sales_ctx)
+        if isinstance(result, HttpResponseRedirect):
+            return result
+        can_register_ventas = sales_ctx.get("can_register_ventas", False)
+        can_modify_ventas = sales_ctx.get("can_modify_ventas", False)
+        can_deactivate_ventas = sales_ctx.get("can_deactivate_ventas", False)
+        form = sales_ctx.get("form", form)
+        sales = sales_ctx.get("sales")
+        sale_stats = sales_ctx.get("sale_stats")
+        filter_params = sales_ctx.get("filter_params", "")
+
     filter_date = request.GET.get("filter_date", "")
     filter_barber = request.GET.get("filter_barber", "")
     filter_kind = request.GET.get("filter_kind", "")
@@ -892,50 +667,7 @@ def home(request):
     purchase_filter_date = request.GET.get("purchase_filter_date", "")
     purchase_filter_product = request.GET.get("purchase_filter_product", "").strip()
 
-    sale_list = Sale.objects.select_related(
-        "client",
-        "employee",
-        "product",
-        "performed_by",
-    ).order_by("-scheduled_for")
-
-    if request.user.role != User.Role.ADMIN:
-        sale_list = sale_list.filter(employee__user=request.user)
-
-    filtered_sale_list = sale_list
-    if filter_date == "today":
-        filtered_sale_list = filtered_sale_list.filter(
-            scheduled_for__date=date.today(),
-        )
-    elif filter_date:
-        try:
-            parsed = datetime.strptime(filter_date, "%Y-%m-%d").date()
-            filtered_sale_list = filtered_sale_list.filter(
-                scheduled_for__date=parsed,
-            )
-        except ValueError:
-            pass
-
-    if filter_barber:
-        filtered_sale_list = filtered_sale_list.filter(employee_id=filter_barber)
-
-    if filter_kind == "service":
-        filtered_sale_list = filtered_sale_list.filter(
-            product__kind=CatalogItem.Kind.SERVICE,
-        )
-    elif filter_kind == "product":
-        filtered_sale_list = filtered_sale_list.filter(
-            product__kind=CatalogItem.Kind.PRODUCT,
-        )
-
-    filter_parts = []
-    if filter_date:
-        filter_parts.append(f"filter_date={filter_date}")
-    if filter_barber:
-        filter_parts.append(f"filter_barber={filter_barber}")
-    if filter_kind:
-        filter_parts.append(f"filter_kind={filter_kind}")
-    filter_params = "&" + "&".join(filter_parts) if filter_parts else ""
+    filter_params = filter_params if section == "sales" else ""
     barber_filter_params = f"&barber_search={barber_search}" if barber_search else ""
     if barber_type:
         barber_filter_params += f"&barber_type={barber_type}"
@@ -992,10 +724,6 @@ def home(request):
     people_page_number = request.GET.get("page")
     people_page = people_paginator.get_page(people_page_number)
 
-    service_paginator = Paginator(filtered_sale_list, 10)
-    service_page_number = request.GET.get("page")
-    sales = service_paginator.get_page(service_page_number)
-
     barber_stats = {
         "total": barber_qs.count() + client_qs.count(),
         "barbers": barber_qs.count(),
@@ -1004,13 +732,6 @@ def home(request):
         + client_qs.filter(is_active=True).count(),
         "inactive": barber_qs.filter(is_active=False).count()
         + client_qs.filter(is_active=False).count(),
-    }
-    sale_stats = {
-        "total": sale_list.count(),
-        "done": sale_list.filter(status=Sale.Status.DONE).count(),
-        "scheduled": sale_list.filter(status=Sale.Status.SCHEDULED).count(),
-        "sales": sale_list.filter(product__kind=CatalogItem.Kind.SERVICE).count(),
-        "products": sale_list.filter(product__kind=CatalogItem.Kind.PRODUCT).count(),
     }
 
     payments_qs = Employee.objects.all()

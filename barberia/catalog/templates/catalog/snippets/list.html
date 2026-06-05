@@ -29,7 +29,7 @@
             {% endif %}
         </form>
     </div>
-    <div class="dashboard-table-wrap">
+    <div class="dashboard-table-wrap js-drag-scroll">
         <div class="table-responsive">
             <table class="table dashboard-table dashboard-table--catalog align-middle table-hover mb-0">
                 <thead>
@@ -147,8 +147,52 @@
         </div>
     {% endif %}
 </div>
+<style>
+.js-drag-scroll {
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.js-drag-scroll.is-dragging {
+    cursor: grabbing;
+}
+.js-drag-scroll.is-dragging .table-responsive {
+    pointer-events: none;
+}
+</style>
 <script>
 (function(){
+    var wrap = document.querySelector('.js-drag-scroll');
+    if (wrap) {
+        var isDown = false;
+        var startX, scrollLeft;
+
+        wrap.addEventListener('mousedown', function(e) {
+            isDown = true;
+            wrap.classList.add('is-dragging');
+            startX = e.pageX - wrap.offsetLeft;
+            scrollLeft = wrap.scrollLeft;
+        });
+
+        wrap.addEventListener('mouseleave', function() {
+            isDown = false;
+            wrap.classList.remove('is-dragging');
+        });
+
+        wrap.addEventListener('mouseup', function() {
+            isDown = false;
+            wrap.classList.remove('is-dragging');
+        });
+
+        wrap.addEventListener('mousemove', function(e) {
+            if (!isDown) return;
+            e.preventDefault();
+            var x = e.pageX - wrap.offsetLeft;
+            var walk = (x - startX) * 1.5;
+            wrap.scrollLeft = scrollLeft - walk;
+        });
+    }
+
     var catalogSearchInput = document.getElementById('catalog_search');
     var catalogSearchTimer = null;
     var catalogKindInput = document.getElementById('catalog_kind');

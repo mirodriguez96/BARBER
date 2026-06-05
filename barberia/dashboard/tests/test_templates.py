@@ -99,15 +99,6 @@ class DashboardTemplateRenderingTest(TestCase):
             or "colaborador" in body.lower()
         )
 
-    def test_empty_services_shows_message(self):
-        soup = self._soup("sales")
-        body = soup.get_text()
-        self.assertTrue(
-            "no hay" in body.lower() or "sin" in body.lower() or "servicios" in body,
-        )
-
-    # --- Bootstrap form classes ---
-
     def test_barber_form_has_bootstrap_classes(self):
         soup = self._soup("barbers", view="form")
         all_form_controls = soup.select(
@@ -115,23 +106,3 @@ class DashboardTemplateRenderingTest(TestCase):
             "select.form-select, select.form-select-lg",
         )
         self.assertGreater(len(all_form_controls), 0)
-
-    def test_services_form_has_bootstrap_classes(self):
-        soup = self._soup("sales", view="form")
-        all_styled = soup.select(
-            "input.form-control, input.form-control-lg, "
-            "select.form-select, select.form-select-lg",
-        )
-        self.assertGreater(len(all_styled), 0)
-
-    # --- ServiceCatalogSelect data attributes ---
-
-    def test_service_select_has_data_attributes(self):
-        soup = self._soup("sales", view="form")
-        select = soup.find("select", {"name": "product"})
-        if select:
-            options = select.find_all("option", {"data-price": True})
-            self.assertGreater(len(options), 0)
-            for opt in options:
-                self.assertIn("data-price", opt.attrs)
-                self.assertIn("data-commission", opt.attrs)
