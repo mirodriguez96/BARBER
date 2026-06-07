@@ -4,13 +4,8 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 
 from barberia.common.utils import can_deactivate, can_modify, can_register
-from barberia.dashboard.forms import (
-    BarberEditForm,
-    BarberForm,
-    ClientEditForm,
-    ClientForm,
-)
 from barberia.dashboard.models import RoleCrudPermission
+from barberia.people.forms import BarberEditForm, BarberForm, ClientEditForm, ClientForm
 
 from .models import Client, Employee
 
