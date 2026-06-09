@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from barberia.accounts.models import User
 from barberia.catalog.models import CatalogItem
-from barberia.dashboard.forms import SaleEditForm, SaleForm
+from barberia.operations.forms import SaleEditForm, SaleForm
 from barberia.operations.models import Sale
 from barberia.people.models import Client, Employee
 
@@ -45,10 +45,12 @@ class SaleFormTest(TestCase):
         )
 
     def test_barber_queryset_scoped_to_user_employee(self):
+        """Verifica que el campo employee solo muestre el empleado asociado al usuario."""
         form = SaleForm(user=self.user)
         self.assertIn(self.employee, form.fields["employee"].queryset)
 
     def test_barber_queryset_shows_all_for_user_without_employee(self):
+        """Verifica que un usuario sin empleado asociado vea todos los empleados disponibles."""
         other_user = User.objects.create_user(
             username="other",
             password="pass1234",
@@ -58,24 +60,29 @@ class SaleFormTest(TestCase):
         self.assertIn(self.employee, form.fields["employee"].queryset)
 
     def test_service_queryset_filters_active_only(self):
+        """Verifica que solo los servicios activos aparezcan en el campo product."""
         form = SaleForm(user=self.user)
         self.assertIn(self.service, form.fields["product"].queryset)
         self.assertNotIn(self.inactive_service, form.fields["product"].queryset)
 
     def test_client_optional(self):
+        """Verifica que el campo client sea opcional en el formulario."""
         form = SaleForm(user=self.user)
         self.assertFalse(form.fields["client"].required)
 
     def test_service_price_and_commission_readonly(self):
+        """Verifica que los campos product_price y commission_amount sean de solo lectura."""
         form = SaleForm(user=self.user)
         self.assertIn("readonly", form.fields["product_price"].widget.attrs)
         self.assertIn("readonly", form.fields["commission_amount"].widget.attrs)
 
     def test_scheduled_for_initial_set(self):
+        """Verifica que el campo scheduled_for tenga un valor inicial por defecto."""
         form = SaleForm(user=self.user)
         self.assertIsNotNone(form.fields["scheduled_for"].initial)
 
     def test_valid_form_creation(self):
+        """Verifica que el formulario sea válido cuando se envían datos correctos."""
         data = {
             "employee": self.employee.pk,
             "client": self.client.pk,
@@ -90,6 +97,7 @@ class SaleFormTest(TestCase):
         self.assertTrue(form.is_valid(), msg=dict(form.errors))
 
     def test_bootstrap_css_classes(self):
+        """Verifica que todos los campos del formulario tengan clases CSS de Bootstrap."""
         form = SaleForm()
         for field_name, field in form.fields.items():
             widget_cls = field.widget.attrs.get("class", "")
@@ -128,6 +136,7 @@ class SaleEditFormTest(TestCase):
         )
 
     def test_valid_edit(self):
+        """Verifica que la edición de una venta existente sea válida con datos correctos."""
         data = {
             "employee": self.employee.pk,
             "product": self.service.pk,
@@ -142,12 +151,14 @@ class SaleEditFormTest(TestCase):
         self.assertEqual(self.record.tip_amount, Decimal("10.00"))
 
     def test_client_scheduled_for_and_status_not_in_fields(self):
+        """Verifica que los campos client, scheduled_for y status no estén presentes en el formulario de edición."""
         form = SaleEditForm(instance=self.record)
         self.assertNotIn("client", form.fields)
         self.assertNotIn("scheduled_for", form.fields)
         self.assertNotIn("status", form.fields)
 
     def test_notes_is_editable_in_edit_form(self):
+        """Verifica que el campo notes esté presente y sea editable en el formulario de edición."""
         form = SaleEditForm(instance=self.record)
         self.assertIn("notes", form.fields)
         form = SaleEditForm(
@@ -168,24 +179,29 @@ class SaleEditFormTest(TestCase):
         self.assertEqual(self.record.notes, "Cliente pidió corte específico")
 
     def test_barber_queryset_scoped(self):
+        """Verifica que el campo employee del formulario de edición esté filtrado por el usuario."""
         form = SaleEditForm(instance=self.record, user=self.user)
         self.assertIn(self.employee, form.fields["employee"].queryset)
 
     def test_service_queryset_filters_active_only(self):
+        """Verifica que solo los servicios activos aparezcan en el campo product del formulario de edición."""
         form = SaleEditForm(instance=self.record, user=self.user)
         self.assertIn(self.service, form.fields["product"].queryset)
 
     def test_service_price_and_commission_readonly(self):
+        """Verifica que los campos product_price y commission_amount sean de solo lectura en el formulario de edición."""
         form = SaleEditForm(instance=self.record, user=self.user)
         self.assertIn("readonly", form.fields["product_price"].widget.attrs)
         self.assertIn("readonly", form.fields["commission_amount"].widget.attrs)
 
     def test_missing_required_fields(self):
+        """Verifica que el formulario de edición sea inválido si faltan campos obligatorios."""
         form = SaleEditForm({}, instance=self.record, user=self.user)
         self.assertFalse(form.is_valid())
         self.assertIn("employee", form.errors)
 
     def test_bootstrap_css_classes(self):
+        """Verifica que todos los campos del formulario de edición tengan clases CSS de Bootstrap."""
         form = SaleEditForm(instance=self.record)
         for field_name, field in form.fields.items():
             widget_cls = field.widget.attrs.get("class", "")

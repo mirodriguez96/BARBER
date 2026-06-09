@@ -74,7 +74,9 @@
     </div>
     <form method="post" action="{% url 'booking:booking_confirm' service.id %}">
         {% csrf_token %}
-        {% for key, value in data.items %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+        {% for key, value in data.items %}
+            <input type="hidden" name="{{ key }}" value="{{ value }}">
+        {% endfor %}
         <input type="hidden" name="confirm" value="1">
         <div class="btn-pair">
             <a href="{% url 'booking:booking_form' service.id %}"

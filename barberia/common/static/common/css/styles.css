@@ -392,7 +392,7 @@ body.auth-page {
 
 .dashboard-sidebar {
   position: sticky;
-  top: 6rem;
+  top: 0;
   align-self: start;
   padding: 1.5rem;
   color: #fff;

@@ -1,0 +1,202 @@
+<div class="dashboard-table-shell mt-4">
+    <div class="dashboard-table-shell__header">
+        <form method="get"
+              class="dashboard-filters__form dashboard-filters__form--compact">
+            <input type="hidden" name="section" value="sales" />
+            <input type="hidden" name="view" value="list" />
+            <div class="dashboard-filters__group">
+                <span class="dashboard-filters__label">Fecha</span>
+                <div class="dashboard-filters__row">
+                    {% if filter_date == 'today' %}
+                        <span class="dashboard-filters__btn is-active">Hoy</span>
+                        <input type="hidden" name="filter_date" value="today" />
+                    {% else %}
+                        <a href="?section=sales&view=list&filter_date=today{% if filter_barber %}&filter_barber={{ filter_barber }}{% endif %}{% if filter_kind %}&filter_kind={{ filter_kind }}{% endif %}"
+                           class="dashboard-filters__btn">Hoy</a>
+                    {% endif %}
+                    <input type="date"
+                           name="filter_date"
+                           value="{% if filter_date and filter_date != 'today' %}{{ filter_date }}{% endif %}"
+                           class="dashboard-filters__input"
+                           onchange="this.form.submit()"
+                           {% if filter_date == 'today' %}disabled{% endif %} />
+                </div>
+            </div>
+            <div class="dashboard-filters__group">
+                <span class="dashboard-filters__label">Colaborador</span>
+                <select name="filter_barber"
+                        class="dashboard-filters__select"
+                        onchange="this.form.submit()">
+                    <option value="">Todos</option>
+                    {% for barber in active_barbers %}
+                        <option value="{{ barber.pk }}"
+                                {% if filter_barber|stringformat:'s' == barber.pk|stringformat:'s' %}selected{% endif %}>
+                            {{ barber.full_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="dashboard-filters__group">
+                <span class="dashboard-filters__label">Tipo</span>
+                <div class="dashboard-filters__row">
+                    <select name="filter_kind"
+                            class="dashboard-filters__select"
+                            onchange="this.form.submit()">
+                        <option value="">Todos</option>
+                        <option value="service" {% if filter_kind == 'service' %}selected{% endif %}>Servicios</option>
+                        <option value="product" {% if filter_kind == 'product' %}selected{% endif %}>Productos</option>
+                    </select>
+                </div>
+            </div>
+            {% if filter_date or filter_barber or filter_kind %}
+                <a href="?section=sales&view=list" class="dashboard-filters__clear">Limpiar</a>
+            {% endif %}
+        </form>
+    </div>
+    <div class="dashboard-table-wrap js-drag-scroll">
+        <div class="table-responsive">
+            <table class="table dashboard-table dashboard-table--sales align-middle table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th class="col-code">Código</th>
+                        <th>Producto</th>
+                        <th>Colaborador</th>
+                        <th>Cantidad</th>
+                        <th>Total</th>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in sales %}
+                        <tr>
+                            <td class="col-code">
+                                <span class="dashboard-table__meta">{{ record.codigo }}</span>
+                            </td>
+                            <td>
+                                <div class="dashboard-table__primary">{{ record.product.name }}</div>
+                                <div class="dashboard-table__meta">
+                                    {% if record.client %}
+                                        {{ record.client }}
+                                    {% else %}
+                                        Cliente no registrado
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>{{ record.employee.full_name|default:"-" }}</td>
+                            <td>{{ record.quantity }}</td>
+                            <td>${{ record.product_price }}</td>
+                            <td>{{ record.scheduled_for|date:'d/m/Y H:i' }}</td>
+                            <td>
+                                <span class="dashboard-status {% if record.status == 'done' %}is-active{% else %}is-inactive{% endif %}">
+                                    {{ record.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="dashboard-row-actions dashboard-row-actions--controls">
+                                    {% if record.status != 'canceled' and can_modify_ventas %}
+                                        <form method="get" class="dashboard-inline-form">
+                                            <input type="hidden" name="section" value="sales" />
+                                            <input type="hidden" name="view" value="edit" />
+                                            <input type="hidden" name="sale" value="{{ record.pk }}" />
+                                            <button type="submit" class="dashboard-action-btn dashboard-action-btn--edit">Modificar</button>
+                                        </form>
+                                    {% endif %}
+                                    {% if can_deactivate_ventas and record.status != 'canceled' %}
+                                        <form method="post"
+                                              class="dashboard-inline-form js-confirmable"
+                                              data-confirm="¿Anular este registro? Esta acción marcará el registro como Cancelado.">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="section" value="sales" />
+                                            <input type="hidden" name="action" value="cancel" />
+                                            <input type="hidden" name="sale_id" value="{{ record.pk }}" />
+                                            <button type="submit"
+                                                    class="dashboard-action-btn dashboard-action-btn--danger">
+                                                Anular
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="dashboard-empty-state">
+                                <div class="dashboard-empty-state__title">Todavía no hay productos ni servicios registrados.</div>
+                                <div class="dashboard-empty-state__copy">
+                                    Registra el primero desde el formulario para ver
+                                    el listado aquí.
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if sales.paginator.num_pages > 1 %}
+        <div class="dashboard-pagination">
+            {% if sales.has_previous %}
+                <a class="dashboard-pagination__link"
+                   href="?section=sales&view=list{{ filter_params }}&page=1">Primera</a>
+                <a class="dashboard-pagination__link"
+                   href="?section=sales&view=list{{ filter_params }}&page={{ sales.previous_page_number }}">Anterior</a>
+            {% endif %}
+            <span class="dashboard-pagination__info">Página {{ sales.number }} de {{ sales.paginator.num_pages }}</span>
+            {% if sales.has_next %}
+                <a class="dashboard-pagination__link"
+                   href="?section=sales&view=list{{ filter_params }}&page={{ sales.next_page_number }}">Siguiente</a>
+                <a class="dashboard-pagination__link"
+                   href="?section=sales&view=list{{ filter_params }}&page={{ sales.paginator.num_pages }}">Última</a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+<style>
+.js-drag-scroll {
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.js-drag-scroll.is-dragging {
+    cursor: grabbing;
+}
+.js-drag-scroll.is-dragging .table-responsive {
+    pointer-events: none;
+}
+</style>
+<script>
+(function(){
+    var wrap = document.querySelector('.js-drag-scroll');
+    if (wrap) {
+        var isDown = false;
+        var startX, scrollLeft;
+
+        wrap.addEventListener('mousedown', function(e) {
+            isDown = true;
+            startX = e.pageX - wrap.offsetLeft;
+            scrollLeft = wrap.scrollLeft;
+        });
+
+        wrap.addEventListener('mouseleave', function() {
+            isDown = false;
+            wrap.classList.remove('is-dragging');
+        });
+
+        wrap.addEventListener('mouseup', function() {
+            isDown = false;
+            wrap.classList.remove('is-dragging');
+        });
+
+        wrap.addEventListener('mousemove', function(e) {
+            if (!isDown) return;
+            e.preventDefault();
+            wrap.classList.add('is-dragging');
+            var x = e.pageX - wrap.offsetLeft;
+            var walk = (x - startX) * 1.5;
+            wrap.scrollLeft = scrollLeft - walk;
+        });
+    }
+})();
+</script>
