@@ -19,16 +19,16 @@
             <link rel="icon"
                   href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>%E2%9C%82</text></svg>"
                   type="image/svg+xml" />
-            {% endif %}
-        </head>
-        <body class="{% if user.is_authenticated %}app-shell{% else %}auth-page{% endif %}">
-            <main class="{% if user.is_authenticated %}pb-5{% else %}auth-shell{% endif %}">
-                {% block content %}{% endblock %}
-            </main>
-            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-                    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA5ND0dfyY4xXh1i1N3L6xWk4Cq0qX9"
-                    crossorigin="anonymous"></script>
-            <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-            <script src="{% static 'common/js/scripts.js' %}?v=2"></script>
-        </body>
-    </html>
+        {% endif %}
+    </head>
+    <body class="{% if user.is_authenticated %}app-shell{% else %}auth-page{% endif %}">
+        <main class="{% if user.is_authenticated %}pb-5{% else %}auth-shell{% endif %}">
+            {% block content %}{% endblock %}
+        </main>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+                integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA5ND0dfyY4xXh1i1N3L6xWk4Cq0qX9"
+                crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+        <script src="{% static 'common/js/scripts.js' %}?v=2"></script>
+    </body>
+</html>

@@ -911,9 +911,7 @@
                                                     <td>{{ barber.cuts_count }}</td>
                                                     <td>${{ barber.commission_total|floatformat:2 }}</td>
                                                     <td>${{ barber.tip_total|floatformat:2 }}</td>
-                                                    <td>
-                                                        {% with total=barber.commission_total|add:barber.tip_total %}${{ total|floatformat:2 }}{% endwith %}
-                                                    </td>
+                                                    <td>{% with total=barber.commission_total|add:barber.tip_total %}${{ total|floatformat:2 }}{% endwith %}</td>
                                                 </tr>
                                             {% empty %}
                                                 <tr>
@@ -1083,7 +1081,9 @@
                                                     <div class="dashboard-field-card__body">
                                                         {{ field }}
                                                         {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
-                                                        {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>{% endif %}
+                                                        {% if field.errors %}
+                                                            <div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>
+                                                        {% endif %}
                                                     </div>
                                                 </div>
                                             {% endif %}

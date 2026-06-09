@@ -12,9 +12,7 @@
             <form method="post" class="login-form">
                 {% csrf_token %}
                 {% if form.non_field_errors %}
-                    <div class="alert alert-danger">
-                        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
-                    </div>
+                    <div class="alert alert-danger">{% for error in form.non_field_errors %}{{ error }}{% endfor %}</div>
                 {% endif %}
                 {% for field in form %}
                     <div class="login-form-row mb-3">
