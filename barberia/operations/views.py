@@ -157,7 +157,7 @@ def _handle_sales_update(request, context, can_modify_ventas, is_admin):
 
         with transaction.atomic():
             if old_is_product and not same_product:
-                revert_product = sale.product
+                revert_product = CatalogItem.objects.get(pk=original_product_id)
                 CatalogItem.objects.filter(pk=revert_product.pk).update(
                     current_stock=F("current_stock") + original_quantity,
                 )
@@ -192,7 +192,7 @@ def _handle_sales_update(request, context, can_modify_ventas, is_admin):
                             origen=record.codigo,
                             notes="Ajuste por modificación de venta",
                         )
-                elif not old_is_product:
+                else:
                     CatalogItem.objects.filter(pk=record.product_id).update(
                         current_stock=F("current_stock") - record.quantity,
                     )

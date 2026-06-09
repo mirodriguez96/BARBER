@@ -175,7 +175,6 @@
 
         wrap.addEventListener('mousedown', function(e) {
             isDown = true;
-            wrap.classList.add('is-dragging');
             startX = e.pageX - wrap.offsetLeft;
             scrollLeft = wrap.scrollLeft;
         });
@@ -193,6 +192,7 @@
         wrap.addEventListener('mousemove', function(e) {
             if (!isDown) return;
             e.preventDefault();
+            wrap.classList.add('is-dragging');
             var x = e.pageX - wrap.offsetLeft;
             var walk = (x - startX) * 1.5;
             wrap.scrollLeft = scrollLeft - walk;
